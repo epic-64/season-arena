@@ -3,6 +3,7 @@ package io.holonaut.arena.api
 import io.holonaut.arena.engine.*
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.http.content.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -10,6 +11,8 @@ import kotlinx.serialization.Serializable
 
 fun Application.installRoutes() {
     routing {
+        staticResources("/", "static")
+
         get("/health") { call.respond(mapOf("ok" to true)) }
 
         get("/units") { call.respond(UNITS.values.map { it.toDto() }) }
