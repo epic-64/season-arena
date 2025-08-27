@@ -1,5 +1,7 @@
 plugins {
     kotlin("jvm") version "2.0.21"
+    kotlin("plugin.serialization") version "2.0.21"
+    application
 }
 
 group = "io.holonaut"
@@ -10,7 +12,20 @@ repositories {
 }
 
 dependencies {
+    // Ktor server
+    implementation("io.ktor:ktor-server-netty:3.0.0")
+    implementation("io.ktor:ktor-server-content-negotiation:3.0.0")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.0")
+
+    // Logging (quiet and simple)
+    implementation("ch.qos.logback:logback-classic:1.5.6")
+
     testImplementation(kotlin("test"))
+}
+
+application {
+    // Default package and file names below
+    mainClass.set("io.holonaut.arena.AppKt")
 }
 
 tasks.test {
