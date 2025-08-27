@@ -42,6 +42,9 @@
           display:inline-block;
           transition:opacity 0.2s;
         }
+        #resp {
+          display: none;
+        }
     </style>
 </head>
 <body>
@@ -101,6 +104,7 @@
       updateRouteMeta();
     }
 
+    // Hide response box when switching routes
     function updateRouteMeta() {
       const sel = document.getElementById('routeSel');
       const opt = sel.options[sel.selectedIndex];
@@ -116,6 +120,7 @@
       } else if (method === 'GET' || method === 'DELETE') {
         body.value = '';
       }
+      document.getElementById('resp').style.display = 'none';
     }
 
     async function send() {
@@ -139,6 +144,7 @@
       } catch (e) {
         document.getElementById('status').innerHTML = `<span class="bad">Request error: ${e}</span>`;
         document.querySelector('#resp code').textContent = '';
+        document.getElementById('resp').style.display = 'none';
         return;
       }
 
@@ -149,6 +155,7 @@
       const cls = resp.ok ? 'ok' : 'bad';
       statusEl.innerHTML = `<span class="${cls}">${resp.status} ${resp.statusText}</span> ────────── ${url}`;
       document.querySelector('#resp code').textContent = pretty;
+      document.getElementById('resp').style.display = pretty.trim() ? 'block' : 'none';
     }
 
     const respPre = document.getElementById('resp');
