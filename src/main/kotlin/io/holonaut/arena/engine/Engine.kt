@@ -130,7 +130,7 @@ private fun applyBleedTick(fighters: MutableList<Fighter>, events: MutableList<R
 }
 
 private fun pickFrontAliveEnemy(team: Int, fighters: List<Fighter>): Fighter? =
-    fighters.filter { it.team != team && it.alive }.sortedBy { it.slot }.firstOrNull()
+    fighters.filter { it.team != team && it.alive }.minByOrNull { it.slot }
 
 private fun lowestHpAlly(team: Int, fighters: List<Fighter>): Fighter? =
     fighters.filter { it.team == team && it.alive }.minByOrNull { it.hp }

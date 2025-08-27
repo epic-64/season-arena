@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Season Arena REST Client</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        body { font-family: ui-sans-serif, system-ui, Arial; margin: 24px; max-width: 980px; }
+        h1 { margin: 0 0 12px; font-size: 22px; }
+        .row { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+        select, input, textarea, button { font: inherit; padding: 8px; }
+        textarea { width: 100%; height: 160px; }
+        pre { background: #111; color: #ddd; padding: 12px; overflow: auto; border-radius: 6px; }
+        code { white-space: pre-wrap; }
+        .meta { color:#666; font-size: 12px; }
+        .pill { padding: 2px 8px; border-radius: 999px; background:#eee; margin-left: 6px; font-size:12px;}
+        .ok { color: #1a7f37 }
+        .bad { color: #b91c1c }
+    </style>
+</head>
+<body>
+<h1>Season Arena ────────── Dev REST Client <span id="env" class="pill"></span></h1>
+
+<div class="row">
+    <label for="routeSel">Route:</label>
+    <select id="routeSel"></select>
+    <span id="desc" class="meta"></span>
+</div>
+
+<div class="row">
+    <label for="methodSel">Method:</label>
+    <select id="methodSel">
+        <option>GET</option>
+        <option>POST</option>
+        <option>PUT</option>
+        <option>PATCH</option>
+        <option>DELETE</option>
+    </select>
+    <input id="query" placeholder="Optional query (?key=value&...)" size="40" />
+    <button id="sendBtn">Send</button>
+</div>
+
+<div class="row">
+    <label>Body (JSON):</label>
+</div>
+<textarea id="body"></textarea>
+
+<h3>Response</h3>
+<div id="status"></div>
+<pre id="resp"><code></code></pre>
+
+<script>
+    async function loadConfig() {
+      try {
+        const cfg = await (await fetch('/_config')).json();
+        document.getElementById('env').textContent = `${cfg.env} @ ${window.location.origin}`;
+      } catch {
+        document.getElementById('env').textContent = window.location.origin;
+      }
+    }
+
+    async function loadRoutes() {
+      const res = await fetch('/_routes');
+      const routes = await res.json();
+      const sel = document.getElementById('routeSel');
+      sel.innerHTML = '';
+      routes.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.path + '|' + r.method;
+        opt.textContent = `${r.method} ${r.path}`;
+        opt.dataset.desc = r.description || '';
+        opt.dataset.sample = r.sampleBody || '';
+        sel.appendChild(opt);
+      });
+      updateRouteMeta();
+    }
+
+    function updateRouteMeta() {
+      const sel = document.getElementById('routeSel');
+      const opt = sel.options[sel.selectedIndex];
+      document.getElementById('desc').textContent = (opt?.dataset?.desc) || '';
+      const mSel = document.getElementById('methodSel');
+      const method = (opt?.value?.split('|')[1]) || 'GET';
+      mSel.value = method;
+      const sample = opt?.dataset?.sample;
+      const body = document.getElementById('body');
+      if (sample) {
+        try { body.value = JSON.stringify(JSON.parse(sample), null, 2); }
+        catch { body.value = sample; }
+      } else if (method === 'GET' || method === 'DELETE') {
+        body.value = '';
+      }
+    }
+
+    async function send() {
+      const sel = document.getElementById('routeSel');
+      const [path, defaultMethod] = sel.value.split('|');
+      const method = document.getElementById('methodSel').value || defaultMethod;
+      const query = document.getElementById('query').value.trim();
+      const url = path + (query ? (path.includes('?') ? '&' : '?') + query.replace(/^\?/, '') : '');
+      const bodyText = document.getElementById('body').value.trim();
+
+      const init = { method, headers: {} };
+      if (method !== 'GET' && method !== 'DELETE' && bodyText) {
+        init.headers['content-type'] = 'application/json';
+        init.body = bodyText;
+      }
+
+      let resp, text;
+      try {
+        resp = await fetch(url, init);
+        text = await resp.text();
+      } catch (e) {
+        document.getElementById('status').innerHTML = `<span class="bad">Request error: ${e}</span>`;
+        document.querySelector('#resp code').textContent = '';
+        return;
+      }
+
+      let pretty = text;
+      try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch {}
+
+      const statusEl = document.getElementById('status');
+      const cls = resp.ok ? 'ok' : 'bad';
+      statusEl.innerHTML = `<span class="${cls}">${resp.status} ${resp.statusText}</span> ────────── ${url}`;
+      document.querySelector('#resp code').textContent = pretty;
+    }
+
+    document.getElementById('routeSel').addEventListener('change', updateRouteMeta);
+    document.getElementById('sendBtn').addEventListener('click', send);
+
+    loadConfig();
+    loadRoutes();
+</script>
+</body>
+</html>
