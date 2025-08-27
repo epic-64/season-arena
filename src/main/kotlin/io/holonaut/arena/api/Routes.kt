@@ -13,6 +13,17 @@ fun Application.installRoutes() {
     routing {
         staticResources("/", "static")
 
+        // Config for the page
+        get("/_config") {
+            call.respond(mapOf(
+                "env" to (System.getenv("ENV") ?: "dev"),
+                "version" to "0.1.0"
+            ))
+        }
+
+        // Routes list for the dropdown
+        get("/_routes") { call.respond(ApiRegistry.routes) }
+
         get("/health") { call.respond(mapOf("ok" to true)) }
 
         get("/units") { call.respond(UNITS.values.map { it.toDto() }) }
