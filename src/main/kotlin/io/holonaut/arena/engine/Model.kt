@@ -39,7 +39,8 @@ data class Fighter(
     val alive get() = hp > 0
 }
 
-@Serializable data class ReplayEvent(
+@Serializable
+data class ReplayEvent(
     val turn: Int,
     val actor: ActorRef,
     val ability: String,
@@ -50,15 +51,20 @@ data class Fighter(
     val board: BoardSnapshot
 )
 
-@Serializable data class ActorRef(val team: Int, val slot: Int, val name: String)
+@Serializable
+data class ActorRef(val team: Int, val slot: Int, val name: String)
 
-@Serializable data class BoardSnapshot(
+@Serializable
+data class BoardSnapshot(
     val team1: List<FighterSnapshot>,
     val team2: List<FighterSnapshot>
 )
-@Serializable data class FighterSnapshot(val name: String, val hp: Int, val shield: Int, val bleed: Int)
 
-@Serializable data class SimResult(
+@Serializable
+data class FighterSnapshot(val name: String, val hp: Int, val shield: Int, val bleed: Int)
+
+@Serializable
+data class SimResult(
     val winner: Int,       // 0 draw, 1 or 2
     val turns: Int,
     val events: List<ReplayEvent>
