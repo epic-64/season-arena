@@ -27,12 +27,9 @@ fun main() {
     }.start(wait = true)
 }
 
-// Register known routes so the dropdown has entries immediately
 private fun registerKnownRoutes() {
     ApiRegistry.register(HttpMethod.Get, "/health", "Server health check")
     ApiRegistry.register(HttpMethod.Get, "/units", "List available unit templates")
-    ApiRegistry.register(
-        HttpMethod.Post, "/simulate", "Simulate a 3v3 match",
-        """{"team1":["guardian","ranger","healer"],"team2":["berserker","assassin","mage"]}"""
-    )
+    ApiRegistry.register(HttpMethod.Post, "/simulate", "Simulate a 3v3 match",
+        """{"team1":["guardian","ranger","healer"],"team2":["berserker","assassin","mage"]}""")
 }
