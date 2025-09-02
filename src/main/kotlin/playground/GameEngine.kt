@@ -11,21 +11,27 @@ data class Buff(
     val dot: Int = 0 // Damage over time per turn
 )
 
-// --- Skills ---
-sealed class SkillType {
-    object Damage : SkillType()
-    object Heal : SkillType()
-    object Buff : SkillType()
-    object Debuff : SkillType()
+// --- Skill Effects ---
+sealed class SkillEffectType {
+    object Damage : SkillEffectType()
+    object Heal : SkillEffectType()
+    object Buff : SkillEffectType()
+    object Debuff : SkillEffectType()
+    // Add more types as needed
 }
 
+data class SkillEffect(
+    val type: SkillEffectType,
+    val power: Int = 0,
+    val targetRule: (Actor, List<Actor>, List<Actor>) -> List<Actor>,
+    val buff: Buff? = null // For buff/debuff effects
+)
+
+// --- Skills ---
 data class Skill(
     val name: String,
-    val type: SkillType,
-    val power: Int,
-    val targetRule: (Actor, List<Actor>, List<Actor>) -> List<Actor>, // (self, allies, enemies) -> targets
+    val effects: List<SkillEffect>,
     val activationRule: (Actor, List<Actor>, List<Actor>) -> Boolean = { _, _, _ -> true }, // Should use this skill?
-    val buff: Buff? = null, // For buff/debuff skills
     val cooldown: Int // cooldown in turns
 )
 
@@ -116,10 +122,8 @@ class BattleSimulation(
 
     fun run(): List<CombatEvent> {
         val log = mutableListOf<CombatEvent>()
-        // Only log the initial state once, before the first turn
         log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
         while (teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isNotEmpty()) {
-            // Increment turn before logging, so the first turn is 1
             turn++
             log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
             val allActors = (teamA.aliveActors() + teamB.aliveActors()).shuffled()
@@ -128,9 +132,11 @@ class BattleSimulation(
                 val allies = if (actor.team == 0) teamA.aliveActors() else teamB.aliveActors()
                 val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
                 val skill = pickSkill(actor, allies, enemies)
-                val targets = skill.targetRule(actor, allies, enemies)
-                log.add(CombatEvent.SkillUsed(actor.name, skill.name, targets.map { it.name }, snapshotActors(listOf(teamA, teamB))))
-                applySkill(actor, skill, targets, log)
+                if (skill != null) {
+                    log.add(CombatEvent.SkillUsed(actor.name, skill.name, emptyList(), snapshotActors(listOf(teamA, teamB))))
+                    applySkill(actor, skill, allies, enemies, log)
+                }
+                // else: actor skips turn
             }
             processBuffs(teamA, log)
             processBuffs(teamB, log)
@@ -140,30 +146,35 @@ class BattleSimulation(
         return log
     }
 
-    private fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill {
-        return actor.skills.firstOrNull { it.activationRule(actor, allies, enemies) } ?: actor.skills.first()
+    private fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill? {
+        // Only pick skills that are not on cooldown
+        val availableSkills = actor.skills.filter { (actor.cooldowns[it] ?: 0) <= 0 }
+        return availableSkills.firstOrNull { it.activationRule(actor, allies, enemies) } ?: availableSkills.firstOrNull()
     }
 
-    private fun applySkill(actor: Actor, skill: Skill, targets: List<Actor>, log: MutableList<CombatEvent>) {
-        when (skill.type) {
-            SkillType.Damage -> {
-                for (target in targets) {
-                    val dmg = max(1, skill.power + (actor.stats["atk"] ?: 0))
-                    target.hp = max(0, target.hp - dmg)
-                    log.add(CombatEvent.DamageDealt(actor.name, target.name, dmg, target.hp, snapshotActors(listOf(teamA, teamB))))
+    private fun applySkill(actor: Actor, skill: Skill, allies: List<Actor>, enemies: List<Actor>, log: MutableList<CombatEvent>) {
+        for (effect in skill.effects) {
+            val targets = effect.targetRule(actor, allies, enemies)
+            when (effect.type) {
+                SkillEffectType.Damage -> {
+                    for (target in targets) {
+                        val dmg = max(1, effect.power + (actor.stats["atk"] ?: 0))
+                        target.hp = max(0, target.hp - dmg)
+                        log.add(CombatEvent.DamageDealt(actor.name, target.name, dmg, target.hp, snapshotActors(listOf(teamA, teamB))))
+                    }
                 }
-            }
-            SkillType.Heal -> {
-                for (target in targets) {
-                    val heal = max(1, skill.power + (actor.stats["matk"] ?: 0))
-                    target.hp = min(target.maxHp, target.hp + heal)
-                    log.add(CombatEvent.Healed(actor.name, target.name, heal, target.hp, snapshotActors(listOf(teamA, teamB))))
+                SkillEffectType.Heal -> {
+                    for (target in targets) {
+                        val heal = max(1, effect.power + (actor.stats["matk"] ?: 0))
+                        target.hp = min(target.maxHp, target.hp + heal)
+                        log.add(CombatEvent.Healed(actor.name, target.name, heal, target.hp, snapshotActors(listOf(teamA, teamB))))
+                    }
                 }
-            }
-            SkillType.Buff, SkillType.Debuff -> {
-                for (target in targets) {
-                    skill.buff?.let { target.buffs.add(it.copy()) }
-                    skill.buff?.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
+                SkillEffectType.Buff, SkillEffectType.Debuff -> {
+                    for (target in targets) {
+                        effect.buff?.let { target.buffs.add(it.copy()) }
+                        effect.buff?.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
+                    }
                 }
             }
         }
@@ -186,8 +197,8 @@ class BattleSimulation(
             for (buff in expired) {
                 log.add(CombatEvent.BuffExpired(actor.name, buff.id, snapshotActors(listOf(teamA, teamB))))
             }
-            // Decrease cooldowns
-            actor.cooldowns.replaceAll { _, v -> v - 1 }
+            // Decrease cooldowns and clamp to zero
+            actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
         }
     }
 }
@@ -233,38 +244,78 @@ val strikeActivationRule: (Actor, List<Actor>, List<Actor>) -> Boolean = { actor
 
 val singleAttack = Skill(
     name = "Strike",
-    type = SkillType.Damage,
-    power = 20,
-    targetRule = { _, _, enemies -> listOf(enemies.firstOrNull() ?: error("No enemy")) },
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.Damage,
+            power = 20,
+            targetRule = { _, _, enemies -> listOf(enemies.firstOrNull() ?: error("No enemy")) }
+        )
+    ),
     activationRule = strikeActivationRule,
     cooldown = 0
 )
 
 val aoeAttack = Skill(
     name = "Fireball",
-    type = SkillType.Damage,
-    power = 10,
-    targetRule = { _, _, enemies -> if (enemies.size >= 3) enemies else listOf(enemies.firstOrNull() ?: error("No enemy")) },
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.Damage,
+            power = 10,
+            targetRule = { _, _, enemies -> if (enemies.size >= 3) enemies else listOf(enemies.firstOrNull() ?: error("No enemy")) }
+        ),
+        SkillEffect(
+            type = SkillEffectType.Heal,
+            power = 5,
+            targetRule = { _, allies, _ -> allies }
+        )
+    ),
     activationRule = { _, _, enemies -> enemies.size >= 3 },
     cooldown = 2
 )
 
 val healSkill = Skill(
     name = "Heal",
-    type = SkillType.Heal,
-    power = 15,
-    targetRule = { _, allies, _ -> listOf(allies.minByOrNull { it.hp } ?: error("No ally")) },
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.Heal,
+            power = 15,
+            targetRule = { _, allies, _ -> listOf(allies.minByOrNull { it.hp } ?: error("No ally")) }
+        )
+    ),
     activationRule = { _, allies, _ -> allies.any { it.hp < it.maxHp / 2 } },
     cooldown = 1
 )
 
 val dotDebuff = Skill(
     name = "Poison",
-    type = SkillType.Debuff,
-    power = 0,
-    targetRule = { _, _, enemies -> listOf(enemies.firstOrNull() ?: error("No enemy")) },
-    buff = Buff(id = "Poison", duration = 3, dot = 5),
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.Debuff,
+            power = 0,
+            targetRule = { _, _, enemies -> listOf(enemies.firstOrNull() ?: error("No enemy")) },
+            buff = Buff(id = "Poison", duration = 3, dot = 5)
+        )
+    ),
     cooldown = 1
+)
+
+val hotBuff = Skill(
+    name = "Regeneration",
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.Buff,
+            power = 0,
+            targetRule = { actor, _, _ -> listOf(actor) }, // Self-target
+            buff = Buff(id = "Regen", duration = 3, dot = -10) // Negative dot = heal over time
+        ),
+        SkillEffect(
+            type = SkillEffectType.Buff,
+            power = 0,
+            targetRule = { actor, _, _ -> listOf(actor) },
+            buff = Buff(id = "Resist", duration = 3, statChanges = mapOf("def" to 10))
+        )
+    ),
+    cooldown = 2
 )
 
 // --- Example Usage ---
@@ -273,14 +324,14 @@ fun main() {
         name = "Hero",
         hp = 100,
         maxHp = 100,
-        skills = listOf(healSkill, singleAttack), // Heal first, then Strike
+        skills = listOf(healSkill, singleAttack, hotBuff), // Heal, Strike, Regen
         team = 0
     )
     val actorB = Actor(
         name = "Villain",
         hp = 100,
         maxHp = 100,
-        skills = listOf(dotDebuff, singleAttack), // Poison first, then Strike
+        skills = listOf(dotDebuff, singleAttack, aoeAttack), // Poison, Strike, Fireball
         team = 1
     )
     val teamA = Team(mutableListOf(actorA))
