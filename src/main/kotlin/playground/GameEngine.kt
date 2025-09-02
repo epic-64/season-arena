@@ -46,16 +46,61 @@ data class Team(val actors: MutableList<Actor>) {
     fun aliveActors() = actors.filter { it.isAlive }
 }
 
+// --- Actor Snapshot Data Structure ---
+data class ActorSnapshot(
+    val name: String,
+    val hp: Int,
+    val maxHp: Int,
+    val team: Int,
+    val stats: Map<String, Int>,
+    val buffs: List<BuffSnapshot>
+)
+
+data class BuffSnapshot(
+    val id: String,
+    val duration: Int,
+    val statChanges: Map<String, Int>,
+    val dot: Int
+)
+
+data class BattleSnapshot(
+    val actors: List<ActorSnapshot>
+)
+
+fun snapshotActors(teams: List<Team>): BattleSnapshot {
+    return BattleSnapshot(
+        actors = teams.flatMap { team ->
+            team.actors.map { actor ->
+                ActorSnapshot(
+                    name = actor.name,
+                    hp = actor.hp,
+                    maxHp = actor.maxHp,
+                    team = actor.team,
+                    stats = actor.stats.toMap(),
+                    buffs = actor.buffs.map { buff ->
+                        BuffSnapshot(
+                            id = buff.id,
+                            duration = buff.duration,
+                            statChanges = buff.statChanges,
+                            dot = buff.dot
+                        )
+                    }
+                )
+            }
+        }
+    )
+}
+
 // --- Combat Event Data Structure ---
 sealed class CombatEvent {
-    data class TurnStart(val turn: Int) : CombatEvent()
-    data class SkillUsed(val actor: String, val skill: String, val targets: List<String>) : CombatEvent()
-    data class DamageDealt(val source: String, val target: String, val amount: Int, val targetHp: Int) : CombatEvent()
-    data class Healed(val source: String, val target: String, val amount: Int, val targetHp: Int) : CombatEvent()
-    data class BuffApplied(val source: String, val target: String, val buffId: String) : CombatEvent()
-    data class BuffExpired(val target: String, val buffId: String) : CombatEvent()
-    data class DotApplied(val target: String, val buffId: String, val amount: Int, val targetHp: Int) : CombatEvent()
-    data class BattleEnd(val winner: String) : CombatEvent()
+    data class TurnStart(val turn: Int, val snapshot: BattleSnapshot) : CombatEvent()
+    data class SkillUsed(val actor: String, val skill: String, val targets: List<String>, val snapshot: BattleSnapshot) : CombatEvent()
+    data class DamageDealt(val source: String, val target: String, val amount: Int, val targetHp: Int, val snapshot: BattleSnapshot) : CombatEvent()
+    data class Healed(val source: String, val target: String, val amount: Int, val targetHp: Int, val snapshot: BattleSnapshot) : CombatEvent()
+    data class BuffApplied(val source: String, val target: String, val buffId: String, val snapshot: BattleSnapshot) : CombatEvent()
+    data class BuffExpired(val target: String, val buffId: String, val snapshot: BattleSnapshot) : CombatEvent()
+    data class DotApplied(val target: String, val buffId: String, val amount: Int, val targetHp: Int, val snapshot: BattleSnapshot) : CombatEvent()
+    data class BattleEnd(val winner: String, val snapshot: BattleSnapshot) : CombatEvent()
 }
 
 // --- Game Engine ---
@@ -67,9 +112,9 @@ class GameEngine(
 
     fun simulateBattle(): List<CombatEvent> {
         val log = mutableListOf<CombatEvent>()
-        log.add(CombatEvent.TurnStart(turn = 0))
+        log.add(CombatEvent.TurnStart(turn = 0, snapshotActors(listOf(teamA, teamB))))
         while (teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isNotEmpty()) {
-            log.add(CombatEvent.TurnStart(turn))
+            log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
             val allActors = (teamA.aliveActors() + teamB.aliveActors()).shuffled()
             for (actor in allActors) {
                 if (!actor.isAlive) continue
@@ -77,7 +122,7 @@ class GameEngine(
                 val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
                 val skill = pickSkill(actor, allies, enemies)
                 val targets = skill.targetRule(actor, allies, enemies)
-                log.add(CombatEvent.SkillUsed(actor.name, skill.name, targets.map { it.name }))
+                log.add(CombatEvent.SkillUsed(actor.name, skill.name, targets.map { it.name }, snapshotActors(listOf(teamA, teamB))))
                 applySkill(actor, skill, targets, log)
             }
             processBuffs(teamA, log)
@@ -85,7 +130,7 @@ class GameEngine(
             turn++
         }
         val winner = if (teamA.aliveActors().isNotEmpty()) "Team A" else "Team B"
-        log.add(CombatEvent.BattleEnd(winner))
+        log.add(CombatEvent.BattleEnd(winner, snapshotActors(listOf(teamA, teamB))))
         return log
     }
 
@@ -99,20 +144,20 @@ class GameEngine(
                 for (target in targets) {
                     val dmg = max(1, skill.power + (actor.stats["atk"] ?: 0))
                     target.hp = max(0, target.hp - dmg)
-                    log.add(CombatEvent.DamageDealt(actor.name, target.name, dmg, target.hp))
+                    log.add(CombatEvent.DamageDealt(actor.name, target.name, dmg, target.hp, snapshotActors(listOf(teamA, teamB))))
                 }
             }
             SkillType.Heal -> {
                 for (target in targets) {
                     val heal = max(1, skill.power + (actor.stats["matk"] ?: 0))
                     target.hp = min(target.maxHp, target.hp + heal)
-                    log.add(CombatEvent.Healed(actor.name, target.name, heal, target.hp))
+                    log.add(CombatEvent.Healed(actor.name, target.name, heal, target.hp, snapshotActors(listOf(teamA, teamB))))
                 }
             }
             SkillType.Buff, SkillType.Debuff -> {
                 for (target in targets) {
                     skill.buff?.let { target.buffs.add(it.copy()) }
-                    skill.buff?.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id)) }
+                    skill.buff?.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
                 }
             }
         }
@@ -124,14 +169,14 @@ class GameEngine(
             for (buff in actor.buffs) {
                 if (buff.dot != 0) {
                     actor.hp = max(0, actor.hp - buff.dot)
-                    log.add(CombatEvent.DotApplied(actor.name, buff.id, buff.dot, actor.hp))
+                    log.add(CombatEvent.DotApplied(actor.name, buff.id, buff.dot, actor.hp, snapshotActors(listOf(teamA, teamB))))
                 }
             }
             actor.buffs.replaceAll { it.copy(duration = it.duration - 1) }
             expired.addAll(actor.buffs.filter { it.duration <= 0 })
             actor.buffs.removeAll { it.duration <= 0 }
             for (buff in expired) {
-                log.add(CombatEvent.BuffExpired(actor.name, buff.id))
+                log.add(CombatEvent.BuffExpired(actor.name, buff.id, snapshotActors(listOf(teamA, teamB))))
             }
         }
     }
@@ -200,6 +245,21 @@ fun main() {
             is CombatEvent.DotApplied -> println("${event.target} takes ${event.amount} DoT from ${event.buffId}! (HP: ${event.targetHp})")
             is CombatEvent.BuffExpired -> println("${event.target}'s buff/debuff ${event.buffId} expired.")
             is CombatEvent.BattleEnd -> println("Battle Over! Winner: ${event.winner}")
+        }
+        // Print actor snapshot after each event
+        val snapshot = when (event) {
+            is CombatEvent.TurnStart -> event.snapshot
+            is CombatEvent.SkillUsed -> event.snapshot
+            is CombatEvent.DamageDealt -> event.snapshot
+            is CombatEvent.Healed -> event.snapshot
+            is CombatEvent.BuffApplied -> event.snapshot
+            is CombatEvent.BuffExpired -> event.snapshot
+            is CombatEvent.DotApplied -> event.snapshot
+            is CombatEvent.BattleEnd -> event.snapshot
+        }
+        println("Actors:")
+        for (actor in snapshot.actors) {
+            println("  ${actor.name} (Team ${actor.team}): HP=${actor.hp}/${actor.maxHp}, Stats=${actor.stats}, Buffs=[${actor.buffs.joinToString { b -> "${b.id}(dur=${b.duration},dot=${b.dot},stats=${b.statChanges})" }}]")
         }
     }
 }
