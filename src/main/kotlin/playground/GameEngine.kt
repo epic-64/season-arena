@@ -121,9 +121,11 @@ class BattleSimulation(
     private var turn: Int = 0
 
     fun run(): List<CombatEvent> {
+        val maxTurns = 100
         val log = mutableListOf<CombatEvent>()
         log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
-        while (teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isNotEmpty()) {
+
+        while (teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isNotEmpty() && turn < maxTurns) {
             turn++
             log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
             val allActors = (teamA.aliveActors() + teamB.aliveActors()).shuffled()
@@ -141,7 +143,11 @@ class BattleSimulation(
             processBuffs(teamA, log)
             processBuffs(teamB, log)
         }
-        val winner = if (teamA.aliveActors().isNotEmpty()) "Team A" else "Team B"
+        val winner = when {
+            teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isEmpty() -> "Team A"
+            teamB.aliveActors().isNotEmpty() && teamA.aliveActors().isEmpty() -> "Team B"
+            else -> "Draw (turn limit reached)"
+        }
         log.add(CombatEvent.BattleEnd(winner, snapshotActors(listOf(teamA, teamB))))
         return log
     }
