@@ -135,7 +135,12 @@ class BattleSimulation(
                 val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
                 val skill = pickSkill(actor, allies, enemies)
                 if (skill != null) {
-                    log.add(CombatEvent.SkillUsed(actor.name, skill.name, emptyList(), snapshotActors(listOf(teamA, teamB))))
+                    // Collect all unique target names for this skill
+                    val targetNames = skill.effects
+                        .flatMap { it.targetRule(actor, allies, enemies) }
+                        .map { it.name }
+                        .distinct()
+                    log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, snapshotActors(listOf(teamA, teamB))))
                     applySkill(actor, skill, allies, enemies, log)
                 }
                 // else: actor skips turn
