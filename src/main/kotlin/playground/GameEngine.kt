@@ -25,7 +25,8 @@ data class Skill(
     val power: Int,
     val targetRule: (Actor, List<Actor>, List<Actor>) -> List<Actor>, // (self, allies, enemies) -> targets
     val activationRule: (Actor, List<Actor>, List<Actor>) -> Boolean = { _, _, _ -> true }, // Should use this skill?
-    val buff: Buff? = null // For buff/debuff skills
+    val buff: Buff? = null, // For buff/debuff skills
+    val cooldown: Int // cooldown in turns
 )
 
 // --- Actor ---
@@ -36,7 +37,8 @@ data class Actor(
     val skills: List<Skill>,
     val team: Int, // 0 or 1
     val stats: MutableMap<String, Int> = mutableMapOf(),
-    val buffs: MutableList<Buff> = mutableListOf()
+    val buffs: MutableList<Buff> = mutableListOf(),
+    val cooldowns: MutableMap<Skill, Int> = mutableMapOf() // skill -> turns left
 ) {
     val isAlive: Boolean get() = hp > 0
 }
@@ -53,7 +55,8 @@ data class ActorSnapshot(
     val maxHp: Int,
     val team: Int,
     val stats: Map<String, Int>,
-    val buffs: List<BuffSnapshot>
+    val buffs: List<BuffSnapshot>,
+    val cooldowns: Map<String, Int> // skill name -> cooldown
 )
 
 data class BuffSnapshot(
@@ -84,7 +87,8 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
                             statChanges = buff.statChanges,
                             dot = buff.dot
                         )
-                    }
+                    },
+                    cooldowns = actor.skills.associate { it.name to (actor.cooldowns[it] ?: 0) }
                 )
             }
         }
@@ -163,6 +167,8 @@ class BattleSimulation(
                 }
             }
         }
+        // Apply cooldown
+        actor.cooldowns[skill] = skill.cooldown
     }
 
     private fun processBuffs(team: Team, log: MutableList<CombatEvent>) {
@@ -180,14 +186,9 @@ class BattleSimulation(
             for (buff in expired) {
                 log.add(CombatEvent.BuffExpired(actor.name, buff.id, snapshotActors(listOf(teamA, teamB))))
             }
+            // Decrease cooldowns
+            actor.cooldowns.replaceAll { _, v -> v - 1 }
         }
-    }
-}
-
-// --- GameEngine ---
-object GameEngine {
-    fun startBattle(teamA: Team, teamB: Team): BattleSimulation {
-        return BattleSimulation(teamA, teamB)
     }
 }
 
@@ -208,6 +209,7 @@ object BattleLogPrinter {
             // Print actor snapshot after each event
             val snapshot = when (event) {
                 is CombatEvent.TurnStart -> event.snapshot
+                is CombatEvent.BattleEnd -> event.snapshot
                 else -> null
             }
 
@@ -234,7 +236,8 @@ val singleAttack = Skill(
     type = SkillType.Damage,
     power = 20,
     targetRule = { _, _, enemies -> listOf(enemies.firstOrNull() ?: error("No enemy")) },
-    activationRule = strikeActivationRule
+    activationRule = strikeActivationRule,
+    cooldown = 0
 )
 
 val aoeAttack = Skill(
@@ -242,7 +245,8 @@ val aoeAttack = Skill(
     type = SkillType.Damage,
     power = 10,
     targetRule = { _, _, enemies -> if (enemies.size >= 3) enemies else listOf(enemies.firstOrNull() ?: error("No enemy")) },
-    activationRule = { _, _, enemies -> enemies.size >= 3 }
+    activationRule = { _, _, enemies -> enemies.size >= 3 },
+    cooldown = 2
 )
 
 val healSkill = Skill(
@@ -250,7 +254,8 @@ val healSkill = Skill(
     type = SkillType.Heal,
     power = 15,
     targetRule = { _, allies, _ -> listOf(allies.minByOrNull { it.hp } ?: error("No ally")) },
-    activationRule = { _, allies, _ -> allies.any { it.hp < it.maxHp / 2 } }
+    activationRule = { _, allies, _ -> allies.any { it.hp < it.maxHp / 2 } },
+    cooldown = 1
 )
 
 val dotDebuff = Skill(
@@ -258,7 +263,8 @@ val dotDebuff = Skill(
     type = SkillType.Debuff,
     power = 0,
     targetRule = { _, _, enemies -> listOf(enemies.firstOrNull() ?: error("No enemy")) },
-    buff = Buff(id = "Poison", duration = 3, dot = 5)
+    buff = Buff(id = "Poison", duration = 3, dot = 5),
+    cooldown = 1
 )
 
 // --- Example Usage ---
