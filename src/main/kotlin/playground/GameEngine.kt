@@ -2,7 +2,7 @@ package playground
 
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.system.measureTimeMillis
+import kotlin.time.measureTime
 
 // --- Buffs & Debuffs ---
 data class Buff(
@@ -253,14 +253,7 @@ object BattleLogPrinter {
     }
 }
 
-// --- Example Skills ---
-val strikeActivationRule: (Actor, List<Actor>, List<Actor>) -> Boolean = { actor, allies, enemies ->
-    // Only use Strike if no other skill's activationRule returns true
-    val otherSkills = actor.skills.filter { it.name != "Strike" }
-    !otherSkills.any { it.activationRule(actor, allies, enemies) }
-}
-
-val singleAttack = Skill(
+val basicAttack = Skill(
     name = "Strike",
     effects = listOf(
         SkillEffect(
@@ -269,26 +262,90 @@ val singleAttack = Skill(
             targetRule = { _, _, enemies -> listOf(enemies.firstOrNull() ?: error("No enemy")) }
         )
     ),
-    activationRule = strikeActivationRule,
+    activationRule = { _, _, enemies -> enemies.isNotEmpty() },
     cooldown = 0
 )
 
-val aoeAttack = Skill(
+val doubleStrike = Skill(
+    name = "Double Strike",
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.Damage,
+            power = 15,
+            targetRule = { _, _, enemies -> listOf(enemies.firstOrNull() ?: error("No enemy")) }
+        ),
+        SkillEffect(
+            type = SkillEffectType.Damage,
+            power = 15,
+            targetRule = { _, _, enemies -> listOf(enemies.firstOrNull() ?: error("No enemy")) }
+        )
+    ),
+    activationRule = { actor, _, enemies -> enemies.isNotEmpty() && (actor.stats["atk"] ?: 0) > 5 },
+    cooldown = 1
+)
+
+val whirlwind = Skill(
+    name = "Whirlwind",
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.Damage,
+            power = 15,
+            targetRule = { _, _, enemies -> enemies } // All enemies
+        )
+    ),
+    activationRule = { _, _, enemies -> enemies.isNotEmpty() },
+    cooldown = 1
+)
+
+val fireball = Skill(
     name = "Fireball",
     effects = listOf(
         SkillEffect(
             type = SkillEffectType.Damage,
-            power = 10,
-            targetRule = { _, _, enemies -> if (enemies.size >= 3) enemies else listOf(enemies.firstOrNull() ?: error("No enemy")) }
+            power = 25,
+            targetRule = { _, _, enemies -> enemies }
         ),
         SkillEffect(
-            type = SkillEffectType.Heal,
-            power = 5,
-            targetRule = { _, allies, _ -> allies }
+            type = SkillEffectType.Debuff,
+            targetRule = { _, _, enemies -> enemies },
+            buff = Buff(id = "Burn", duration = 2, dot = 10)
         )
     ),
-    activationRule = { _, _, enemies -> enemies.size >= 3 },
-    cooldown = 2
+    activationRule = { _, _, enemies -> enemies.isNotEmpty() },
+    cooldown = 3
+)
+
+val explode = Skill(
+    name = "Explode",
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.Damage,
+            power = 50,
+            targetRule = { _, _, enemies -> enemies }
+        ),
+        SkillEffect(
+            type = SkillEffectType.Damage,
+            power = 50,
+            targetRule = { actor, _, _ -> listOf(actor) } // Self-target
+        )
+    ),
+    activationRule = { actor, _, _ -> actor.hp < actor.maxHp / 4 }, // Use if below 25% HP
+    cooldown = 5
+)
+
+val spark = Skill(
+    name = "Spark",
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.Damage,
+            power = 10,
+            targetRule = { _, _, enemies ->
+                enemies.shuffled().take(2)
+            }
+        )
+    ),
+    activationRule = { _, _, enemies -> enemies.isNotEmpty() },
+    cooldown = 0
 )
 
 val hotBuff = Skill(
@@ -311,30 +368,55 @@ val hotBuff = Skill(
     cooldown = 2
 )
 
-val healSkill = Skill(
-    name = "Heal",
+val flashHeal = Skill(
+    name = "Flash Heal",
     effects = listOf(
         SkillEffect(
             type = SkillEffectType.Heal,
-            power = 15,
+            power = 25,
             targetRule = { _, allies, _ -> listOf(allies.minByOrNull { it.hp } ?: error("No ally")) }
         )
     ),
     activationRule = { _, allies, _ ->
         val target = allies.minByOrNull { it.hp }
-        target != null && target.hp < target.maxHp / 2 && target.buffs.none { it.id == "Regen" }
+        target != null && target.hp < target.maxHp / 2 // Heal if any ally is below 50% HP
     },
     cooldown = 1
 )
 
-val dotDebuff = Skill(
-    name = "Poison",
+val groupHeal = Skill(
+    name = "Group Heal",
     effects = listOf(
         SkillEffect(
+            type = SkillEffectType.Heal,
+            power = 20,
+            targetRule = { _, allies, _ -> allies }
+        ),
+        SkillEffect(
+            type = SkillEffectType.Buff,
+            targetRule = { _, allies, _ -> allies },
+            buff = Buff(id = "Regen", duration = 2, dot = -5)
+        )
+    ),
+    activationRule = { _, allies, _ ->
+        // if two or more allies are below 70% HP
+        allies.count { it.hp < it.maxHp * 0.7 } >= 2
+    },
+    cooldown = 5
+)
+
+val poisonStrike = Skill(
+    name = "Poison Strike",
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.Damage,
+            power = 15,
+            targetRule = { _, _, enemies -> listOf(enemies.firstOrNull() ?: error("No enemy")) }
+        ),
+        SkillEffect(
             type = SkillEffectType.Debuff,
-            power = 0,
             targetRule = { _, _, enemies -> listOf(enemies.firstOrNull() ?: error("No enemy")) },
-            buff = Buff(id = "Poison", duration = 3, dot = 5)
+            buff = Buff(id = "Poison", duration = 4, dot = 5)
         )
     ),
     cooldown = 1
@@ -342,30 +424,49 @@ val dotDebuff = Skill(
 
 // --- Example Usage ---
 fun main() {
-    val actorA = Actor(
-        name = "Hero",
+    val actorA1 = Actor(
+        name = "Hero Fighter Jason",
         hp = 100,
         maxHp = 100,
-        skills = listOf(healSkill, singleAttack, hotBuff), // Heal, Strike, Regen
+        skills = listOf(whirlwind, doubleStrike, basicAttack),
         team = 0
     )
-    val actorB = Actor(
-        name = "Villain",
+
+    val actorA2 = Actor(
+        name = "Hero Mage Alice",
         hp = 100,
         maxHp = 100,
-        skills = listOf(dotDebuff, singleAttack, aoeAttack), // Poison, Strike, Fireball
+        skills = listOf(explode, fireball, spark, basicAttack),
+        team = 0
+    )
+
+    val actorA3 = Actor(
+        name = "Hero Cleric Mary",
+        hp = 100,
+        maxHp = 100,
+        skills = listOf(groupHeal, flashHeal, basicAttack),
+        team = 0
+    )
+
+
+    val actorB = Actor(
+        name = "Villain",
+        hp = 400,
+        maxHp = 400,
+        skills = listOf(fireball, hotBuff, poisonStrike),
         team = 1
     )
-    val teamA = Team(mutableListOf(actorA))
+
+    val teamA = Team(mutableListOf(actorA1, actorA2, actorA3))
     val teamB = Team(mutableListOf(actorB))
 
     val log: List<CombatEvent>
 
-    val milliSecondsSimulation = measureTimeMillis {
+    val milliSecondsSimulation = measureTime {
         log = BattleSimulation(teamA, teamB).run()
     }
 
-    val milliSecondsPrinting = measureTimeMillis {
+    val milliSecondsPrinting = measureTime {
         BattleLogPrinter.run(log)
     }
     println("Simulation took $milliSecondsSimulation ms, printing took $milliSecondsPrinting ms")
