@@ -2,6 +2,7 @@ package playground
 
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.system.measureTimeMillis
 
 // --- Buffs & Debuffs ---
 data class Buff(
@@ -357,7 +358,15 @@ fun main() {
     )
     val teamA = Team(mutableListOf(actorA))
     val teamB = Team(mutableListOf(actorB))
-    val log = BattleSimulation(teamA, teamB).run()
 
-    BattleLogPrinter.run(log)
+    val log: List<CombatEvent>
+
+    val milliSecondsSimulation = measureTimeMillis {
+        log = BattleSimulation(teamA, teamB).run()
+    }
+
+    val milliSecondsPrinting = measureTimeMillis {
+        BattleLogPrinter.run(log)
+    }
+    println("Simulation took $milliSecondsSimulation ms, printing took $milliSecondsPrinting ms")
 }
