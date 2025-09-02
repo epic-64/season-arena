@@ -112,8 +112,11 @@ class BattleSimulation(
 
     fun run(): List<CombatEvent> {
         val log = mutableListOf<CombatEvent>()
+        // Only log the initial state once, before the first turn
         log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
         while (teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isNotEmpty()) {
+            // Increment turn before logging, so the first turn is 1
+            turn++
             log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
             val allActors = (teamA.aliveActors() + teamB.aliveActors()).shuffled()
             for (actor in allActors) {
@@ -127,7 +130,6 @@ class BattleSimulation(
             }
             processBuffs(teamA, log)
             processBuffs(teamB, log)
-            turn++
         }
         val winner = if (teamA.aliveActors().isNotEmpty()) "Team A" else "Team B"
         log.add(CombatEvent.BattleEnd(winner, snapshotActors(listOf(teamA, teamB))))
