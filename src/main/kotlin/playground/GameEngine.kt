@@ -110,7 +110,7 @@ class BattleSimulation(
 ) {
     private var turn: Int = 0
 
-    fun simulateBattle(): List<CombatEvent> {
+    fun run(): List<CombatEvent> {
         val log = mutableListOf<CombatEvent>()
         log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
         while (teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isNotEmpty()) {
@@ -189,6 +189,37 @@ object GameEngine {
     }
 }
 
+// --- BattleLogPrinter ---
+object BattleLogPrinter {
+    fun run(log: List<CombatEvent>) {
+        for (event in log) {
+            when (event) {
+                is CombatEvent.TurnStart -> println("--- Turn ${event.turn} ---")
+                is CombatEvent.SkillUsed -> println("${event.actor} uses ${event.skill} on ${event.targets.joinToString()}")
+                is CombatEvent.DamageDealt -> println("${event.target} takes ${event.amount} damage! (HP: ${event.targetHp})")
+                is CombatEvent.Healed -> println("${event.target} heals ${event.amount} HP! (HP: ${event.targetHp})")
+                is CombatEvent.BuffApplied -> println("${event.target} receives buff/debuff ${event.buffId}")
+                is CombatEvent.DotApplied -> println("${event.target} takes ${event.amount} DoT from ${event.buffId}! (HP: ${event.targetHp})")
+                is CombatEvent.BuffExpired -> println("${event.target}'s buff/debuff ${event.buffId} expired.")
+                is CombatEvent.BattleEnd -> println("Battle Over! Winner: ${event.winner}")
+            }
+            // Print actor snapshot after each event
+            val snapshot = when (event) {
+                is CombatEvent.TurnStart -> event.snapshot
+                else -> null
+            }
+
+            if (snapshot == null)
+                continue
+
+            println("Actors:")
+            for (actor in snapshot.actors) {
+                println("  ${actor.name} (Team ${actor.team}): HP=${actor.hp}/${actor.maxHp}, Stats=${actor.stats}, Buffs=[${actor.buffs.joinToString { b -> "${b.id}(dur=${b.duration},dot=${b.dot},stats=${b.statChanges})" }}]")
+            }
+        }
+    }
+}
+
 // --- Example Skills ---
 val singleAttack = Skill(
     name = "Strike",
@@ -239,34 +270,7 @@ fun main() {
     )
     val teamA = Team(mutableListOf(actorA))
     val teamB = Team(mutableListOf(actorB))
-    val simulation = GameEngine.startBattle(teamA, teamB)
-    val log = simulation.simulateBattle()
-    // Print readable event log for dev sanity
-    for (event in log) {
-        when (event) {
-            is CombatEvent.TurnStart -> println("--- Turn ${event.turn} ---")
-            is CombatEvent.SkillUsed -> println("${event.actor} uses ${event.skill} on ${event.targets.joinToString()}")
-            is CombatEvent.DamageDealt -> println("${event.target} takes ${event.amount} damage! (HP: ${event.targetHp})")
-            is CombatEvent.Healed -> println("${event.target} heals ${event.amount} HP! (HP: ${event.targetHp})")
-            is CombatEvent.BuffApplied -> println("${event.target} receives buff/debuff ${event.buffId}")
-            is CombatEvent.DotApplied -> println("${event.target} takes ${event.amount} DoT from ${event.buffId}! (HP: ${event.targetHp})")
-            is CombatEvent.BuffExpired -> println("${event.target}'s buff/debuff ${event.buffId} expired.")
-            is CombatEvent.BattleEnd -> println("Battle Over! Winner: ${event.winner}")
-        }
-        // Print actor snapshot after each event
-        val snapshot = when (event) {
-            is CombatEvent.TurnStart -> event.snapshot
-            is CombatEvent.SkillUsed -> event.snapshot
-            is CombatEvent.DamageDealt -> event.snapshot
-            is CombatEvent.Healed -> event.snapshot
-            is CombatEvent.BuffApplied -> event.snapshot
-            is CombatEvent.BuffExpired -> event.snapshot
-            is CombatEvent.DotApplied -> event.snapshot
-            is CombatEvent.BattleEnd -> event.snapshot
-        }
-        println("Actors:")
-        for (actor in snapshot.actors) {
-            println("  ${actor.name} (Team ${actor.team}): HP=${actor.hp}/${actor.maxHp}, Stats=${actor.stats}, Buffs=[${actor.buffs.joinToString { b -> "${b.id}(dur=${b.duration},dot=${b.dot},stats=${b.statChanges})" }}]")
-        }
-    }
+    val log = BattleSimulation(teamA, teamB).run()
+
+    BattleLogPrinter.run(log)
 }
