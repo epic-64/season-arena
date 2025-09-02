@@ -103,16 +103,16 @@ sealed class CombatEvent {
     data class BattleEnd(val winner: String, val snapshot: BattleSnapshot) : CombatEvent()
 }
 
-// --- Game Engine ---
-class GameEngine(
+// --- BattleSimulation ---
+class BattleSimulation(
     val teamA: Team,
     val teamB: Team
 ) {
-    private var turn: Int = 1
+    private var turn: Int = 0
 
     fun simulateBattle(): List<CombatEvent> {
         val log = mutableListOf<CombatEvent>()
-        log.add(CombatEvent.TurnStart(turn = 0, snapshotActors(listOf(teamA, teamB))))
+        log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
         while (teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isNotEmpty()) {
             log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
             val allActors = (teamA.aliveActors() + teamB.aliveActors()).shuffled()
@@ -182,6 +182,13 @@ class GameEngine(
     }
 }
 
+// --- GameEngine ---
+object GameEngine {
+    fun startBattle(teamA: Team, teamB: Team): BattleSimulation {
+        return BattleSimulation(teamA, teamB)
+    }
+}
+
 // --- Example Skills ---
 val singleAttack = Skill(
     name = "Strike",
@@ -232,8 +239,8 @@ fun main() {
     )
     val teamA = Team(mutableListOf(actorA))
     val teamB = Team(mutableListOf(actorB))
-    val engine = GameEngine(teamA, teamB)
-    val log = engine.simulateBattle()
+    val simulation = GameEngine.startBattle(teamA, teamB)
+    val log = simulation.simulateBattle()
     // Print readable event log for dev sanity
     for (event in log) {
         when (event) {
