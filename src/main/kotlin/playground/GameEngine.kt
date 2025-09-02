@@ -263,7 +263,7 @@ val basicAttack = Skill(
         )
     ),
     activationRule = { _, _, enemies -> enemies.isNotEmpty() },
-    cooldown = 0
+    cooldown = 1 // was 0
 )
 
 val doubleStrike = Skill(
@@ -281,7 +281,7 @@ val doubleStrike = Skill(
         )
     ),
     activationRule = { actor, _, enemies -> enemies.isNotEmpty() && (actor.stats["atk"] ?: 0) > 5 },
-    cooldown = 1
+    cooldown = 2 // was 1
 )
 
 val whirlwind = Skill(
@@ -294,7 +294,7 @@ val whirlwind = Skill(
         )
     ),
     activationRule = { _, _, enemies -> enemies.isNotEmpty() },
-    cooldown = 1
+    cooldown = 2 // was 1
 )
 
 val fireball = Skill(
@@ -312,7 +312,7 @@ val fireball = Skill(
         )
     ),
     activationRule = { _, _, enemies -> enemies.isNotEmpty() },
-    cooldown = 3
+    cooldown = 4 // was 3
 )
 
 val explode = Skill(
@@ -330,7 +330,7 @@ val explode = Skill(
         )
     ),
     activationRule = { actor, _, _ -> actor.hp < actor.maxHp / 4 }, // Use if below 25% HP
-    cooldown = 5
+    cooldown = 6 // was 5
 )
 
 val spark = Skill(
@@ -345,7 +345,7 @@ val spark = Skill(
         )
     ),
     activationRule = { _, _, enemies -> enemies.isNotEmpty() },
-    cooldown = 0
+    cooldown = 1 // was 0
 )
 
 val hotBuff = Skill(
@@ -365,7 +365,7 @@ val hotBuff = Skill(
         )
     ),
     activationRule = { actor, _, _ -> actor.buffs.none { it.id == "Regen" } },
-    cooldown = 2
+    cooldown = 3 // was 2
 )
 
 val flashHeal = Skill(
@@ -381,7 +381,7 @@ val flashHeal = Skill(
         val target = allies.minByOrNull { it.hp }
         target != null && target.hp < target.maxHp / 2 // Heal if any ally is below 50% HP
     },
-    cooldown = 1
+    cooldown = 2 // was 1
 )
 
 val groupHeal = Skill(
@@ -402,7 +402,7 @@ val groupHeal = Skill(
         // if two or more allies are below 70% HP
         allies.count { it.hp < it.maxHp * 0.7 } >= 2
     },
-    cooldown = 5
+    cooldown = 6 // was 5
 )
 
 val poisonStrike = Skill(
@@ -419,7 +419,7 @@ val poisonStrike = Skill(
             buff = Buff(id = "Poison", duration = 4, dot = 5)
         )
     ),
-    cooldown = 1
+    cooldown = 2 // was 1
 )
 
 // --- Example Usage ---
