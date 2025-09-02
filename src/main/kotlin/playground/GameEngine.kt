@@ -223,11 +223,18 @@ object BattleLogPrinter {
 }
 
 // --- Example Skills ---
+val strikeActivationRule: (Actor, List<Actor>, List<Actor>) -> Boolean = { actor, allies, enemies ->
+    // Only use Strike if no other skill's activationRule returns true
+    val otherSkills = actor.skills.filter { it.name != "Strike" }
+    !otherSkills.any { it.activationRule(actor, allies, enemies) }
+}
+
 val singleAttack = Skill(
     name = "Strike",
     type = SkillType.Damage,
     power = 20,
-    targetRule = { _, _, enemies -> listOf(enemies.firstOrNull() ?: error("No enemy")) }
+    targetRule = { _, _, enemies -> listOf(enemies.firstOrNull() ?: error("No enemy")) },
+    activationRule = strikeActivationRule
 )
 
 val aoeAttack = Skill(
@@ -260,14 +267,14 @@ fun main() {
         name = "Hero",
         hp = 100,
         maxHp = 100,
-        skills = listOf(singleAttack, healSkill),
+        skills = listOf(healSkill, singleAttack), // Heal first, then Strike
         team = 0
     )
     val actorB = Actor(
         name = "Villain",
         hp = 100,
         maxHp = 100,
-        skills = listOf(singleAttack, dotDebuff),
+        skills = listOf(dotDebuff, singleAttack), // Poison first, then Strike
         team = 1
     )
     val teamA = Team(mutableListOf(actorA))
