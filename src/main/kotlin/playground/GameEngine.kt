@@ -193,7 +193,13 @@ class BattleSimulation(
             val expired = mutableListOf<Buff>()
             for (buff in actor.buffs) {
                 if (buff.dot != 0) {
-                    actor.hp = max(0, actor.hp - buff.dot)
+                    actor.hp = if (buff.dot < 0) {
+                        // Healing over time: clamp to maxHp
+                        min(actor.maxHp, actor.hp - buff.dot)
+                    } else {
+                        // Damage over time
+                        max(0, actor.hp - buff.dot)
+                    }
                     log.add(CombatEvent.DotApplied(actor.name, buff.id, buff.dot, actor.hp, snapshotActors(listOf(teamA, teamB))))
                 }
             }
@@ -279,32 +285,6 @@ val aoeAttack = Skill(
     cooldown = 2
 )
 
-val healSkill = Skill(
-    name = "Heal",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.Heal,
-            power = 15,
-            targetRule = { _, allies, _ -> listOf(allies.minByOrNull { it.hp } ?: error("No ally")) }
-        )
-    ),
-    activationRule = { _, allies, _ -> allies.any { it.hp < it.maxHp / 2 } },
-    cooldown = 1
-)
-
-val dotDebuff = Skill(
-    name = "Poison",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.Debuff,
-            power = 0,
-            targetRule = { _, _, enemies -> listOf(enemies.firstOrNull() ?: error("No enemy")) },
-            buff = Buff(id = "Poison", duration = 3, dot = 5)
-        )
-    ),
-    cooldown = 1
-)
-
 val hotBuff = Skill(
     name = "Regeneration",
     effects = listOf(
@@ -321,7 +301,37 @@ val hotBuff = Skill(
             buff = Buff(id = "Resist", duration = 3, statChanges = mapOf("def" to 10))
         )
     ),
+    activationRule = { actor, _, _ -> actor.buffs.none { it.id == "Regen" } },
     cooldown = 2
+)
+
+val healSkill = Skill(
+    name = "Heal",
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.Heal,
+            power = 15,
+            targetRule = { _, allies, _ -> listOf(allies.minByOrNull { it.hp } ?: error("No ally")) }
+        )
+    ),
+    activationRule = { _, allies, _ ->
+        val target = allies.minByOrNull { it.hp }
+        target != null && target.hp < target.maxHp / 2 && target.buffs.none { it.id == "Regen" }
+    },
+    cooldown = 1
+)
+
+val dotDebuff = Skill(
+    name = "Poison",
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.Debuff,
+            power = 0,
+            targetRule = { _, _, enemies -> listOf(enemies.firstOrNull() ?: error("No enemy")) },
+            buff = Buff(id = "Poison", duration = 3, dot = 5)
+        )
+    ),
+    cooldown = 1
 )
 
 // --- Example Usage ---
