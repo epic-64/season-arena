@@ -58,11 +58,32 @@ data class Actor(
     val cooldowns: MutableMap<Skill, Int> = mutableMapOf() // skill -> turns left
 ) {
     val isAlive: Boolean get() = hp > 0
+
+    fun deepCopy(): Actor {
+        return Actor(
+            name = name,
+            hp = hp,
+            maxHp = maxHp,
+            skills = skills, // Skills are immutable
+            team = team,
+            stats = stats.toMutableMap(),
+            buffs = buffs.map {
+                when (it) {
+                    is Buff.StatBuff -> it.copy()
+                    is Buff.ResourceTick -> it.copy()
+                }
+            }.toMutableList(),
+            cooldowns = cooldowns.toMutableMap()
+        )
+    }
 }
 
 // --- Team ---
 data class Team(val actors: MutableList<Actor>) {
     fun aliveActors() = actors.filter { it.isAlive }
+    fun deepCopy(): Team {
+        return Team(actors.map { it.deepCopy() }.toMutableList())
+    }
 }
 
 // --- Actor Snapshot Data Structure ---
@@ -505,50 +526,47 @@ val poisonStrike = Skill(
 
 // --- Example Usage ---
 fun main() {
-    val actorA1 = Actor(
+    val originalActorA1 = Actor(
         name = "Hero Fighter Jason",
         hp = 100,
         maxHp = 100,
         skills = listOf(whirlwind, doubleStrike, basicAttack),
         team = 0
     )
-
-    val actorA2 = Actor(
+    val originalActorA2 = Actor(
         name = "Hero Mage Alice",
         hp = 100,
         maxHp = 100,
         skills = listOf(explode, fireball, spark, basicAttack),
         team = 0
     )
-
-    val actorA3 = Actor(
+    val originalActorA3 = Actor(
         name = "Hero Cleric Mary",
         hp = 100,
         maxHp = 100,
         skills = listOf(groupHeal, flashHeal, basicAttack),
         team = 0
     )
-
-
-    val actorB = Actor(
+    val originalActorB = Actor(
         name = "Villain",
         hp = 400,
         maxHp = 400,
         skills = listOf(fireball, hotBuff, poisonStrike),
         team = 1
     )
+    val originalTeamA = Team(mutableListOf(originalActorA1, originalActorA2, originalActorA3))
+    val originalTeamB = Team(mutableListOf(originalActorB))
 
-    val teamA = Team(mutableListOf(actorA1, actorA2, actorA3))
-    val teamB = Team(mutableListOf(actorB))
-
-    val log: List<CombatEvent>
-
-    val milliSecondsSimulation = measureTime {
-        log = BattleSimulation(teamA, teamB).run()
+    repeat(10) { i ->
+        val teamA = originalTeamA.deepCopy()
+        val teamB = originalTeamB.deepCopy()
+        val log: List<CombatEvent>
+        val milliSecondsSimulation = measureTime {
+            log = BattleSimulation(teamA, teamB).run()
+        }
+        val milliSecondsPrinting = measureTime {
+            // BattleLogPrinter.run(log)
+        }
+        println("Run #$i: Simulation took $milliSecondsSimulation, printing took $milliSecondsPrinting")
     }
-
-    val milliSecondsPrinting = measureTime {
-        BattleLogPrinter.run(log)
-    }
-    println("Simulation took $milliSecondsSimulation ms, printing took $milliSecondsPrinting ms")
 }
