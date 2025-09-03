@@ -4,20 +4,25 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.time.measureTime
 
-// --- Buffs & Debuffs ---
-data class Buff(
+// --- StatBuff & ResourceTick ---
+data class StatBuff(
     val id: String,
     val duration: Int,
-    val statChanges: Map<String, Int> = emptyMap(), // e.g. {"atk": +10}
-    val resourceDrains: Map<String, Int> = emptyMap() // e.g. {"hp": 10, "mana": 5}
+    val statChanges: Map<String, Int> = emptyMap() // e.g. {"atk": +10}
+)
+
+data class ResourceTick(
+    val id: String,
+    val duration: Int,
+    val resourceChanges: Map<String, Int> = emptyMap() // e.g. {"hp": +10} means heal, {"hp": -10} means damage
 )
 
 // --- Skill Effects ---
 sealed class SkillEffectType {
     object Damage : SkillEffectType()
     object Heal : SkillEffectType()
-    object Buff : SkillEffectType()
-    object Debuff : SkillEffectType()
+    object StatBuff : SkillEffectType()
+    object ResourceTick : SkillEffectType()
     // Add more types as needed
 }
 
@@ -25,7 +30,8 @@ data class SkillEffect(
     val type: SkillEffectType,
     val power: Int = 0,
     val targetRule: (Actor, List<Actor>, List<Actor>) -> List<Actor>,
-    val buff: Buff? = null // For buff/debuff effects
+    val statBuff: StatBuff? = null, // For stat buff effects
+    val resourceTick: ResourceTick? = null // For resource tick effects
 )
 
 // --- Skills ---
@@ -44,7 +50,8 @@ data class Actor(
     val skills: List<Skill>,
     val team: Int, // 0 or 1
     val stats: MutableMap<String, Int> = mutableMapOf(),
-    val buffs: MutableList<Buff> = mutableListOf(),
+    val statBuffs: MutableList<StatBuff> = mutableListOf(),
+    val resourceTicks: MutableList<ResourceTick> = mutableListOf(),
     val cooldowns: MutableMap<Skill, Int> = mutableMapOf() // skill -> turns left
 ) {
     val isAlive: Boolean get() = hp > 0
@@ -62,15 +69,21 @@ data class ActorSnapshot(
     val maxHp: Int,
     val team: Int,
     val stats: Map<String, Int>,
-    val buffs: List<BuffSnapshot>,
+    val statBuffs: List<StatBuffSnapshot>,
+    val resourceTicks: List<ResourceTickSnapshot>,
     val cooldowns: Map<String, Int> // skill name -> cooldown
 )
 
-data class BuffSnapshot(
+data class StatBuffSnapshot(
     val id: String,
     val duration: Int,
-    val statChanges: Map<String, Int>,
-    val resourceDrains: Map<String, Int>
+    val statChanges: Map<String, Int>
+)
+
+data class ResourceTickSnapshot(
+    val id: String,
+    val duration: Int,
+    val resourceChanges: Map<String, Int>
 )
 
 data class BattleSnapshot(
@@ -87,12 +100,18 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
                     maxHp = actor.maxHp,
                     team = actor.team,
                     stats = actor.stats.toMap(),
-                    buffs = actor.buffs.map { buff ->
-                        BuffSnapshot(
+                    statBuffs = actor.statBuffs.map { buff ->
+                        StatBuffSnapshot(
                             id = buff.id,
                             duration = buff.duration,
-                            statChanges = buff.statChanges,
-                            resourceDrains = buff.resourceDrains
+                            statChanges = buff.statChanges
+                        )
+                    },
+                    resourceTicks = actor.resourceTicks.map { tick ->
+                        ResourceTickSnapshot(
+                            id = tick.id,
+                            duration = tick.duration,
+                            resourceChanges = tick.resourceChanges
                         )
                     },
                     cooldowns = actor.skills.associate { it.name to (actor.cooldowns[it] ?: 0) }
@@ -183,10 +202,11 @@ class BattleSimulation(
                         log.add(CombatEvent.Healed(actor.name, target.name, heal, target.hp, snapshotActors(listOf(teamA, teamB))))
                     }
                 }
-                SkillEffectType.Buff, SkillEffectType.Debuff -> {
+                SkillEffectType.StatBuff, SkillEffectType.ResourceTick -> {
                     for (target in targets) {
-                        effect.buff?.let { target.buffs.add(it.copy()) }
-                        effect.buff?.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
+                        effect.statBuff?.let { target.statBuffs.add(it.copy()) }
+                        effect.resourceTick?.let { target.resourceTicks.add(it.copy()) }
+                        effect.statBuff?.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
                     }
                 }
             }
@@ -197,10 +217,17 @@ class BattleSimulation(
 
     private fun processBuffs(team: Team, log: MutableList<CombatEvent>) {
         for (actor in team.actors) {
-            val expired = mutableListOf<Buff>()
-            for (buff in actor.buffs) {
-                if (buff.resourceDrains.isNotEmpty()) {
-                    for ((resource, amount) in buff.resourceDrains) {
+            val expiredStatBuffs = mutableListOf<StatBuff>()
+            val expiredResourceTicks = mutableListOf<ResourceTick>()
+            for (statBuff in actor.statBuffs) {
+                // Update stat changes
+                for ((stat, change) in statBuff.statChanges) {
+                    actor.stats[stat] = (actor.stats[stat] ?: 0) + change
+                }
+            }
+            for (resourceTick in actor.resourceTicks) {
+                if (resourceTick.resourceChanges.isNotEmpty()) {
+                    for ((resource, amount) in resourceTick.resourceChanges) {
                         when (resource) {
                             "hp" -> {
                                 actor.hp = if (amount < 0) {
@@ -210,18 +237,24 @@ class BattleSimulation(
                                     // Damage over time
                                     max(0, actor.hp - amount)
                                 }
-                                log.add(CombatEvent.ResourceDrained(actor.name, buff.id, resource, amount, actor.hp, snapshotActors(listOf(teamA, teamB))))
+                                log.add(CombatEvent.ResourceDrained(actor.name, resourceTick.id, resource, amount, actor.hp, snapshotActors(listOf(teamA, teamB))))
                             }
                             // Add more resources here (e.g. "mana") if needed
                         }
                     }
                 }
             }
-            actor.buffs.replaceAll { it.copy(duration = it.duration - 1) }
-            expired.addAll(actor.buffs.filter { it.duration <= 0 })
-            actor.buffs.removeAll { it.duration <= 0 }
-            for (buff in expired) {
+            actor.statBuffs.replaceAll { it.copy(duration = it.duration - 1) }
+            actor.resourceTicks.replaceAll { it.copy(duration = it.duration - 1) }
+            expiredStatBuffs.addAll(actor.statBuffs.filter { it.duration <= 0 })
+            expiredResourceTicks.addAll(actor.resourceTicks.filter { it.duration <= 0 })
+            actor.statBuffs.removeAll { it.duration <= 0 }
+            actor.resourceTicks.removeAll { it.duration <= 0 }
+            for (buff in expiredStatBuffs) {
                 log.add(CombatEvent.BuffExpired(actor.name, buff.id, snapshotActors(listOf(teamA, teamB))))
+            }
+            for (tick in expiredResourceTicks) {
+                log.add(CombatEvent.BuffExpired(actor.name, tick.id, snapshotActors(listOf(teamA, teamB))))
             }
             // Decrease cooldowns and clamp to zero
             actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
@@ -255,7 +288,7 @@ object BattleLogPrinter {
 
             println("Actors:")
             for (actor in snapshot.actors) {
-                println("  ${actor.name} (Team ${actor.team}): HP=${actor.hp}/${actor.maxHp}, Stats=${actor.stats}, Buffs=[${actor.buffs.joinToString { b -> "${b.id}(dur=${b.duration},dot=${b.resourceDrains})" }}]")
+                println("  ${actor.name} (Team ${actor.team}): HP=${actor.hp}/${actor.maxHp}, Stats=${actor.stats}, Buffs=[${actor.statBuffs.joinToString { b -> "${b.id}(dur=${b.duration})" }}], Ticks=[${actor.resourceTicks.joinToString { t -> "${t.id}(dur=${t.duration})" }}]")
             }
         }
     }
@@ -320,9 +353,9 @@ val fireball = Skill(
             targetRule = { _, _, enemies -> enemies }
         ),
         SkillEffect(
-            type = SkillEffectType.Debuff,
+            type = SkillEffectType.ResourceTick,
             targetRule = { _, _, enemies -> enemies },
-            buff = Buff(id = "Burn", duration = 2, resourceDrains = mapOf("hp" to 10))
+            resourceTick = ResourceTick(id = "Burn", duration = 2, resourceChanges = mapOf("hp" to -10))
         )
     ),
     activationRule = { _, _, enemies -> enemies.isNotEmpty() },
@@ -366,19 +399,19 @@ val hotBuff = Skill(
     name = "Regeneration",
     effects = listOf(
         SkillEffect(
-            type = SkillEffectType.Buff,
+            type = SkillEffectType.StatBuff,
             power = 0,
             targetRule = { actor, _, _ -> listOf(actor) },
-            buff = Buff(id = "Regen", duration = 3, resourceDrains = mapOf("hp" to -10))
+            statBuff = StatBuff(id = "Regen", duration = 3, statChanges = emptyMap())
         ),
         SkillEffect(
-            type = SkillEffectType.Buff,
+            type = SkillEffectType.StatBuff,
             power = 0,
             targetRule = { actor, _, _ -> listOf(actor) },
-            buff = Buff(id = "Resist", duration = 3, statChanges = mapOf("def" to 10))
+            statBuff = StatBuff(id = "Resist", duration = 3, statChanges = mapOf("def" to 10))
         )
     ),
-    activationRule = { actor, _, _ -> actor.buffs.none { it.id == "Regen" } },
+    activationRule = { actor, _, _ -> actor.statBuffs.none { it.id == "Regen" } },
     cooldown = 3
 )
 
@@ -410,9 +443,9 @@ val groupHeal = Skill(
             targetRule = { _, allies, _ -> allies }
         ),
         SkillEffect(
-            type = SkillEffectType.Buff,
+            type = SkillEffectType.ResourceTick,
             targetRule = { _, allies, _ -> allies },
-            buff = Buff(id = "Regen", duration = 2, resourceDrains = mapOf("hp" to -5))
+            resourceTick = ResourceTick(id = "Regen", duration = 2, resourceChanges = mapOf("hp" to -5))
         )
     ),
     activationRule = { _, allies, _ ->
@@ -432,11 +465,11 @@ val poisonStrike = Skill(
             }
         ),
         SkillEffect(
-            type = SkillEffectType.Debuff,
+            type = SkillEffectType.ResourceTick,
             targetRule = { _, _, enemies ->
                 if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
             },
-            buff = Buff(id = "Poison", duration = 4, resourceDrains = mapOf("hp" to 5))
+            resourceTick = ResourceTick(id = "Poison", duration = 4, resourceChanges = mapOf("hp" to 5))
         )
     ),
     cooldown = 2
