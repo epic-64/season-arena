@@ -235,12 +235,12 @@ class BattleSimulation(
                     for ((resource, amount) in resourceTick.resourceChanges) {
                         when (resource) {
                             "hp" -> {
-                                actor.hp = if (amount < 0) {
+                                actor.hp = if (amount > 0) {
                                     // Healing over time: clamp to maxHp
-                                    min(actor.maxHp, actor.hp - amount)
+                                    min(actor.maxHp, actor.hp + amount)
                                 } else {
-                                    // Damage over time
-                                    max(0, actor.hp - amount)
+                                    // Damage over time, clamp to 0
+                                    max(0, actor.hp + amount)
                                 }
                                 log.add(CombatEvent.ResourceDrained(actor.name, resourceTick.id, resource, amount, actor.hp, snapshotActors(listOf(teamA, teamB))))
                             }
@@ -276,9 +276,9 @@ object BattleLogPrinter {
                 is CombatEvent.SkillUsed -> println("${event.actor} uses ${event.skill} on ${event.targets.joinToString()}")
                 is CombatEvent.DamageDealt -> println("${event.target} takes ${event.amount} damage! (HP: ${event.targetHp})")
                 is CombatEvent.Healed -> println("${event.target} heals ${event.amount} HP! (HP: ${event.targetHp})")
-                is CombatEvent.BuffApplied -> println("${event.target} receives buff/debuff ${event.buffId}")
-                is CombatEvent.ResourceDrained -> println("${event.target} has ${event.amount} ${event.resource} drained by ${event.buffId}! (${event.resource}: ${event.targetResourceValue})")
-                is CombatEvent.BuffExpired -> println("${event.target}'s buff/debuff ${event.buffId} expired.")
+                is CombatEvent.BuffApplied -> println("${event.target} receives buff ${event.buffId}")
+                is CombatEvent.ResourceDrained -> println("${event.target} gains ${event.amount} ${event.resource} from ${event.buffId}! (${event.resource}: ${event.targetResourceValue})")
+                is CombatEvent.BuffExpired -> println("${event.target}'s buff ${event.buffId} expired.")
                 is CombatEvent.BattleEnd -> println("Battle Over! Winner: ${event.winner}")
             }
             // Print actor snapshot after each event
