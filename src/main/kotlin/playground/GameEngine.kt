@@ -8,6 +8,7 @@ import kotlin.time.measureTime
 sealed class Buff {
     abstract val id: String
     abstract val duration: Int
+
     data class StatBuff(
         override val id: String,
         override val duration: Int,
