@@ -399,17 +399,16 @@ val hotBuff = Skill(
     name = "Regeneration",
     effects = listOf(
         SkillEffect(
-            type = SkillEffectType.StatBuff,
-            power = 0,
+            type = SkillEffectType.ResourceTick,
             targetRule = { actor, _, _ -> listOf(actor) },
-            statBuff = StatBuff(id = "Regen", duration = 3, statChanges = emptyMap())
+            resourceTick = ResourceTick(id = "Regen", duration = 3, resourceChanges = mapOf("hp" to 10)) // Regeneration should heal
         ),
         SkillEffect(
             type = SkillEffectType.StatBuff,
             power = 0,
             targetRule = { actor, _, _ -> listOf(actor) },
             statBuff = StatBuff(id = "Resist", duration = 3, statChanges = mapOf("def" to 10))
-        )
+        ),
     ),
     activationRule = { actor, _, _ -> actor.statBuffs.none { it.id == "Regen" } },
     cooldown = 3
@@ -445,7 +444,7 @@ val groupHeal = Skill(
         SkillEffect(
             type = SkillEffectType.ResourceTick,
             targetRule = { _, allies, _ -> allies },
-            resourceTick = ResourceTick(id = "Regen", duration = 2, resourceChanges = mapOf("hp" to -5))
+            resourceTick = ResourceTick(id = "Regen", duration = 2, resourceChanges = mapOf("hp" to 5)) // Should heal, not damage
         )
     ),
     activationRule = { _, allies, _ ->
@@ -469,7 +468,7 @@ val poisonStrike = Skill(
             targetRule = { _, _, enemies ->
                 if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
             },
-            resourceTick = ResourceTick(id = "Poison", duration = 4, resourceChanges = mapOf("hp" to 5))
+            resourceTick = ResourceTick(id = "Poison", duration = 4, resourceChanges = mapOf("hp" to -5)) // Poison should damage
         )
     ),
     cooldown = 2
