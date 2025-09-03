@@ -9,7 +9,7 @@ data class Buff(
     val id: String,
     val duration: Int,
     val statChanges: Map<String, Int> = emptyMap(), // e.g. {"atk": +10}
-    val dot: Int = 0 // Damage over time per turn
+    val resourceDrains: Map<String, Int> = emptyMap() // e.g. {"hp": 10, "mana": 5}
 )
 
 // --- Skill Effects ---
@@ -70,7 +70,7 @@ data class BuffSnapshot(
     val id: String,
     val duration: Int,
     val statChanges: Map<String, Int>,
-    val dot: Int
+    val resourceDrains: Map<String, Int>
 )
 
 data class BattleSnapshot(
@@ -92,7 +92,7 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
                             id = buff.id,
                             duration = buff.duration,
                             statChanges = buff.statChanges,
-                            dot = buff.dot
+                            resourceDrains = buff.resourceDrains
                         )
                     },
                     cooldowns = actor.skills.associate { it.name to (actor.cooldowns[it] ?: 0) }
@@ -110,7 +110,7 @@ sealed class CombatEvent {
     data class Healed(val source: String, val target: String, val amount: Int, val targetHp: Int, val snapshot: BattleSnapshot) : CombatEvent()
     data class BuffApplied(val source: String, val target: String, val buffId: String, val snapshot: BattleSnapshot) : CombatEvent()
     data class BuffExpired(val target: String, val buffId: String, val snapshot: BattleSnapshot) : CombatEvent()
-    data class DotApplied(val target: String, val buffId: String, val amount: Int, val targetHp: Int, val snapshot: BattleSnapshot) : CombatEvent()
+    data class ResourceDrained(val target: String, val buffId: String, val resource: String, val amount: Int, val targetResourceValue: Int, val snapshot: BattleSnapshot) : CombatEvent()
     data class BattleEnd(val winner: String, val snapshot: BattleSnapshot) : CombatEvent()
 }
 
@@ -199,15 +199,22 @@ class BattleSimulation(
         for (actor in team.actors) {
             val expired = mutableListOf<Buff>()
             for (buff in actor.buffs) {
-                if (buff.dot != 0) {
-                    actor.hp = if (buff.dot < 0) {
-                        // Healing over time: clamp to maxHp
-                        min(actor.maxHp, actor.hp - buff.dot)
-                    } else {
-                        // Damage over time
-                        max(0, actor.hp - buff.dot)
+                if (buff.resourceDrains.isNotEmpty()) {
+                    for ((resource, amount) in buff.resourceDrains) {
+                        when (resource) {
+                            "hp" -> {
+                                actor.hp = if (amount < 0) {
+                                    // Healing over time: clamp to maxHp
+                                    min(actor.maxHp, actor.hp - amount)
+                                } else {
+                                    // Damage over time
+                                    max(0, actor.hp - amount)
+                                }
+                                log.add(CombatEvent.ResourceDrained(actor.name, buff.id, resource, amount, actor.hp, snapshotActors(listOf(teamA, teamB))))
+                            }
+                            // Add more resources here (e.g. "mana") if needed
+                        }
                     }
-                    log.add(CombatEvent.DotApplied(actor.name, buff.id, buff.dot, actor.hp, snapshotActors(listOf(teamA, teamB))))
                 }
             }
             actor.buffs.replaceAll { it.copy(duration = it.duration - 1) }
@@ -232,7 +239,7 @@ object BattleLogPrinter {
                 is CombatEvent.DamageDealt -> println("${event.target} takes ${event.amount} damage! (HP: ${event.targetHp})")
                 is CombatEvent.Healed -> println("${event.target} heals ${event.amount} HP! (HP: ${event.targetHp})")
                 is CombatEvent.BuffApplied -> println("${event.target} receives buff/debuff ${event.buffId}")
-                is CombatEvent.DotApplied -> println("${event.target} takes ${event.amount} DoT from ${event.buffId}! (HP: ${event.targetHp})")
+                is CombatEvent.ResourceDrained -> println("${event.target} has ${event.amount} ${event.resource} drained by ${event.buffId}! (${event.resource}: ${event.targetResourceValue})")
                 is CombatEvent.BuffExpired -> println("${event.target}'s buff/debuff ${event.buffId} expired.")
                 is CombatEvent.BattleEnd -> println("Battle Over! Winner: ${event.winner}")
             }
@@ -248,7 +255,7 @@ object BattleLogPrinter {
 
             println("Actors:")
             for (actor in snapshot.actors) {
-                println("  ${actor.name} (Team ${actor.team}): HP=${actor.hp}/${actor.maxHp}, Stats=${actor.stats}, Buffs=[${actor.buffs.joinToString { b -> "${b.id}(dur=${b.duration},dot=${b.dot},stats=${b.statChanges})" }}]")
+                println("  ${actor.name} (Team ${actor.team}): HP=${actor.hp}/${actor.maxHp}, Stats=${actor.stats}, Buffs=[${actor.buffs.joinToString { b -> "${b.id}(dur=${b.duration},dot=${b.resourceDrains})" }}]")
             }
         }
     }
@@ -315,7 +322,7 @@ val fireball = Skill(
         SkillEffect(
             type = SkillEffectType.Debuff,
             targetRule = { _, _, enemies -> enemies },
-            buff = Buff(id = "Burn", duration = 2, dot = 10)
+            buff = Buff(id = "Burn", duration = 2, resourceDrains = mapOf("hp" to 10))
         )
     ),
     activationRule = { _, _, enemies -> enemies.isNotEmpty() },
@@ -362,7 +369,7 @@ val hotBuff = Skill(
             type = SkillEffectType.Buff,
             power = 0,
             targetRule = { actor, _, _ -> listOf(actor) },
-            buff = Buff(id = "Regen", duration = 3, dot = -10)
+            buff = Buff(id = "Regen", duration = 3, resourceDrains = mapOf("hp" to -10))
         ),
         SkillEffect(
             type = SkillEffectType.Buff,
@@ -405,7 +412,7 @@ val groupHeal = Skill(
         SkillEffect(
             type = SkillEffectType.Buff,
             targetRule = { _, allies, _ -> allies },
-            buff = Buff(id = "Regen", duration = 2, dot = -5)
+            buff = Buff(id = "Regen", duration = 2, resourceDrains = mapOf("hp" to -5))
         )
     ),
     activationRule = { _, allies, _ ->
@@ -429,7 +436,7 @@ val poisonStrike = Skill(
             targetRule = { _, _, enemies ->
                 if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
             },
-            buff = Buff(id = "Poison", duration = 4, dot = 5)
+            buff = Buff(id = "Poison", duration = 4, resourceDrains = mapOf("hp" to 5))
         )
     ),
     cooldown = 2
