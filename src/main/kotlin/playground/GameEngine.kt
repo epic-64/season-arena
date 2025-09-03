@@ -557,16 +557,17 @@ fun main() {
     val originalTeamA = Team(mutableListOf(originalActorA1, originalActorA2, originalActorA3))
     val originalTeamB = Team(mutableListOf(originalActorB))
 
-    repeat(10) { i ->
+    repeat(100) { i ->
         val teamA = originalTeamA.deepCopy()
         val teamB = originalTeamB.deepCopy()
         val log: List<CombatEvent>
         val milliSecondsSimulation = measureTime {
             log = BattleSimulation(teamA, teamB).run()
         }
+        val turns = log.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
         val milliSecondsPrinting = measureTime {
             // BattleLogPrinter.run(log)
         }
-        println("Run #$i: Simulation took $milliSecondsSimulation, printing took $milliSecondsPrinting")
+        println("Run #$i: Simulation took $milliSecondsSimulation, printing took $milliSecondsPrinting, turns: $turns")
     }
 }
