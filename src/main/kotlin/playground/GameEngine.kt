@@ -230,30 +230,42 @@ class BattleSimulation(
         for (actor in team.actors) {
             val expiredStatBuffs = mutableListOf<Buff.StatBuff>()
             val expiredResourceTicks = mutableListOf<Buff.ResourceTick>()
-            for (buff in actor.buffs) {
-                when (buff) {
-                    is Buff.StatBuff -> {
-                        // Update stat changes
-                        for ((stat, change) in buff.statChanges) {
-                            actor.stats[stat] = (actor.stats[stat] ?: 0) + change
-                        }
+            // --- StatBuffs: Only apply statChanges on buff application, remove on expiration ---
+            // Track buffs that are newly applied this turn
+            val previousStatBuffs = actor.stats.toMap()
+            val activeStatBuffs = actor.buffs.filterIsInstance<Buff.StatBuff>()
+            val statBuffTotals = mutableMapOf<String, Int>()
+            for (buff in activeStatBuffs) {
+                for ((stat, change) in buff.statChanges) {
+                    statBuffTotals[stat] = (statBuffTotals[stat] ?: 0) + change
+                }
+            }
+            // Set stats to base + total from active buffs
+            for ((stat, value) in statBuffTotals) {
+                actor.stats[stat] = value
+            }
+            // Remove stats for buffs that have expired
+            val expiredBuffs = actor.buffs.filterIsInstance<Buff.StatBuff>().filter { it.duration <= 0 }
+            for (buff in expiredBuffs) {
+                for ((stat, _) in buff.statChanges) {
+                    // Remove stat if no other active buff provides it
+                    if (activeStatBuffs.none { it.statChanges.containsKey(stat) }) {
+                        actor.stats.remove(stat)
                     }
-                    is Buff.ResourceTick -> {
-                        if (buff.resourceChanges.isNotEmpty()) {
-                            for ((resource, amount) in buff.resourceChanges) {
-                                when (resource) {
-                                    "hp" -> {
-                                        actor.hp = if (amount > 0) {
-                                            // Healing over time: clamp to maxHp
-                                            min(actor.maxHp, actor.hp + amount)
-                                        } else {
-                                            // Damage over time, clamp to 0
-                                            max(0, actor.hp + amount)
-                                        }
-                                        log.add(CombatEvent.ResourceDrained(actor.name, buff.id, resource, amount, actor.hp, snapshotActors(listOf(teamA, teamB))))
-                                    }
-                                    // Add more resources here (e.g. "mana") if needed
+                }
+            }
+            // --- ResourceTicks: process as before ---
+            for (buff in actor.buffs.filterIsInstance<Buff.ResourceTick>()) {
+                if (buff.resourceChanges.isNotEmpty()) {
+                    for ((resource, amount) in buff.resourceChanges) {
+                        when (resource) {
+                            "hp" -> {
+                                actor.hp = if (amount > 0) {
+                                    min(actor.maxHp, actor.hp + amount)
+                                } else {
+                                    max(0, actor.hp + amount)
                                 }
+                                log.add(CombatEvent.ResourceDrained(actor.name, buff.id, resource, amount, actor.hp, snapshotActors(listOf(teamA, teamB))))
                             }
                         }
                     }
