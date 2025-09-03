@@ -193,9 +193,12 @@ class BattleSimulation(
             when (effect.type) {
                 SkillEffectType.Damage -> {
                     for (target in targets) {
-                        val dmg = max(1, effect.power + (actor.stats["atk"] ?: 0))
-                        target.hp = max(0, target.hp - dmg)
-                        log.add(CombatEvent.DamageDealt(actor.name, target.name, dmg, target.hp, snapshotActors(listOf(teamA, teamB))))
+                        val rawDmg = max(1, effect.power + (actor.stats["atk"] ?: 0))
+                        val protection = target.stats["protection"]?.coerceIn(0, 100) ?: 0
+                        // Protection is a percentage: 10 = 10% reduced damage
+                        val finalDmg = max(1, (rawDmg * (1 - protection / 100.0)).toInt())
+                        target.hp = max(0, target.hp - finalDmg)
+                        log.add(CombatEvent.DamageDealt(actor.name, target.name, finalDmg, target.hp, snapshotActors(listOf(teamA, teamB))))
                     }
                 }
                 SkillEffectType.Heal -> {
@@ -421,7 +424,7 @@ val hotBuff = Skill(
             type = SkillEffectType.StatBuff,
             power = 0,
             targetRule = { actor, _, _ -> listOf(actor) },
-            statBuff = Buff.StatBuff(id = "Resist", duration = 3, statChanges = mapOf("def" to 10))
+            statBuff = Buff.StatBuff(id = "Protection", duration = 3, statChanges = mapOf("protection" to 10))
         ),
     ),
     activationRule = { actor, _, _ -> actor.buffs.none { it.id == "Regen" } },
