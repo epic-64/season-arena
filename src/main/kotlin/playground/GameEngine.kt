@@ -202,11 +202,16 @@ class BattleSimulation(
                         log.add(CombatEvent.Healed(actor.name, target.name, heal, target.hp, snapshotActors(listOf(teamA, teamB))))
                     }
                 }
-                SkillEffectType.StatBuff, SkillEffectType.ResourceTick -> {
+                SkillEffectType.StatBuff -> {
                     for (target in targets) {
                         effect.statBuff?.let { target.statBuffs.add(it.copy()) }
-                        effect.resourceTick?.let { target.resourceTicks.add(it.copy()) }
                         effect.statBuff?.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
+                    }
+                }
+                SkillEffectType.ResourceTick -> {
+                    for (target in targets) {
+                        effect.resourceTick?.let { target.resourceTicks.add(it.copy()) }
+                        effect.resourceTick?.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
                     }
                 }
             }
