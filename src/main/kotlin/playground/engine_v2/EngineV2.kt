@@ -4,7 +4,7 @@ import kotlin.random.Random
 
 // --- Core Interfaces ---
 enum class StatType {
-    HP, MAX_HP, ATTACK, DEFENSE, CRIT_CHANCE, SPEED
+    Hp, MaxHp, Attack, Defense, CritChance, Speed
     // Add more as needed
 }
 
@@ -53,12 +53,12 @@ class Stats(private val values: MutableMap<StatType, Number> = mutableMapOf()) {
         critChance: Float = 0f,
         speed: Int = 0
     ) : this(mutableMapOf(
-        StatType.HP to hp,
-        StatType.MAX_HP to maxHp,
-        StatType.ATTACK to attack,
-        StatType.DEFENSE to defense,
-        StatType.CRIT_CHANCE to critChance,
-        StatType.SPEED to speed
+        StatType.Hp to hp,
+        StatType.MaxHp to maxHp,
+        StatType.Attack to attack,
+        StatType.Defense to defense,
+        StatType.CritChance to critChance,
+        StatType.Speed to speed
     ))
 
     fun get(stat: StatType): Number = values[stat] ?: 0
@@ -66,12 +66,12 @@ class Stats(private val values: MutableMap<StatType, Number> = mutableMapOf()) {
     fun copy(): Stats = Stats(values.toMutableMap())
 
     // Utility accessors
-    val hp: Int get() = get(StatType.HP).toInt()
-    val maxHp: Int get() = get(StatType.MAX_HP).toInt()
-    val attack: Int get() = get(StatType.ATTACK).toInt()
-    val defense: Int get() = get(StatType.DEFENSE).toInt()
-    val critChance: Float get() = get(StatType.CRIT_CHANCE).toFloat()
-    val speed: Int get() = get(StatType.SPEED).toInt()
+    val hp: Int get() = get(StatType.Hp).toInt()
+    val maxHp: Int get() = get(StatType.MaxHp).toInt()
+    val attack: Int get() = get(StatType.Attack).toInt()
+    val defense: Int get() = get(StatType.Defense).toInt()
+    val critChance: Float get() = get(StatType.CritChance).toFloat()
+    val speed: Int get() = get(StatType.Speed).toInt()
 
     // Merges another Stats into this one (additive)
     fun merge(other: Stats): Stats {
@@ -191,7 +191,7 @@ class Actor(
         passives.forEach { allModifiers.addAll(it.statModifiers) }
         allModifiers.addAll(modifierStack.getAll())
         // Apply modifiers by op type
-        StatType.values().forEach { statType ->
+        StatType.entries.forEach { statType ->
             var value = stats.get(statType).toDouble()
             // Additive
             allModifiers.filter { it.stat == statType && it.op is StatOp.Add && (it.condition?.invoke(this) ?: true) }
@@ -231,7 +231,7 @@ class LightningStrikeSkill(
         // Calculate skill level from gear, buffs, passives, etc.
         var level = baseLevel
         actor.gear.forEach { gear ->
-            gear.statModifiers.filter { it.stat == StatType.SPEED && it.op is StatOp.Add }.forEach {
+            gear.statModifiers.filter { it.stat == StatType.Speed && it.op is StatOp.Add }.forEach {
                 // Let's say SPEED stat boosts Lightning Strike level for demo purposes
                 level += it.value.toInt()
             }
@@ -299,8 +299,8 @@ object LightningStrikeRepeatProc : IProc {
 class SwordOfLightning : IGear {
     override val id: String = "sword_of_lightning"
     override val statModifiers: List<StatModifier> = listOf(
-        StatModifier(StatType.ATTACK, StatOp.Add, 10, ModifierSource.Gear(this)),
-        StatModifier(StatType.SPEED, StatOp.Add, 1, ModifierSource.Gear(this)) // SPEED boosts Lightning Strike level
+        StatModifier(StatType.Attack, StatOp.Add, 10, ModifierSource.Gear(this)),
+        StatModifier(StatType.Speed, StatOp.Add, 1, ModifierSource.Gear(this)) // SPEED boosts Lightning Strike level
     )
     override val procs: List<IProc> = listOf(LightningStrikeProc)
 }
