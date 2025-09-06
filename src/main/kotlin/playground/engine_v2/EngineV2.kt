@@ -77,12 +77,16 @@ class Actor(
         get() = gear.flatMap { it.procs } +
                 buffs.flatMap { it.procs } +
                 passives.flatMap { it.procs }
-    fun getCurrentStats(): Stats {
+
+    fun getCurrentStats(): Stats
+    {
         val stats = baseStats.copy()
         val allModifiers = mutableListOf<StatModifier>()
+
         gear.forEach { allModifiers.addAll(it.statModifiers) }
         buffs.forEach { allModifiers.addAll(it.statModifiers) }
         passives.forEach { allModifiers.addAll(it.statModifiers) }
+
         StatType.entries.forEach { statType ->
             var value = stats.get(statType).toDouble()
             allModifiers
@@ -96,6 +100,7 @@ class Actor(
                 ?.let { value = it.value.toDouble() }
             stats.set(statType, value)
         }
+
         return stats
     }
 }
@@ -147,7 +152,7 @@ sealed class CombatEvent {
     data class BattleEnd(val winner: String) : CombatEvent()
 }
 
-class ProcContext(
+data class ProcContext(
     val source: Actor,
     val target: Actor?,
     val event: CombatEvent
