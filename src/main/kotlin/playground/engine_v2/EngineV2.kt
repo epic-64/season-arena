@@ -291,7 +291,7 @@ object LightningStrikeRepeatProc : IProc {
     override fun activate(context: ProcContext): List<CombatEvent> {
         // Only proc if the skill used is Lightning Strike
         if (context.event is CombatEvent.Damage && context.event.type == "lightning") {
-            if (Random.nextFloat() < 0.1f) { // 10% chance
+            if (true) { // 10% chance
                 val actor = context.source
                 val target = context.target ?: return emptyList()
                 val skill = LightningStrikeSkill()
