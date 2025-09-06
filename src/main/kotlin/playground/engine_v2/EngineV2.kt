@@ -29,7 +29,7 @@ data class StatModifier(
     val op: StatOp,
     val value: Number,
     val source: ModifierSource,
-    val condition: ((Actor) -> Boolean)? = null
+    val condition: ((Actor) -> Boolean) = { true }
 )
 
 class Stats(private val values: MutableMap<StatType, Number> = mutableMapOf()) {
@@ -94,14 +94,14 @@ class Actor(
         StatType.entries.forEach { statType ->
             var value = stats.get(statType).toDouble()
             allModifiers
-                .filter { it.stat == statType && it.op is StatOp.Add && (it.condition?.invoke(this) ?: true) }
+                .filter { it.stat == statType && it.op is StatOp.Add && (it.condition.invoke(this)) }
                 .forEach { value += it.value.toDouble() }
             allModifiers
-                .filter { it.stat == statType && it.op is StatOp.Multiply && (it.condition?.invoke(this) ?: true) }
+                .filter { it.stat == statType && it.op is StatOp.Multiply && (it.condition.invoke(this)) }
                 .forEach { value *= it.value.toDouble() }
             allModifiers
-                .filter { it.stat == statType && it.op is StatOp.Override && (it.condition?.invoke(this) ?: true) }
-                .lastOrNull()?.let { value = it.value.toDouble() }
+                .lastOrNull { it.stat == statType && it.op is StatOp.Override && (it.condition.invoke(this)) }
+                ?.let { value = it.value.toDouble() }
             stats.set(statType, value)
         }
         return stats
@@ -179,23 +179,14 @@ class SimulationEngine(
 
 // --- Lightning Strike Skill ---
 class LightningStrikeSkill(
-    val baseLevel: Int = 1,
+    private val baseLevel: Int = 1,
     val procs: List<IProc> = emptyList()
 ) {
     val name: String = "Lightning Strike"
-    val minDamage: Int get() = 20 + 5 * getCurrentLevel(actorForLevel)
-    val maxDamage: Int get() = 40 + 10 * getCurrentLevel(actorForLevel)
-    private var actorForLevel: Actor = Actor(
-        name = "Dummy",
-        team = 0,
-        baseStats = Stats(),
-        gear = emptyList(),
-        buffs = emptyList(),
-        passives = emptyList(),
-        isAlive = true
-    ) // placeholder, set before use
+    private fun minDamage(actor: Actor): Int = 20 + 5 * getCurrentLevel(actor)
+    private fun maxDamage(actor: Actor): Int = 40 + 10 * getCurrentLevel(actor)
 
-    fun getCurrentLevel(actor: Actor): Int {
+    private fun getCurrentLevel(actor: Actor): Int {
         var level = baseLevel
         actor.gear.forEach { gear ->
             gear.statModifiers.filter { it.stat == StatType.SPEED && it.op is StatOp.Add }.forEach {
@@ -206,9 +197,7 @@ class LightningStrikeSkill(
     }
 
     fun use(actor: Actor, target: Actor): List<CombatEvent> {
-        actorForLevel = actor
-        val level = getCurrentLevel(actor)
-        val damage = Random.nextInt(minDamage, maxDamage + 1)
+        val damage = Random.nextInt(minDamage(actor), maxDamage(actor) + 1)
         val events = mutableListOf<CombatEvent>()
         events.add(CombatEvent.Damage(
             source = actor.name,
@@ -287,7 +276,9 @@ fun main() {
         team = 2,
         baseStats = Stats(hp = 50, maxHp = 50, attack = 10, defense = 2, critChance = 0.05f, speed = 8)
     )
+
     println("${actor.name} attacks ${target.name}!")
+
     actor.allProcs.filter { it.trigger == ProcTrigger.ON_HIT }.forEach { proc ->
         val events = proc.activate(ProcContext(source = actor, target = target, event = CombatEvent.Damage(actor.name, target.name, actor.getCurrentStats().attack, "physical")))
         events.forEach { println(it) }
