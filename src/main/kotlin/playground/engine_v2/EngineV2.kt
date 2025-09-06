@@ -90,7 +90,6 @@ interface IActor {
     val gear: List<IGear>
     val buffs: List<IBuff>
     val passives: List<IPassive>
-    val procs: List<IProc>
     val modifierStack: ModifierStack
     val isAlive: Boolean
 
@@ -113,11 +112,13 @@ interface IBuff {
     val duration: Int
     val statModifiers: List<StatModifier>
     val dotEffects: List<IDamageOverTime>
+    val procs: List<IProc>
 }
 
 interface IPassive {
     val id: String
     val statModifiers: List<StatModifier>
+    val procs: List<IProc>
 }
 
 interface IDamageOverTime {
@@ -178,10 +179,14 @@ class Actor(
     override val gear: List<IGear> = emptyList(),
     override val buffs: List<IBuff> = emptyList(),
     override val passives: List<IPassive> = emptyList(),
-    override val procs: List<IProc> = emptyList(),
     override val modifierStack: ModifierStack = ModifierStack(),
     override var isAlive: Boolean = true
 ) : IActor {
+    // Aggregate all procs from gear, buffs, passives
+    val allProcs: List<IProc>
+        get() = gear.flatMap { it.procs } +
+                buffs.flatMap { it.procs } +
+                passives.flatMap { it.procs }
     override fun getCurrentStats(): Stats {
         val stats = baseStats.copy()
         val allModifiers = mutableListOf<StatModifier>()
@@ -268,7 +273,6 @@ class LightningStrikeSkill(
         override val gear = emptyList<IGear>()
         override val buffs = emptyList<IBuff>()
         override val passives = emptyList<IPassive>()
-        override val procs = emptyList<IProc>()
         override val modifierStack = ModifierStack()
         override val isAlive = true
         override fun getCurrentStats() = baseStats
@@ -334,8 +338,7 @@ fun main() {
         name = "Hero",
         team = 1,
         baseStats = Stats(hp = 100, maxHp = 100, attack = 20, defense = 5, critChance = 0.1f, speed = 10),
-        gear = listOf(sword, armor),
-        procs = sword.procs + armor.procs
+        gear = listOf(sword, armor)
     )
     val target = Actor(
         name = "Goblin",
@@ -344,7 +347,7 @@ fun main() {
     )
     println("${actor.name} attacks ${target.name}!")
     // Simulate ON_HIT procs
-    actor.procs.filter { it.trigger == ProcTrigger.ON_HIT }.forEach { proc ->
+    actor.allProcs.filter { it.trigger == ProcTrigger.ON_HIT }.forEach { proc ->
         val events = proc.activate(ProcContext(source = actor, target = target, event = CombatEvent.Damage(actor.name, target.name, actor.getCurrentStats().attack, "physical")))
         events.forEach { println(it) }
     }
