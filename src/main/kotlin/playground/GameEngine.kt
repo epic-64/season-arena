@@ -172,7 +172,7 @@ class BattleSimulation(
         while (teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isNotEmpty() && turn < maxTurns) {
             turn++
             log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
-            val allActors = (teamA.aliveActors() + teamB.aliveActors()).shuffled()
+            val allActors = teamA.aliveActors() + teamB.aliveActors()
             for (actor in allActors) {
                 if (!actor.isAlive) continue
                 val allies = if (actor.team == 0) teamA.aliveActors() else teamB.aliveActors()
@@ -296,10 +296,13 @@ class BattleSimulation(
                 is Buff.StatBuff -> it.copy(duration = it.duration - 1)
                 is Buff.ResourceTick -> it.copy(duration = it.duration - 1)
             } }
+
             expiredStatBuffs.addAll(actor.buffs.filterIsInstance<Buff.StatBuff>().filter { it.duration <= 0 })
             expiredResourceTicks.addAll(actor.buffs.filterIsInstance<Buff.ResourceTick>().filter { it.duration <= 0 })
+
             actor.buffs.removeAll { it is Buff.StatBuff && it.duration <= 0 }
             actor.buffs.removeAll { it is Buff.ResourceTick && it.duration <= 0 }
+
             for (buff in expiredStatBuffs) {
                 log.add(CombatEvent.BuffExpired(actor.name, buff.id, snapshotActors(listOf(teamA, teamB))))
             }
