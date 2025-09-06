@@ -70,7 +70,6 @@ class Actor(
     val gear: List<Gear> = emptyList(),
     val buffs: List<Buff> = emptyList(),
     val passives: List<Passive> = emptyList(),
-    var isAlive: Boolean = true
 ) {
     val hp: Int get() = getCurrentStats().hp
     val maxHp: Int get() = getCurrentStats().maxHp
