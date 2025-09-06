@@ -5,45 +5,116 @@ package playground.engine_v2
 // We'll add proper abstractions for gear, buffs, DoTs, procs, and more.
 
 // --- Core Interfaces ---
-data class Stats(
-    val hp: Int = 0,
-    val maxHp: Int = 0,
-    val attack: Int = 0,
-    val defense: Int = 0,
-    val critChance: Float = 0f,
-    val speed: Int = 0
-    // Add more stats as needed
-) {
-    fun withHp(newHp: Int) = copy(hp = newHp)
-    fun withMaxHp(newMaxHp: Int) = copy(maxHp = newMaxHp)
-    // Add more utility methods as needed
+enum class StatType {
+    HP, MAX_HP, ATTACK, DEFENSE, CRIT_CHANCE, SPEED
+    // Add more as needed
+}
+
+sealed class StatOp {
+    object Add : StatOp()
+    object Multiply : StatOp()
+    object Override : StatOp()
+}
+
+enum class ModifierSource {
+    BASE, GEAR, BUFF, PASSIVE, PROC, OTHER
+}
+
+// Represents a single stat modification
+data class StatModifier(
+    val stat: StatType,
+    val op: StatOp,
+    val value: Number,
+    val source: ModifierSource,
+    val condition: ((IActor) -> Boolean)? = null // For conditional procs, etc.
+)
+
+// Holds a set of modifiers, e.g. from gear, buffs, passives
+class ModifierStack {
+    private val modifiers = mutableListOf<StatModifier>()
+
+    fun add(mod: StatModifier) = modifiers.add(mod)
+    fun addAll(mods: Collection<StatModifier>) = modifiers.addAll(mods)
+    fun remove(mod: StatModifier) = modifiers.remove(mod)
+    fun clear() = modifiers.clear()
+    fun getAll(): List<StatModifier> = modifiers.toList()
+}
+
+// Updated Stats class to use StatType keys internally for flexibility
+class Stats(private val values: MutableMap<StatType, Number> = mutableMapOf()) {
+    constructor(
+        hp: Int = 0,
+        maxHp: Int = 0,
+        attack: Int = 0,
+        defense: Int = 0,
+        critChance: Float = 0f,
+        speed: Int = 0
+    ) : this(mutableMapOf(
+        StatType.HP to hp,
+        StatType.MAX_HP to maxHp,
+        StatType.ATTACK to attack,
+        StatType.DEFENSE to defense,
+        StatType.CRIT_CHANCE to critChance,
+        StatType.SPEED to speed
+    ))
+
+    fun get(stat: StatType): Number = values[stat] ?: 0
+    fun set(stat: StatType, value: Number) { values[stat] = value }
+    fun copy(): Stats = Stats(values.toMutableMap())
+
+    // Utility accessors
+    val hp: Int get() = get(StatType.HP).toInt()
+    val maxHp: Int get() = get(StatType.MAX_HP).toInt()
+    val attack: Int get() = get(StatType.ATTACK).toInt()
+    val defense: Int get() = get(StatType.DEFENSE).toInt()
+    val critChance: Float get() = get(StatType.CRIT_CHANCE).toFloat()
+    val speed: Int get() = get(StatType.SPEED).toInt()
+
+    // Merges another Stats into this one (additive)
+    fun merge(other: Stats): Stats {
+        val result = copy()
+        for ((k, v) in other.values) {
+            result.values[k] = (result.values[k]?.toDouble() ?: 0.0) + v.toDouble()
+        }
+        return result
+    }
 }
 
 interface IActor {
     val name: String
     val team: Int
-    val stats: Stats
+    val baseStats: Stats
     val gear: List<IGear>
     val buffs: List<IBuff>
+    val passives: List<IPassive>
     val procs: List<IProc>
+    val modifierStack: ModifierStack
     val isAlive: Boolean
 
+    // Calculates current stats by applying all modifiers
+    fun getCurrentStats(): Stats
+
     // Convenience accessors
-    val hp: Int get() = stats.hp
-    val maxHp: Int get() = stats.maxHp
+    val hp: Int get() = getCurrentStats().hp
+    val maxHp: Int get() = getCurrentStats().maxHp
 }
 
 interface IGear {
     val id: String
-    val statModifiers: Stats
+    val statModifiers: List<StatModifier>
     val procs: List<IProc>
 }
 
 interface IBuff {
     val id: String
     val duration: Int
-    val statModifiers: Stats
+    val statModifiers: List<StatModifier>
     val dotEffects: List<IDamageOverTime>
+}
+
+interface IPassive {
+    val id: String
+    val statModifiers: List<StatModifier>
 }
 
 interface IDamageOverTime {
