@@ -1,8 +1,6 @@
 package playground.engine_v2
 
-// Welcome to engine_v2: The simulation engine that doesn't make you cry.
-// This is a clean slate for extensible combat simulation.
-// We'll add proper abstractions for gear, buffs, DoTs, procs, and more.
+import kotlin.random.Random
 
 // --- Core Interfaces ---
 enum class StatType {
@@ -173,6 +171,91 @@ class SimulationEngine(
 // Next steps: Implement concrete classes for Actor, Gear, Buff, DoT, Proc, and the simulation loop.
 // This is just the skeleton. We'll flesh it out as we go.
 
+class Actor(
+    override val name: String,
+    override val team: Int,
+    override val baseStats: Stats,
+    override val gear: List<IGear> = emptyList(),
+    override val buffs: List<IBuff> = emptyList(),
+    override val passives: List<IPassive> = emptyList(),
+    override val procs: List<IProc> = emptyList(),
+    override val modifierStack: ModifierStack = ModifierStack(),
+    override var isAlive: Boolean = true
+) : IActor {
+    override fun getCurrentStats(): Stats {
+        val stats = baseStats.copy()
+        val allModifiers = mutableListOf<StatModifier>()
+        // Collect modifiers from gear, buffs, passives, and stack
+        gear.forEach { allModifiers.addAll(it.statModifiers) }
+        buffs.forEach { allModifiers.addAll(it.statModifiers) }
+        passives.forEach { allModifiers.addAll(it.statModifiers) }
+        allModifiers.addAll(modifierStack.getAll())
+        // Apply modifiers by op type
+        StatType.values().forEach { statType ->
+            var value = stats.get(statType).toDouble()
+            // Additive
+            allModifiers.filter { it.stat == statType && it.op is StatOp.Add && (it.condition?.invoke(this) ?: true) }
+                .forEach { value += it.value.toDouble() }
+            // Multiplicative
+            allModifiers.filter { it.stat == statType && it.op is StatOp.Multiply && (it.condition?.invoke(this) ?: true) }
+                .forEach { value *= it.value.toDouble() }
+            // Override (last one wins)
+            allModifiers.filter { it.stat == statType && it.op is StatOp.Override && (it.condition?.invoke(this) ?: true) }
+                .lastOrNull()?.let { value = it.value.toDouble() }
+            stats.set(statType, value)
+        }
+        return stats
+    }
+}
+
+class SwordOfLightning : IGear {
+    override val id: String = "sword_of_lightning"
+    override val statModifiers: List<StatModifier> = listOf(
+        StatModifier(StatType.ATTACK, StatOp.Add, 10, ModifierSource.Gear(this))
+    )
+    override val procs: List<IProc> = listOf(LightningStrikeProc)
+}
+
+object LightningStrikeProc : IProc {
+    override val id: String = "lightning_strike_proc"
+    override val trigger: ProcTrigger = ProcTrigger.ON_HIT
+    override fun activate(context: ProcContext): List<CombatEvent> {
+        // 50% chance to proc
+        return if (Random.nextFloat() < 0.5f) {
+            listOf(
+                CombatEvent.Damage(
+                    source = context.source.name,
+                    target = context.target?.name ?: "Unknown",
+                    amount = 25,
+                    type = "lightning"
+                ),
+                CombatEvent.ProcActivated(context.source.name, id, trigger)
+            )
+        } else {
+            emptyList()
+        }
+    }
+}
+
+// Demo in main()
 fun main() {
-    println("Engine v2: The simulation engine that doesn't make you cry.")
+    val sword = SwordOfLightning()
+    val actor = Actor(
+        name = "Hero",
+        team = 1,
+        baseStats = Stats(hp = 100, maxHp = 100, attack = 20, defense = 5, critChance = 0.1f, speed = 10),
+        gear = listOf(sword),
+        procs = sword.procs
+    )
+    val target = Actor(
+        name = "Goblin",
+        team = 2,
+        baseStats = Stats(hp = 50, maxHp = 50, attack = 10, defense = 2, critChance = 0.05f, speed = 8)
+    )
+    println("${actor.name} attacks ${target.name}!")
+    // Simulate ON_HIT procs
+    actor.procs.filter { it.trigger == ProcTrigger.ON_HIT }.forEach { proc ->
+        val events = proc.activate(ProcContext(source = actor, target = target, event = CombatEvent.Damage(actor.name, target.name, actor.getCurrentStats().attack, "physical")))
+        events.forEach { println(it) }
+    }
 }
