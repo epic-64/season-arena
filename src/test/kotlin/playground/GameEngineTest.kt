@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 class GameEngineTest : StringSpec({
-    "snapshotActors should correctly snapshot a single actor" {
+    "snapshotActors correctly snapshots a single actor" {
         val actor = Actor(
             name = "TestHero",
             hp = 50,
@@ -28,7 +28,7 @@ class GameEngineTest : StringSpec({
         snap.cooldowns shouldBe emptyMap()
     }
 
-    "deepCopy should create a true deep copy of Actor and Team" {
+    "deepCopy creates a true deep copy of Actor and Team" {
         val actor = Actor(
             name = "DeepHero",
             hp = 100,
@@ -57,7 +57,7 @@ class GameEngineTest : StringSpec({
         teamCopy.actors.first().stats["strength"] shouldBe 10
     }
 
-    "testBasicCombat1v1 should simulate a basic 1v1 combat" {
+    "basic 1v1 combat is deterministic" {
         val actorA = Actor(
             name = "Hero",
             hp = 50,
@@ -76,20 +76,17 @@ class GameEngineTest : StringSpec({
         val teamB = Team(mutableListOf(actorB))
         val events = BattleSimulation(teamA, teamB).run()
 
-        BattleLogPrinter.run(events)
+        print_battle_events(events)
 
         val endEvent = events.last() as CombatEvent.BattleEnd
         val winner = endEvent.winner
         val snapshot = endEvent.snapshot
         val hero = snapshot.actors.find { it.name == "Hero" }!!
         val villain = snapshot.actors.find { it.name == "Villain" }!!
-        // Assert winner
-        assertEquals("Team A", winner)
-        // Assert villain is dead
-        assertEquals(0, villain.hp)
-        // Assert hero is alive
-        assertTrue(hero.hp > 0)
 
+        assertEquals("Team A", winner)
+        assertEquals(0, villain.hp)
+        assertTrue(hero.hp > 0)
 
         val turnCount = events.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
         turnCount shouldBe 2
