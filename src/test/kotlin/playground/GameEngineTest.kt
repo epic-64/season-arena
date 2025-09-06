@@ -1,6 +1,7 @@
 package playground
 
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -84,9 +85,9 @@ class GameEngineTest : StringSpec({
         val hero = snapshot.actors.find { it.name == "Hero" }!!
         val villain = snapshot.actors.find { it.name == "Villain" }!!
 
-        assertEquals("Team A", winner)
-        assertEquals(0, villain.hp)
-        assertTrue(hero.hp > 0)
+        winner shouldBe "Team A"
+        villain.hp shouldBe 0
+        hero.hp shouldBeGreaterThan 0
 
         val turnCount = events.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
         turnCount shouldBe 2
