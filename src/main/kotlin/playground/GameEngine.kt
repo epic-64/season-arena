@@ -526,48 +526,52 @@ val poisonStrike = Skill(
 
 // --- Example Usage ---
 fun main() {
-    val originalActorA1 = Actor(
+    val actorA1 = Actor(
         name = "Hero Fighter Jason",
         hp = 100,
         maxHp = 100,
         skills = listOf(whirlwind, doubleStrike, basicAttack),
         team = 0
     )
-    val originalActorA2 = Actor(
+    val actorA2 = Actor(
         name = "Hero Mage Alice",
         hp = 100,
         maxHp = 100,
         skills = listOf(explode, fireball, spark, basicAttack),
         team = 0
     )
-    val originalActorA3 = Actor(
+    val actorA3 = Actor(
         name = "Hero Cleric Mary",
         hp = 100,
         maxHp = 100,
         skills = listOf(groupHeal, flashHeal, basicAttack),
         team = 0
     )
-    val originalActorB = Actor(
+    val actorB1 = Actor(
         name = "Villain",
         hp = 400,
         maxHp = 400,
         skills = listOf(fireball, hotBuff, poisonStrike),
         team = 1
     )
-    val originalTeamA = Team(mutableListOf(originalActorA1, originalActorA2, originalActorA3))
-    val originalTeamB = Team(mutableListOf(originalActorB))
+    val teamA = Team(mutableListOf(actorA1, actorA2, actorA3))
+    val teamB = Team(mutableListOf(actorB1))
 
+    val events = BattleSimulation(teamA.deepCopy(), teamB.deepCopy()).run()
+    BattleLogPrinter.run(events)
+
+    benchmark(teamA, teamB)
+}
+
+fun benchmark(inputTeamA: Team, inputTeamB: Team) {
     repeat(100) { i ->
-        val teamA = originalTeamA.deepCopy()
-        val teamB = originalTeamB.deepCopy()
+        val teamA = inputTeamA.deepCopy()
+        val teamB = inputTeamB.deepCopy()
         val log: List<CombatEvent>
         val milliSecondsSimulation = measureTime {
             log = BattleSimulation(teamA, teamB).run()
         }
         val turns = log.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
-        val milliSecondsPrinting = measureTime {
-            // BattleLogPrinter.run(log)
-        }
-        println("Run #$i: Simulation took $milliSecondsSimulation, printing took $milliSecondsPrinting, turns: $turns")
+        println("Run #$i: Simulation took $milliSecondsSimulation, turns: $turns")
     }
 }
