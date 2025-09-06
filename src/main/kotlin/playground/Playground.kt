@@ -1,6 +1,5 @@
 package playground
 
-import kotlin.system.measureTimeMillis
 import kotlin.time.DurationUnit
 import kotlin.time.measureTimedValue
 
