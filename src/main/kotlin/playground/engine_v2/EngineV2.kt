@@ -14,21 +14,14 @@ sealed class StatOp {
     object Override : StatOp()
 }
 
-sealed class ModifierSource {
-    object Base : ModifierSource()
-    data class Gear(val gear: IGear) : ModifierSource()
-    // If you need Buff/Passive/Proc/Other sources, uncomment and use:
-    // data class Buff(val buff: IBuff) : ModifierSource()
-    // data class Passive(val passive: IPassive) : ModifierSource()
-    // data class Proc(val proc: IProc) : ModifierSource()
-    // data class Other(val description: String) : ModifierSource()
+enum class ProcTrigger {
+    ON_HIT, ON_CRIT, ON_LOW_LIFE, ON_SKILL_USE, ON_BUFF_APPLY, ON_TURN_START, ON_TURN_END
 }
 
 data class StatModifier(
     val stat: StatType,
     val op: StatOp,
     val value: Number,
-    val source: ModifierSource,
     val condition: ((Actor) -> Boolean) = { true }
 )
 
@@ -74,14 +67,14 @@ class Actor(
     val name: String,
     val team: Int,
     val baseStats: Stats,
-    val gear: List<IGear> = emptyList(),
-    val buffs: List<IBuff> = emptyList(),
-    val passives: List<IPassive> = emptyList(),
+    val gear: List<Gear> = emptyList(),
+    val buffs: List<Buff> = emptyList(),
+    val passives: List<Passive> = emptyList(),
     var isAlive: Boolean = true
 ) {
     val hp: Int get() = getCurrentStats().hp
     val maxHp: Int get() = getCurrentStats().maxHp
-    val allProcs: List<IProc>
+    val allProcs: List<Proc>
         get() = gear.flatMap { it.procs } +
                 buffs.flatMap { it.procs } +
                 passives.flatMap { it.procs }
@@ -94,13 +87,13 @@ class Actor(
         StatType.entries.forEach { statType ->
             var value = stats.get(statType).toDouble()
             allModifiers
-                .filter { it.stat == statType && it.op is StatOp.Add && (it.condition.invoke(this)) }
+                .filter { it.stat == statType && it.op is StatOp.Add && (it.condition(this)) }
                 .forEach { value += it.value.toDouble() }
             allModifiers
-                .filter { it.stat == statType && it.op is StatOp.Multiply && (it.condition.invoke(this)) }
+                .filter { it.stat == statType && it.op is StatOp.Multiply && (it.condition(this)) }
                 .forEach { value *= it.value.toDouble() }
             allModifiers
-                .lastOrNull { it.stat == statType && it.op is StatOp.Override && (it.condition.invoke(this)) }
+                .lastOrNull { it.stat == statType && it.op is StatOp.Override && (it.condition(this)) }
                 ?.let { value = it.value.toDouble() }
             stats.set(statType, value)
         }
@@ -108,42 +101,39 @@ class Actor(
     }
 }
 
-// --- Interfaces ---
-interface IGear {
-    val id: String
-    val statModifiers: List<StatModifier>
-    val procs: List<IProc>
-}
+// --- Concrete Types ---
+data class Gear(
+    val id: String,
+    val statModifiers: List<StatModifier> = emptyList(),
+    val procs: List<Proc> = emptyList()
+)
 
-interface IBuff {
-    val id: String
+data class Buff(
+    val id: String,
+    val duration: Int,
+    val statModifiers: List<StatModifier> = emptyList(),
+    val dotEffects: List<DamageOverTime> = emptyList(),
+    val procs: List<Proc> = emptyList()
+)
+
+data class Passive(
+    val id: String,
+    val statModifiers: List<StatModifier> = emptyList(),
+    val procs: List<Proc> = emptyList()
+)
+
+data class DamageOverTime(
+    val id: String,
+    val amount: Int,
+    val type: String,
     val duration: Int
-    val statModifiers: List<StatModifier>
-    val dotEffects: List<IDamageOverTime>
-    val procs: List<IProc>
-}
+)
 
-interface IPassive {
-    val id: String
-    val statModifiers: List<StatModifier>
-    val procs: List<IProc>
-}
-
-interface IDamageOverTime {
-    val id: String
-    val amount: Int
-    val type: String
-    val duration: Int
-}
-
-interface IProc {
-    val id: String
-    val trigger: ProcTrigger
-    fun activate(context: ProcContext): List<CombatEvent>
-}
-
-enum class ProcTrigger {
-    ON_HIT, ON_CRIT, ON_LOW_LIFE, ON_SKILL_USE, ON_BUFF_APPLY, ON_TURN_START, ON_TURN_END
+abstract class Proc(
+    open val id: String,
+    open val trigger: ProcTrigger
+) {
+    abstract fun activate(context: ProcContext): List<CombatEvent>
 }
 
 // --- Combat Event ---
@@ -180,7 +170,7 @@ class SimulationEngine(
 // --- Lightning Strike Skill ---
 class LightningStrikeSkill(
     private val baseLevel: Int = 1,
-    val procs: List<IProc> = emptyList()
+    val procs: List<Proc> = emptyList()
 ) {
     val name: String = "Lightning Strike"
     private fun minDamage(actor: Actor): Int = 20 + 5 * getCurrentLevel(actor)
@@ -213,15 +203,16 @@ class LightningStrikeSkill(
 }
 
 // --- Example Gear/Proc ---
-class UniqueBodyArmor : IGear {
-    override val id: String = "unique_body_armor"
-    override val statModifiers: List<StatModifier> = emptyList()
-    override val procs: List<IProc> = listOf(LightningStrikeRepeatProc)
-}
+val UniqueBodyArmor = Gear(
+    id = "unique_body_armor",
+    statModifiers = emptyList(),
+    procs = listOf(LightningStrikeRepeatProc)
+)
 
-object LightningStrikeRepeatProc : IProc {
-    override val id: String = "lightning_strike_repeat_proc"
-    override val trigger: ProcTrigger = ProcTrigger.ON_SKILL_USE
+object LightningStrikeRepeatProc : Proc(
+    id = "lightning_strike_repeat_proc",
+    trigger = ProcTrigger.ON_SKILL_USE
+) {
     override fun activate(context: ProcContext): List<CombatEvent> {
         if (context.event is CombatEvent.Damage && context.event.type == "lightning") {
             if (Random.nextFloat() < 0.1f) { // 10% chance
@@ -236,18 +227,19 @@ object LightningStrikeRepeatProc : IProc {
     }
 }
 
-class SwordOfLightning : IGear {
-    override val id: String = "sword_of_lightning"
-    override val statModifiers: List<StatModifier> = listOf(
-        StatModifier(StatType.ATTACK, StatOp.Add, 10, ModifierSource.Gear(this)),
-        StatModifier(StatType.SPEED, StatOp.Add, 1, ModifierSource.Gear(this))
+fun createSwordOfLightning(): Gear {
+    val sword = Gear(id = "sword_of_lightning")
+    val statModifiers = listOf(
+        StatModifier(StatType.ATTACK, StatOp.Add, 10),
+        StatModifier(StatType.SPEED, StatOp.Add, 1)
     )
-    override val procs: List<IProc> = listOf(LightningStrikeProc)
+    return sword.copy(statModifiers = statModifiers, procs = listOf(LightningStrikeProc))
 }
 
-object LightningStrikeProc : IProc {
-    override val id: String = "lightning_strike_proc"
-    override val trigger: ProcTrigger = ProcTrigger.ON_HIT
+object LightningStrikeProc : Proc(
+    id = "lightning_strike_proc",
+    trigger = ProcTrigger.ON_HIT
+) {
     override fun activate(context: ProcContext): List<CombatEvent> {
         if (Random.nextFloat() < 0.5f) {
             val actor = context.source
@@ -263,8 +255,8 @@ object LightningStrikeProc : IProc {
 
 // --- Demo ---
 fun main() {
-    val sword = SwordOfLightning()
-    val armor = UniqueBodyArmor()
+    val sword = createSwordOfLightning()
+    val armor = UniqueBodyArmor
     val actor = Actor(
         name = "Hero",
         team = 1,
