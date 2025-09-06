@@ -16,8 +16,13 @@ sealed class StatOp {
     object Override : StatOp()
 }
 
-enum class ModifierSource {
-    BASE, GEAR, BUFF, PASSIVE, PROC, OTHER
+sealed class ModifierSource {
+    object Base : ModifierSource()
+    data class Gear(val gear: IGear) : ModifierSource()
+    data class Buff(val buff: IBuff) : ModifierSource()
+    data class Passive(val passive: IPassive) : ModifierSource()
+    data class Proc(val proc: IProc) : ModifierSource()
+    data class Other(val description: String) : ModifierSource()
 }
 
 // Represents a single stat modification
