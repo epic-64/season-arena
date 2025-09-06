@@ -2,6 +2,8 @@ package playground
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 
 class GameEngineTest : StringSpec({
     "snapshotActors should correctly snapshot a single actor" {
@@ -53,5 +55,43 @@ class GameEngineTest : StringSpec({
         teamCopy.actors.size shouldBe 1
         teamCopy.actors.first().name shouldBe "DeepHero"
         teamCopy.actors.first().stats["strength"] shouldBe 10
+    }
+
+    "testBasicCombat1v1 should simulate a basic 1v1 combat" {
+        val actorA = Actor(
+            name = "Hero",
+            hp = 50,
+            maxHp = 50,
+            skills = listOf(basicAttack),
+            team = 0
+        )
+        val actorB = Actor(
+            name = "Villain",
+            hp = 40,
+            maxHp = 40,
+            skills = listOf(basicAttack),
+            team = 1
+        )
+        val teamA = Team(mutableListOf(actorA))
+        val teamB = Team(mutableListOf(actorB))
+        val events = BattleSimulation(teamA, teamB).run()
+
+        BattleLogPrinter.run(events)
+
+        val endEvent = events.last() as CombatEvent.BattleEnd
+        val winner = endEvent.winner
+        val snapshot = endEvent.snapshot
+        val hero = snapshot.actors.find { it.name == "Hero" }!!
+        val villain = snapshot.actors.find { it.name == "Villain" }!!
+        // Assert winner
+        assertEquals("Team A", winner)
+        // Assert villain is dead
+        assertEquals(0, villain.hp)
+        // Assert hero is alive
+        assertTrue(hero.hp > 0)
+
+
+        val turnCount = events.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
+        turnCount shouldBe 2
     }
 })
