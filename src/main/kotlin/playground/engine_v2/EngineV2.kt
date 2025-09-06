@@ -194,13 +194,16 @@ class Actor(
         StatType.entries.forEach { statType ->
             var value = stats.get(statType).toDouble()
             // Additive
-            allModifiers.filter { it.stat == statType && it.op is StatOp.Add && (it.condition?.invoke(this) ?: true) }
+            allModifiers
+                .filter { it.stat == statType && it.op is StatOp.Add && (it.condition?.invoke(this) ?: true) }
                 .forEach { value += it.value.toDouble() }
             // Multiplicative
-            allModifiers.filter { it.stat == statType && it.op is StatOp.Multiply && (it.condition?.invoke(this) ?: true) }
+            allModifiers
+                .filter { it.stat == statType && it.op is StatOp.Multiply && (it.condition?.invoke(this) ?: true) }
                 .forEach { value *= it.value.toDouble() }
             // Override (last one wins)
-            allModifiers.filter { it.stat == statType && it.op is StatOp.Override && (it.condition?.invoke(this) ?: true) }
+            allModifiers
+                .filter { it.stat == statType && it.op is StatOp.Override && (it.condition?.invoke(this) ?: true) }
                 .lastOrNull()?.let { value = it.value.toDouble() }
             stats.set(statType, value)
         }
