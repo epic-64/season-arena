@@ -2,9 +2,9 @@ package playground.engine_v2
 
 import kotlin.random.Random
 
-// --- Core Interfaces ---
+// --- Core Types ---
 enum class StatType {
-    Hp, MaxHp, Attack, Defense, CritChance, Speed
+    HP, MAX_HP, ATTACK, DEFENSE, CRIT_CHANCE, SPEED
     // Add more as needed
 }
 
@@ -17,22 +17,21 @@ sealed class StatOp {
 sealed class ModifierSource {
     object Base : ModifierSource()
     data class Gear(val gear: IGear) : ModifierSource()
-    data class Buff(val buff: IBuff) : ModifierSource()
-    data class Passive(val passive: IPassive) : ModifierSource()
-    data class Proc(val proc: IProc) : ModifierSource()
-    data class Other(val description: String) : ModifierSource()
+    // If you need Buff/Passive/Proc/Other sources, uncomment and use:
+    // data class Buff(val buff: IBuff) : ModifierSource()
+    // data class Passive(val passive: IPassive) : ModifierSource()
+    // data class Proc(val proc: IProc) : ModifierSource()
+    // data class Other(val description: String) : ModifierSource()
 }
 
-// Represents a single stat modification
 data class StatModifier(
     val stat: StatType,
     val op: StatOp,
     val value: Number,
     val source: ModifierSource,
-    val condition: ((IActor) -> Boolean)? = null // For conditional procs, etc.
+    val condition: ((Actor) -> Boolean)? = null
 )
 
-// Updated Stats class to use StatType keys internally for flexibility
 class Stats(private val values: MutableMap<StatType, Number> = mutableMapOf()) {
     constructor(
         hp: Int = 0,
@@ -42,27 +41,25 @@ class Stats(private val values: MutableMap<StatType, Number> = mutableMapOf()) {
         critChance: Float = 0f,
         speed: Int = 0
     ) : this(mutableMapOf(
-        StatType.Hp to hp,
-        StatType.MaxHp to maxHp,
-        StatType.Attack to attack,
-        StatType.Defense to defense,
-        StatType.CritChance to critChance,
-        StatType.Speed to speed
+        StatType.HP to hp,
+        StatType.MAX_HP to maxHp,
+        StatType.ATTACK to attack,
+        StatType.DEFENSE to defense,
+        StatType.CRIT_CHANCE to critChance,
+        StatType.SPEED to speed
     ))
 
     fun get(stat: StatType): Number = values[stat] ?: 0
     fun set(stat: StatType, value: Number) { values[stat] = value }
     fun copy(): Stats = Stats(values.toMutableMap())
 
-    // Utility accessors
-    val hp: Int get() = get(StatType.Hp).toInt()
-    val maxHp: Int get() = get(StatType.MaxHp).toInt()
-    val attack: Int get() = get(StatType.Attack).toInt()
-    val defense: Int get() = get(StatType.Defense).toInt()
-    val critChance: Float get() = get(StatType.CritChance).toFloat()
-    val speed: Int get() = get(StatType.Speed).toInt()
+    val hp: Int get() = get(StatType.HP).toInt()
+    val maxHp: Int get() = get(StatType.MAX_HP).toInt()
+    val attack: Int get() = get(StatType.ATTACK).toInt()
+    val defense: Int get() = get(StatType.DEFENSE).toInt()
+    val critChance: Float get() = get(StatType.CRIT_CHANCE).toFloat()
+    val speed: Int get() = get(StatType.SPEED).toInt()
 
-    // Merges another Stats into this one (additive)
     fun merge(other: Stats): Stats {
         val result = copy()
         for ((k, v) in other.values) {
@@ -72,23 +69,46 @@ class Stats(private val values: MutableMap<StatType, Number> = mutableMapOf()) {
     }
 }
 
-interface IActor {
-    val name: String
-    val team: Int
-    val baseStats: Stats
-    val gear: List<IGear>
-    val buffs: List<IBuff>
-    val passives: List<IPassive>
-    val isAlive: Boolean
-
-    // Calculates current stats by applying all modifiers
-    fun getCurrentStats(): Stats
-
-    // Convenience accessors
+// --- Actor ---
+class Actor(
+    val name: String,
+    val team: Int,
+    val baseStats: Stats,
+    val gear: List<IGear> = emptyList(),
+    val buffs: List<IBuff> = emptyList(),
+    val passives: List<IPassive> = emptyList(),
+    var isAlive: Boolean = true
+) {
     val hp: Int get() = getCurrentStats().hp
     val maxHp: Int get() = getCurrentStats().maxHp
+    val allProcs: List<IProc>
+        get() = gear.flatMap { it.procs } +
+                buffs.flatMap { it.procs } +
+                passives.flatMap { it.procs }
+    fun getCurrentStats(): Stats {
+        val stats = baseStats.copy()
+        val allModifiers = mutableListOf<StatModifier>()
+        gear.forEach { allModifiers.addAll(it.statModifiers) }
+        buffs.forEach { allModifiers.addAll(it.statModifiers) }
+        passives.forEach { allModifiers.addAll(it.statModifiers) }
+        StatType.entries.forEach { statType ->
+            var value = stats.get(statType).toDouble()
+            allModifiers
+                .filter { it.stat == statType && it.op is StatOp.Add && (it.condition?.invoke(this) ?: true) }
+                .forEach { value += it.value.toDouble() }
+            allModifiers
+                .filter { it.stat == statType && it.op is StatOp.Multiply && (it.condition?.invoke(this) ?: true) }
+                .forEach { value *= it.value.toDouble() }
+            allModifiers
+                .filter { it.stat == statType && it.op is StatOp.Override && (it.condition?.invoke(this) ?: true) }
+                .lastOrNull()?.let { value = it.value.toDouble() }
+            stats.set(statType, value)
+        }
+        return stats
+    }
 }
 
+// --- Interfaces ---
 interface IGear {
     val id: String
     val statModifiers: List<StatModifier>
@@ -112,7 +132,7 @@ interface IPassive {
 interface IDamageOverTime {
     val id: String
     val amount: Int
-    val type: String // e.g., "poison", "burn"
+    val type: String
     val duration: Int
 }
 
@@ -126,12 +146,6 @@ enum class ProcTrigger {
     ON_HIT, ON_CRIT, ON_LOW_LIFE, ON_SKILL_USE, ON_BUFF_APPLY, ON_TURN_START, ON_TURN_END
 }
 
-class ProcContext(
-    val source: IActor,
-    val target: IActor?,
-    val event: CombatEvent
-)
-
 // --- Combat Event ---
 sealed class CombatEvent {
     data class Damage(val source: String, val target: String, val amount: Int, val type: String) : CombatEvent()
@@ -144,9 +158,15 @@ sealed class CombatEvent {
     data class BattleEnd(val winner: String) : CombatEvent()
 }
 
+class ProcContext(
+    val source: Actor,
+    val target: Actor?,
+    val event: CombatEvent
+)
+
 // --- Simulation Engine Skeleton ---
 class SimulationEngine(
-    val teams: List<List<IActor>>
+    val teams: List<List<Actor>>
 ) {
     private var turn: Int = 0
     private val log = mutableListOf<CombatEvent>()
@@ -157,84 +177,35 @@ class SimulationEngine(
     }
 }
 
-// Next steps: Implement concrete classes for Actor, Gear, Buff, DoT, Proc, and the simulation loop.
-// This is just the skeleton. We'll flesh it out as we go.
-
-class Actor(
-    override val name: String,
-    override val team: Int,
-    override val baseStats: Stats,
-    override val gear: List<IGear> = emptyList(),
-    override val buffs: List<IBuff> = emptyList(),
-    override val passives: List<IPassive> = emptyList(),
-    override var isAlive: Boolean = true
-) : IActor {
-    // Aggregate all procs from gear, buffs, passives
-    val allProcs: List<IProc>
-        get() = gear.flatMap { it.procs } +
-                buffs.flatMap { it.procs } +
-                passives.flatMap { it.procs }
-    override fun getCurrentStats(): Stats {
-        val stats = baseStats.copy()
-        val allModifiers = mutableListOf<StatModifier>()
-        // Collect modifiers from gear, buffs, passives
-        gear.forEach { allModifiers.addAll(it.statModifiers) }
-        buffs.forEach { allModifiers.addAll(it.statModifiers) }
-        passives.forEach { allModifiers.addAll(it.statModifiers) }
-        // Apply modifiers by op type
-        StatType.entries.forEach { statType ->
-            var value = stats.get(statType).toDouble()
-            // Additive
-            allModifiers
-                .filter { it.stat == statType && it.op is StatOp.Add && (it.condition?.invoke(this) ?: true) }
-                .forEach { value += it.value.toDouble() }
-            // Multiplicative
-            allModifiers
-                .filter { it.stat == statType && it.op is StatOp.Multiply && (it.condition?.invoke(this) ?: true) }
-                .forEach { value *= it.value.toDouble() }
-            // Override (last one wins)
-            allModifiers
-                .filter { it.stat == statType && it.op is StatOp.Override && (it.condition?.invoke(this) ?: true) }
-                .lastOrNull()?.let { value = it.value.toDouble() }
-            stats.set(statType, value)
-        }
-        return stats
-    }
-}
-
-interface ISkill {
-    val name: String
-    val baseLevel: Int
-    val minDamage: Int
-    val maxDamage: Int
-    val procs: List<IProc>
-    fun getCurrentLevel(actor: IActor): Int
-    fun use(actor: IActor, target: IActor): List<CombatEvent>
-}
-
+// --- Lightning Strike Skill ---
 class LightningStrikeSkill(
-    override val baseLevel: Int = 1,
-    override val procs: List<IProc> = emptyList()
-) : ISkill {
-    override val name: String = "Lightning Strike"
-    override val minDamage: Int get() = 20 + 5 * getCurrentLevel(actorForLevel)
-    override val maxDamage: Int get() = 40 + 10 * getCurrentLevel(actorForLevel)
-    private var actorForLevel: IActor = DummyActor // placeholder, set before use
+    val baseLevel: Int = 1,
+    val procs: List<IProc> = emptyList()
+) {
+    val name: String = "Lightning Strike"
+    val minDamage: Int get() = 20 + 5 * getCurrentLevel(actorForLevel)
+    val maxDamage: Int get() = 40 + 10 * getCurrentLevel(actorForLevel)
+    private var actorForLevel: Actor = Actor(
+        name = "Dummy",
+        team = 0,
+        baseStats = Stats(),
+        gear = emptyList(),
+        buffs = emptyList(),
+        passives = emptyList(),
+        isAlive = true
+    ) // placeholder, set before use
 
-    override fun getCurrentLevel(actor: IActor): Int {
-        // Calculate skill level from gear, buffs, passives, etc.
+    fun getCurrentLevel(actor: Actor): Int {
         var level = baseLevel
         actor.gear.forEach { gear ->
-            gear.statModifiers.filter { it.stat == StatType.Speed && it.op is StatOp.Add }.forEach {
-                // Let's say SPEED stat boosts Lightning Strike level for demo purposes
+            gear.statModifiers.filter { it.stat == StatType.SPEED && it.op is StatOp.Add }.forEach {
                 level += it.value.toInt()
             }
         }
-        // You can add more sources here (buffs, passives, etc.)
         return level
     }
 
-    override fun use(actor: IActor, target: IActor): List<CombatEvent> {
+    fun use(actor: Actor, target: Actor): List<CombatEvent> {
         actorForLevel = actor
         val level = getCurrentLevel(actor)
         val damage = Random.nextInt(minDamage, maxDamage + 1)
@@ -245,25 +216,14 @@ class LightningStrikeSkill(
             amount = damage,
             type = "lightning"
         ))
-        // Check for procs attached to the skill
         procs.forEach { proc ->
             events.addAll(proc.activate(ProcContext(actor, target, events.last())))
         }
         return events
     }
-
-    private object DummyActor : IActor {
-        override val name = "Dummy"
-        override val team = 0
-        override val baseStats = Stats()
-        override val gear = emptyList<IGear>()
-        override val buffs = emptyList<IBuff>()
-        override val passives = emptyList<IPassive>()
-        override val isAlive = true
-        override fun getCurrentStats() = baseStats
-    }
 }
 
+// --- Example Gear/Proc ---
 class UniqueBodyArmor : IGear {
     override val id: String = "unique_body_armor"
     override val statModifiers: List<StatModifier> = emptyList()
@@ -274,9 +234,8 @@ object LightningStrikeRepeatProc : IProc {
     override val id: String = "lightning_strike_repeat_proc"
     override val trigger: ProcTrigger = ProcTrigger.ON_SKILL_USE
     override fun activate(context: ProcContext): List<CombatEvent> {
-        // Only proc if the skill used is Lightning Strike
         if (context.event is CombatEvent.Damage && context.event.type == "lightning") {
-            if (true) { // 10% chance
+            if (Random.nextFloat() < 0.1f) { // 10% chance
                 val actor = context.source
                 val target = context.target ?: return emptyList()
                 val skill = LightningStrikeSkill()
@@ -291,8 +250,8 @@ object LightningStrikeRepeatProc : IProc {
 class SwordOfLightning : IGear {
     override val id: String = "sword_of_lightning"
     override val statModifiers: List<StatModifier> = listOf(
-        StatModifier(StatType.Attack, StatOp.Add, 10, ModifierSource.Gear(this)),
-        StatModifier(StatType.Speed, StatOp.Add, 1, ModifierSource.Gear(this)) // SPEED boosts Lightning Strike level
+        StatModifier(StatType.ATTACK, StatOp.Add, 10, ModifierSource.Gear(this)),
+        StatModifier(StatType.SPEED, StatOp.Add, 1, ModifierSource.Gear(this))
     )
     override val procs: List<IProc> = listOf(LightningStrikeProc)
 }
@@ -301,11 +260,9 @@ object LightningStrikeProc : IProc {
     override val id: String = "lightning_strike_proc"
     override val trigger: ProcTrigger = ProcTrigger.ON_HIT
     override fun activate(context: ProcContext): List<CombatEvent> {
-        // 50% chance to proc Lightning Strike skill
         if (Random.nextFloat() < 0.5f) {
             val actor = context.source
             val target = context.target ?: return emptyList()
-            // Lightning Strike skill may have procs from gear
             val skillProcs = actor.gear.flatMap { it.procs }.filter { it.trigger == ProcTrigger.ON_SKILL_USE }
             val skill = LightningStrikeSkill(procs = skillProcs)
             val events = skill.use(actor, target)
@@ -315,7 +272,7 @@ object LightningStrikeProc : IProc {
     }
 }
 
-// Demo in main()
+// --- Demo ---
 fun main() {
     val sword = SwordOfLightning()
     val armor = UniqueBodyArmor()
@@ -331,7 +288,6 @@ fun main() {
         baseStats = Stats(hp = 50, maxHp = 50, attack = 10, defense = 2, critChance = 0.05f, speed = 8)
     )
     println("${actor.name} attacks ${target.name}!")
-    // Simulate ON_HIT procs
     actor.allProcs.filter { it.trigger == ProcTrigger.ON_HIT }.forEach { proc ->
         val events = proc.activate(ProcContext(source = actor, target = target, event = CombatEvent.Damage(actor.name, target.name, actor.getCurrentStats().attack, "physical")))
         events.forEach { println(it) }
