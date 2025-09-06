@@ -208,10 +208,99 @@ class Actor(
     }
 }
 
+interface ISkill {
+    val name: String
+    val baseLevel: Int
+    val minDamage: Int
+    val maxDamage: Int
+    val procs: List<IProc>
+    fun getCurrentLevel(actor: IActor): Int
+    fun use(actor: IActor, target: IActor): List<CombatEvent>
+}
+
+class LightningStrikeSkill(
+    override val baseLevel: Int = 1,
+    override val procs: List<IProc> = emptyList()
+) : ISkill {
+    override val name: String = "Lightning Strike"
+    override val minDamage: Int get() = 20 + 5 * getCurrentLevel(actorForLevel)
+    override val maxDamage: Int get() = 40 + 10 * getCurrentLevel(actorForLevel)
+    private var actorForLevel: IActor = DummyActor // placeholder, set before use
+
+    override fun getCurrentLevel(actor: IActor): Int {
+        // Calculate skill level from gear, buffs, passives, etc.
+        var level = baseLevel
+        actor.gear.forEach { gear ->
+            gear.statModifiers.filter { it.stat == StatType.SPEED && it.op is StatOp.Add }.forEach {
+                // Let's say SPEED stat boosts Lightning Strike level for demo purposes
+                level += it.value.toInt()
+            }
+        }
+        // You can add more sources here (buffs, passives, etc.)
+        return level
+    }
+
+    override fun use(actor: IActor, target: IActor): List<CombatEvent> {
+        actorForLevel = actor
+        val level = getCurrentLevel(actor)
+        val damage = Random.nextInt(minDamage, maxDamage + 1)
+        val events = mutableListOf<CombatEvent>()
+        events.add(CombatEvent.Damage(
+            source = actor.name,
+            target = target.name,
+            amount = damage,
+            type = "lightning"
+        ))
+        // Check for procs attached to the skill
+        procs.forEach { proc ->
+            events.addAll(proc.activate(ProcContext(actor, target, events.last())))
+        }
+        return events
+    }
+
+    private object DummyActor : IActor {
+        override val name = "Dummy"
+        override val team = 0
+        override val baseStats = Stats()
+        override val gear = emptyList<IGear>()
+        override val buffs = emptyList<IBuff>()
+        override val passives = emptyList<IPassive>()
+        override val procs = emptyList<IProc>()
+        override val modifierStack = ModifierStack()
+        override val isAlive = true
+        override fun getCurrentStats() = baseStats
+    }
+}
+
+class UniqueBodyArmor : IGear {
+    override val id: String = "unique_body_armor"
+    override val statModifiers: List<StatModifier> = emptyList()
+    override val procs: List<IProc> = listOf(LightningStrikeRepeatProc)
+}
+
+object LightningStrikeRepeatProc : IProc {
+    override val id: String = "lightning_strike_repeat_proc"
+    override val trigger: ProcTrigger = ProcTrigger.ON_SKILL_USE
+    override fun activate(context: ProcContext): List<CombatEvent> {
+        // Only proc if the skill used is Lightning Strike
+        if (context.event is CombatEvent.Damage && context.event.type == "lightning") {
+            if (Random.nextFloat() < 0.1f) { // 10% chance
+                val actor = context.source
+                val target = context.target ?: return emptyList()
+                val skill = LightningStrikeSkill()
+                val events = skill.use(actor, target)
+                return events + CombatEvent.ProcActivated(actor.name, id, trigger)
+            }
+        }
+        return emptyList()
+    }
+}
+
 class SwordOfLightning : IGear {
     override val id: String = "sword_of_lightning"
     override val statModifiers: List<StatModifier> = listOf(
-        StatModifier(StatType.ATTACK, StatOp.Add, 10, ModifierSource.Gear(this))
+        StatModifier(StatType.ATTACK, StatOp.Add, 10, ModifierSource.Gear(this)),
+        StatModifier(StatType.SPEED, StatOp.Add, 1, ModifierSource.Gear(this)) // SPEED boosts Lightning Strike level
     )
     override val procs: List<IProc> = listOf(LightningStrikeProc)
 }
@@ -220,32 +309,30 @@ object LightningStrikeProc : IProc {
     override val id: String = "lightning_strike_proc"
     override val trigger: ProcTrigger = ProcTrigger.ON_HIT
     override fun activate(context: ProcContext): List<CombatEvent> {
-        // 50% chance to proc
-        return if (Random.nextFloat() < 0.5f) {
-            listOf(
-                CombatEvent.Damage(
-                    source = context.source.name,
-                    target = context.target?.name ?: "Unknown",
-                    amount = 25,
-                    type = "lightning"
-                ),
-                CombatEvent.ProcActivated(context.source.name, id, trigger)
-            )
-        } else {
-            emptyList()
+        // 50% chance to proc Lightning Strike skill
+        if (Random.nextFloat() < 0.5f) {
+            val actor = context.source
+            val target = context.target ?: return emptyList()
+            // Lightning Strike skill may have procs from gear
+            val skillProcs = actor.gear.flatMap { it.procs }.filter { it.trigger == ProcTrigger.ON_SKILL_USE }
+            val skill = LightningStrikeSkill(procs = skillProcs)
+            val events = skill.use(actor, target)
+            return events + CombatEvent.ProcActivated(actor.name, id, trigger)
         }
+        return emptyList()
     }
 }
 
 // Demo in main()
 fun main() {
     val sword = SwordOfLightning()
+    val armor = UniqueBodyArmor()
     val actor = Actor(
         name = "Hero",
         team = 1,
         baseStats = Stats(hp = 100, maxHp = 100, attack = 20, defense = 5, critChance = 0.1f, speed = 10),
-        gear = listOf(sword),
-        procs = sword.procs
+        gear = listOf(sword, armor),
+        procs = sword.procs + armor.procs
     )
     val target = Actor(
         name = "Goblin",
