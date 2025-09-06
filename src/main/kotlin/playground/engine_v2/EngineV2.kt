@@ -32,17 +32,6 @@ data class StatModifier(
     val condition: ((IActor) -> Boolean)? = null // For conditional procs, etc.
 )
 
-// Holds a set of modifiers, e.g. from gear, buffs, passives
-class ModifierStack {
-    private val modifiers = mutableListOf<StatModifier>()
-
-    fun add(mod: StatModifier) = modifiers.add(mod)
-    fun addAll(mods: Collection<StatModifier>) = modifiers.addAll(mods)
-    fun remove(mod: StatModifier) = modifiers.remove(mod)
-    fun clear() = modifiers.clear()
-    fun getAll(): List<StatModifier> = modifiers.toList()
-}
-
 // Updated Stats class to use StatType keys internally for flexibility
 class Stats(private val values: MutableMap<StatType, Number> = mutableMapOf()) {
     constructor(
@@ -90,7 +79,6 @@ interface IActor {
     val gear: List<IGear>
     val buffs: List<IBuff>
     val passives: List<IPassive>
-    val modifierStack: ModifierStack
     val isAlive: Boolean
 
     // Calculates current stats by applying all modifiers
@@ -179,7 +167,6 @@ class Actor(
     override val gear: List<IGear> = emptyList(),
     override val buffs: List<IBuff> = emptyList(),
     override val passives: List<IPassive> = emptyList(),
-    override val modifierStack: ModifierStack = ModifierStack(),
     override var isAlive: Boolean = true
 ) : IActor {
     // Aggregate all procs from gear, buffs, passives
@@ -190,11 +177,10 @@ class Actor(
     override fun getCurrentStats(): Stats {
         val stats = baseStats.copy()
         val allModifiers = mutableListOf<StatModifier>()
-        // Collect modifiers from gear, buffs, passives, and stack
+        // Collect modifiers from gear, buffs, passives
         gear.forEach { allModifiers.addAll(it.statModifiers) }
         buffs.forEach { allModifiers.addAll(it.statModifiers) }
         passives.forEach { allModifiers.addAll(it.statModifiers) }
-        allModifiers.addAll(modifierStack.getAll())
         // Apply modifiers by op type
         StatType.entries.forEach { statType ->
             var value = stats.get(statType).toDouble()
@@ -273,7 +259,6 @@ class LightningStrikeSkill(
         override val gear = emptyList<IGear>()
         override val buffs = emptyList<IBuff>()
         override val passives = emptyList<IPassive>()
-        override val modifierStack = ModifierStack()
         override val isAlive = true
         override fun getCurrentStats() = baseStats
     }
