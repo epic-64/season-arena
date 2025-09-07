@@ -16,6 +16,7 @@ dependencies {
     implementation("io.ktor:ktor-server-netty:3.0.0")
     implementation("io.ktor:ktor-server-content-negotiation:3.0.0")
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.0")
+    implementation("io.ktor:ktor-server-freemarker:2.3.7")
 
     // Logging (quiet and simple)
     implementation("ch.qos.logback:logback-classic:1.5.6")
