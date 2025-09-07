@@ -6,9 +6,6 @@ import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.server.thymeleaf.Thymeleaf
-import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver
-import org.thymeleaf.templatemode.TemplateMode
 import kotlinx.serialization.json.Json
 
 val jsonCodec = Json {
@@ -22,14 +19,6 @@ fun main() {
 
     embeddedServer(Netty, port = port) {
         install(ContentNegotiation) { json(jsonCodec) }
-        install(Thymeleaf) {
-            setTemplateResolver(ClassLoaderTemplateResolver().apply {
-                prefix = "templates/"
-                suffix = ".html"
-                characterEncoding = "UTF-8"
-                templateMode = TemplateMode.HTML
-            })
-        }
         installRoutes()
     }.start(wait = true)
 }
