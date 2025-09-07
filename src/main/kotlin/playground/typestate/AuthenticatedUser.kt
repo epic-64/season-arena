@@ -73,28 +73,22 @@ fun handleProfile(request: Request, user: User<Authenticated>): String {
     return "Welcome to your profile, ${user.name}!"
 }
 
+fun withAuthenticatedUser(request: Request, handler: (User<Authenticated>) -> String): String {
+    val rawUser = parseUserFromRequest(request).getOrElse {
+        return "Failed to parse user from request: ${it.message}"
+    }
+    val authedUser = authenticate(rawUser).getOrElse {
+        return "Authentication failed: ${it.message}"
+    }
+    return handler(authedUser)
+}
+
 fun handleRoute(request: Request): String {
     return when (request.route) {
-        "/health" -> "OK"
-        "/dashboard" -> {
-            val rawUser = parseUserFromRequest(request).getOrElse {
-                return "Failed to parse user from request: ${it.message}"
-            }
-            val authedUser = authenticate(rawUser).getOrElse {
-                return "Authentication failed: ${it.message}"
-            }
-            handleDashboard(request, authedUser)
-        }
-        "/profile" -> {
-            val rawUser = parseUserFromRequest(request).getOrElse {
-                return "Failed to parse user from request: ${it.message}"
-            }
-            val authedUser = authenticate(rawUser).getOrElse {
-                return "Authentication failed: ${it.message}"
-            }
-            handleProfile(request, authedUser)
-        }
-        else -> "Unknown route: ${request.route}"
+        "/health"    -> "OK"
+        "/dashboard" -> withAuthenticatedUser(request) { user -> handleDashboard(request, user) }
+        "/profile"   -> withAuthenticatedUser(request) { user -> handleProfile(request, user) }
+        else          -> "Unknown route: ${request.route}"
     }
 }
 
