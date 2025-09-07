@@ -39,13 +39,15 @@ fun authenticate(user: User<Unauthenticated>): Result<User<Authenticated>> =
     Result.success(User(user.sub, user.name))
 
 @Serializable
-data class DashboardBody(val displayTime: Boolean?)
+data class DashboardBody(val displayTime: Boolean? = null)
 
 data class Request (val headers: Map<String, String>, val body: String, val route: String)
 
+val jsonHandler = Json { ignoreUnknownKeys = true }
+
 fun handleDashboard(request: Request, user: User<Authenticated>): String {
     val body = try {
-        Json.decodeFromString<DashboardBody>(request.body)
+        jsonHandler.decodeFromString<DashboardBody>(request.body)
     } catch (e: Exception) {
         return "Failed to parse request body: ${e.message}"
     }
