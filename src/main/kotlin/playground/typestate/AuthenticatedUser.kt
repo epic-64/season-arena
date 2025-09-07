@@ -11,6 +11,8 @@ import kotlinx.serialization.json.Json
 sealed interface AuthState
 object Unauthenticated : AuthState
 object Authenticated : AuthState
+object Verified : AuthState
+object Admin : AuthState
 
 data class User<S: AuthState>(val sub: String, val name: String)
 data class AuthenticationException(override val message: String) : Exception(message)
@@ -96,7 +98,7 @@ fun withAuthenticatedUser(request: WebRequest, handler: (User<Authenticated>) ->
 
 fun handleRoute(request: WebRequest): String {
     return when (request.route) {
-        "/health/"   -> "OK"
+        "/health"    -> "OK"
         "/dashboard" -> withAuthenticatedUser(request) { user -> handleDashboard(request, user) }
         "/profile"   -> withAuthenticatedUser(request) { user -> "Welcome to your profile, ${user.name}!" }
         else         -> "Unknown route: ${request.route}"
@@ -139,7 +141,7 @@ val dashboardRequest = """
     Content-Type: application/json
     Content-Length: 27
     
-    {"displayTime": true}
+    {"displayTime":true}
 """.trimIndent()
 
 val profileRequest = """
@@ -150,7 +152,6 @@ val profileRequest = """
 
 val healthRequest = """
     GET /health HTTP/1.1
-    Host: example.com
 """.trimIndent()
 
 const val badRequest = "asdf"
