@@ -20,6 +20,9 @@ dependencies {
     // Logging (quiet and simple)
     implementation("ch.qos.logback:logback-classic:1.5.6")
 
+    // JWT parsing and validation
+    implementation("com.auth0:java-jwt:4.4.0")
+
     testImplementation(kotlin("test"))
     testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
     testImplementation("io.kotest:kotest-assertions-core:5.8.0")
