@@ -1,11 +1,7 @@
 package playground.typestate
 
 import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTDecodeException
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import java.security.MessageDigest
 
 sealed interface AuthState
 object Unauthenticated : AuthState
@@ -25,8 +21,6 @@ fun parseUserFromAuthorizationHeader(header: String): Result<User<Unauthenticate
         JWT.decode(jwtToken)
     } catch (e: JWTDecodeException) {
         return Result.failure(AuthenticationException("Invalid JWT: ${e.message}"))
-    } catch (e: Exception) {
-        return Result.failure(AuthenticationException("Error parsing JWT: ${e.message}"))
     }
 
     val username = jwt.subject ?: jwt.getClaim("user").asString()
@@ -41,18 +35,8 @@ fun parseUserFromAuthorizationHeader(header: String): Result<User<Unauthenticate
 fun authenticate(user: User<Unauthenticated>): Result<User<Authenticated>> =
     Result.success(User<Authenticated>(user.name))
 
-fun login(user: User<Authenticated>): Session =
-    Session(user).also { println("Creating session for user: ${user.name}") }
-
-fun generateSessionToken(user: User<Authenticated>): String {
-    val data = "${user.name}:${System.currentTimeMillis()}"
-    return sha256(data)
-}
-
-fun sha256(input: String): String {
-    val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
-    return bytes.joinToString("") { "%02x".format(it) }
-}
+fun dashboard(user: User<Authenticated>): String =
+    "Welcome to your dashboard, ${user.name}!"
 
 fun main() {
     // Simulate receiving an Authorization header with a JWT
@@ -68,10 +52,6 @@ fun main() {
         return
     }
 
-    val session = login(authedUser)
-
-    // hand out the cookie
-    val sessionToken = generateSessionToken(authedUser)
-    println("Set-Cookie: session=$sessionToken; HttpOnly; Secure; Path=/; SameSite=Strict")
-    println("Welcome, ${authedUser.name}! Your session token is: $sessionToken")
+    val dashboardMessage = dashboard(authedUser)
+    println(dashboardMessage)
 }
