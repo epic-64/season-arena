@@ -1,10 +1,9 @@
 package io.holonaut.arena.api
 
-import freemarker.cache.ClassTemplateLoader
 import io.holonaut.arena.engine.*
 import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.freemarker.*
+import io.ktor.server.thymeleaf.*
 import io.ktor.server.http.content.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -58,7 +57,7 @@ fun Application.installRoutes() {
 
         get("/greet") {
             val name = call.request.queryParameters["name"] ?: "meat sack"
-            call.respond(FreeMarkerContent("greeting.ftl", mapOf("name" to name)))
+            call.respond(ThymeleafContent("greeting", mapOf("name" to name)))
         }
     }
 }
