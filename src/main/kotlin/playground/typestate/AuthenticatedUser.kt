@@ -9,7 +9,7 @@ sealed interface AuthState
 object Unauthenticated : AuthState
 object Authenticated : AuthState
 
-data class User<S: AuthState>(val name: String)
+data class User<S: AuthState>(val sub: String, val name: String)
 data class AuthenticationException(override val message: String) : Exception(message)
 
 fun parseUserFromRequest(request: Request): Result<User<Unauthenticated>> {
@@ -25,17 +25,18 @@ fun parseUserFromRequest(request: Request): Result<User<Unauthenticated>> {
         return Result.failure(AuthenticationException("Invalid JWT: ${e.message}"))
     }
 
-    val username = jwt.subject ?: jwt.getClaim("user").asString()
+    val sub = jwt.subject ?: jwt.getClaim("user").asString()
+    val name = jwt.getClaim("name").asString() ?: sub
 
-    if (username.isNullOrBlank()) {
+    if (sub.isNullOrBlank()) {
         return Result.failure(AuthenticationException("JWT does not contain a user identity (sub or user claim)"))
     }
 
-    return Result.success(User(username))
+    return Result.success(User(sub, name))
 }
 
 fun authenticate(user: User<Unauthenticated>): Result<User<Authenticated>> =
-    Result.success(User(user.name))
+    Result.success(User(user.sub, user.name))
 
 @Serializable
 data class DashboardBody(val displayTime: Boolean?)
