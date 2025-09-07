@@ -2,6 +2,8 @@ package playground.typestate
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.exceptions.JWTDecodeException
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 sealed interface AuthState
 object Unauthenticated : AuthState
@@ -33,14 +35,26 @@ fun parseUserFromAuthorizationHeader(header: String): Result<User<Unauthenticate
 }
 
 fun authenticate(user: User<Unauthenticated>): Result<User<Authenticated>> =
-    Result.success(User<Authenticated>(user.name))
+    Result.success(User(user.name))
 
 fun dashboard(user: User<Authenticated>): String =
     "Welcome to your dashboard, ${user.name}!"
 
+@Serializable
+data class RequestBody(val action: String, val resource: String)
+
+fun parseRequestBody(jsonBody: String): Result<RequestBody> {
+    return try {
+        Result.success(Json.decodeFromString<RequestBody>(jsonBody))
+    } catch (e: Exception) {
+        Result.failure(AuthenticationException("Your JSON skills are as questionable as your life choices: ${e.message}"))
+    }
+}
+
 fun main() {
     // Simulate receiving an Authorization header with a JWT
     val header = "Authorization: Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJalice" // Replace with a real JWT for actual testing
+    val requestBody = """{"action": "view", "resource": "profile"}"""
 
     val rawUser = parseUserFromAuthorizationHeader(header).getOrElse {
         println("Failed to parse user from Authorization header: ${it.message}")
@@ -52,6 +66,12 @@ fun main() {
         return
     }
 
+    val body = parseRequestBody(requestBody).getOrElse {
+        println("Failed to decode request body: ${it.message}")
+        return
+    }
+
     val dashboardMessage = dashboard(authedUser)
     println(dashboardMessage)
+    println("Action: ${body.action}, Resource: ${body.resource}")
 }
