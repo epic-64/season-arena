@@ -41,21 +41,13 @@ fun authenticate(user: User<Unauthenticated>): Result<User<Authenticated>> =
 @Serializable
 data class DashboardBody(val displayTime: Boolean?)
 
-fun parseDashboardBody(request: Request): Result<DashboardBody> {
-    val jsonBody = request.body
-
-    return try {
-        Result.success(Json.decodeFromString<DashboardBody>(jsonBody))
-    } catch (e: Exception) {
-        Result.failure(AuthenticationException("Your JSON skills are as questionable as your life choices: ${e.message}"))
-    }
-}
-
 data class Request (val headers: Map<String, String>, val body: String, val route: String)
 
 fun handleDashboard(request: Request, user: User<Authenticated>): String {
-    val body = parseDashboardBody(request).getOrElse {
-        return "Failed to decode request body: ${it.message}"
+    val body = try {
+        Json.decodeFromString<DashboardBody>(request.body)
+    } catch (e: Exception) {
+        return "Failed to parse request body: ${e.message}"
     }
 
     val currentTime =
@@ -130,7 +122,7 @@ fun main() {
         Content-Type: application/json
         Content-Length: 27
         
-        {"displayTime": true}
+        {}
     """.trimIndent()
 
     val dashboardRequest = rawHttpToRequest(rawInput)
