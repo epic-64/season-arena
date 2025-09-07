@@ -261,12 +261,14 @@ object LightningStrikeProc : Proc(
 fun main() {
     val sword = createSwordOfLightning()
     val armor = UniqueBodyArmor
+
     val actor = Actor(
         name = "Hero",
         team = 1,
         baseStats = Stats(hp = 100, maxHp = 100, attack = 20, defense = 5, critChance = 0.1f, speed = 10),
         gear = listOf(sword, armor)
     )
+
     val target = Actor(
         name = "Goblin",
         team = 2,
