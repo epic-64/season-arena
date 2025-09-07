@@ -37,9 +37,6 @@ fun parseUserFromRequest(request: Request): Result<User<Unauthenticated>> {
 fun authenticate(user: User<Unauthenticated>): Result<User<Authenticated>> =
     Result.success(User(user.name))
 
-fun dashboard(user: User<Authenticated>): String =
-    "Welcome to your dashboard, ${user.name}!"
-
 @Serializable
 data class DashboardBody(val displayTime: Boolean?)
 
@@ -72,19 +69,32 @@ fun handleDashboard(request: Request, user: User<Authenticated>): String {
     """.trimIndent()
 }
 
+fun handleProfile(request: Request, user: User<Authenticated>): String {
+    return "Welcome to your profile, ${user.name}!"
+}
+
 fun handleRoute(request: Request): String {
-    val rawUser = parseUserFromRequest(request).getOrElse {
-        return "Failed to parse user from request: ${it.message}"
-    }
-
-    val authedUser = authenticate(rawUser).getOrElse {
-        return "Authentication failed: ${it.message}"
-    }
-
     return when (request.route) {
-        "/dashboard" -> handleDashboard(request, authedUser)
-        "/health"    -> "OK"
-        else         -> "Unknown route: ${request.route}"
+        "/health" -> "OK"
+        "/dashboard" -> {
+            val rawUser = parseUserFromRequest(request).getOrElse {
+                return "Failed to parse user from request: ${it.message}"
+            }
+            val authedUser = authenticate(rawUser).getOrElse {
+                return "Authentication failed: ${it.message}"
+            }
+            handleDashboard(request, authedUser)
+        }
+        "/profile" -> {
+            val rawUser = parseUserFromRequest(request).getOrElse {
+                return "Failed to parse user from request: ${it.message}"
+            }
+            val authedUser = authenticate(rawUser).getOrElse {
+                return "Authentication failed: ${it.message}"
+            }
+            handleProfile(request, authedUser)
+        }
+        else -> "Unknown route: ${request.route}"
     }
 }
 
@@ -118,7 +128,7 @@ fun rawHttpToRequest(raw: String): Request {
 }
 
 fun main() {
-    val rawHttpRequest = """
+    val rawInput = """
         POST /dashboard HTTP/1.1
         Host: example.com
         Authorization: Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImFsaWNlIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.LJpzFMhwyqCTDxXBpnWVsHWXiX5OGambIa0HWTfFYtE
@@ -128,9 +138,17 @@ fun main() {
         {"displayTime": true}
     """.trimIndent()
 
-    val request = rawHttpToRequest(rawHttpRequest)
+    val dashboardRequest = rawHttpToRequest(rawInput)
+    val dashboardResponse = handleRoute(dashboardRequest)
+    println(dashboardResponse)
 
-    val response = handleRoute(request)
+    val rawProfileRequest = """
+        GET /profile HTTP/1.1
+        Host: example.com
+        Authorization: Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImFsaWNlIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.LJpzFMhwyqCTDxXBpnWVsHWXiX5OGambIa0HWTfFYtE
+    """.trimIndent()
 
-    println(response)
+    val profileRequest = rawHttpToRequest(rawProfileRequest)
+    val profileResponse = handleRoute(profileRequest)
+    println(profileResponse)
 }
