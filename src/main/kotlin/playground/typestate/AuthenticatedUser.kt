@@ -18,6 +18,14 @@ data class WebRequest (val headers: Map<String, String>, val body: String, val r
 @Serializable
 data class DashboardBody(val displayTime: Boolean? = null)
 
+sealed interface DocumentState
+object Draft : DocumentState
+object Reviewed : DocumentState
+object Published : DocumentState
+object Archived : DocumentState
+
+data class Document<S: DocumentState>(val id: String, val content: String)
+
 val jsonHandler = Json { ignoreUnknownKeys = true }
 
 const val JWT_SECRET = "a-string-secret-at-least-256-bits-long"
@@ -145,16 +153,6 @@ val healthRequest = """
 """.trimIndent()
 
 const val badRequest = "asdf"
-
-// --- Typestate Workflow Example ---
-
-sealed interface DocumentState
-object Draft : DocumentState
-object Reviewed : DocumentState
-object Published : DocumentState
-object Archived : DocumentState
-
-data class Document<S: DocumentState>(val id: String, val content: String)
 
 fun reviewDocument(doc: Document<Draft>): Document<Reviewed> {
     println("Reviewing document: ${doc.id}")
