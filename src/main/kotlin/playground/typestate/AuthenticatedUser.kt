@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
+import java.security.MessageDigest
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -56,6 +57,11 @@ fun authenticate(user: User<Unauthenticated>): Result<User<Authenticated>> =
         else -> Result.success(User(user.sub, user.name))
     }
 
+fun sha256(input: String): String {
+    val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
+    return bytes.joinToString("") { "%02x".format(it) }
+}
+
 fun handleDashboard(request: WebRequest, user: User<Authenticated>): String {
     val body = try {
         jsonHandler.decodeFromString<DashboardBody>(request.body)
@@ -69,8 +75,11 @@ fun handleDashboard(request: WebRequest, user: User<Authenticated>): String {
         null -> "User did not specify whether to display time."
     }
 
+    val subHash = sha256(user.sub)
+
     return """
         Welcome to your dashboard, ${user.name}!
+        User ID hash (SHA-256): $subHash
         $currentTime
     """.trimIndent()
 }
