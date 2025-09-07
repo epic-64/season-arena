@@ -138,7 +138,7 @@ val healthRequest = """
     Host: example.com
 """.trimIndent()
 
-val badRequest = "asdf"
+const val badRequest = "asdf"
 
 fun main() {
     val webRequest = rawHttpToRequest(badRequest)
