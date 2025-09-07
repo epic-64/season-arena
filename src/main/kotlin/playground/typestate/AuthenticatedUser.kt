@@ -11,13 +11,13 @@ object Authenticated : AuthState
 
 data class User<S: AuthState>(val name: String)
 data class AuthenticationException(override val message: String) : Exception(message)
-data class Session(val user: User<Authenticated>)
 
-fun parseUserFromAuthorizationHeader(header: String): Result<User<Unauthenticated>> {
-    if (!header.startsWith("Authorization: Basic ")) {
-        return Result.failure(AuthenticationException("Missing or invalid Authorization header"))
-    }
-    val jwtToken = header.removePrefix("Authorization: Basic ").trim()
+fun parseUserFromRequest(request: Request): Result<User<Unauthenticated>> {
+    val header = request.headers["Authorization"]
+    val prefix = "Basic "
+
+    val jwtToken = header?.takeIf { it.startsWith(prefix) }?.removePrefix(prefix)?.trim()
+        ?: return Result.failure(AuthenticationException("Missing or invalid Authorization header"))
 
     val jwt = try {
         JWT.decode(jwtToken)
@@ -41,37 +41,60 @@ fun dashboard(user: User<Authenticated>): String =
     "Welcome to your dashboard, ${user.name}!"
 
 @Serializable
-data class RequestBody(val action: String, val resource: String)
+data class DashboardBody(val displayTime: Boolean?)
 
-fun parseRequestBody(jsonBody: String): Result<RequestBody> {
+fun parseDashboardBody(request: Request): Result<DashboardBody> {
+    val jsonBody = request.body
+
     return try {
-        Result.success(Json.decodeFromString<RequestBody>(jsonBody))
+        Result.success(Json.decodeFromString<DashboardBody>(jsonBody))
     } catch (e: Exception) {
         Result.failure(AuthenticationException("Your JSON skills are as questionable as your life choices: ${e.message}"))
     }
 }
 
-fun main() {
-    // Simulate receiving an Authorization header with a JWT
-    val header = "Authorization: Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJalice" // Replace with a real JWT for actual testing
-    val requestBody = """{"action": "view", "resource": "profile"}"""
+data class Request (val headers: Map<String, String>, val body: String, val route: String)
 
-    val rawUser = parseUserFromAuthorizationHeader(header).getOrElse {
-        println("Failed to parse user from Authorization header: ${it.message}")
-        return
+fun handleDashboard(request: Request, user: User<Authenticated>): String {
+    val body = parseDashboardBody(request).getOrElse {
+        return "Failed to decode request body: ${it.message}"
+    }
+
+    val currentTime =
+        if (body.displayTime == true)
+            "Current time is ${System.currentTimeMillis()}"
+        else
+            "Time display not requested"
+
+    return """
+        Welcome to your dashboard, ${user.name}!
+        $currentTime
+    """.trimIndent()
+}
+
+fun handleRoute(request: Request): String {
+    val rawUser = parseUserFromRequest(request).getOrElse {
+        return "Failed to parse user from request: ${it.message}"
     }
 
     val authedUser = authenticate(rawUser).getOrElse {
-        println("Authentication failed: ${it.message}")
-        return
+        return "Authentication failed: ${it.message}"
     }
 
-    val body = parseRequestBody(requestBody).getOrElse {
-        println("Failed to decode request body: ${it.message}")
-        return
+    return when (request.route) {
+        "/dashboard" -> handleDashboard(request, authedUser)
+        else         -> "Unknown route: ${request.route}"
     }
+}
 
-    val dashboardMessage = dashboard(authedUser)
-    println(dashboardMessage)
-    println("Action: ${body.action}, Resource: ${body.resource}")
+fun main() {
+    val request = Request(
+        headers = mapOf("Authorization" to "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImFsaWNlIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.LJpzFMhwyqCTDxXBpnWVsHWXiX5OGambIa0HWTfFYtE"),
+        body = """{"displayTime": true}""",
+        route = "/dashboard"
+    )
+
+    val response = handleRoute(request)
+
+    println(response)
 }
