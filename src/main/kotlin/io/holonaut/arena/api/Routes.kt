@@ -3,11 +3,11 @@ package io.holonaut.arena.api
 import io.holonaut.arena.engine.*
 import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.thymeleaf.*
 import io.ktor.server.http.content.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.html.*
 import kotlinx.serialization.Serializable
 
 fun Application.installRoutes() {
@@ -57,7 +57,22 @@ fun Application.installRoutes() {
 
         get("/greet") {
             val name = call.request.queryParameters["name"] ?: "meat sack"
-            call.respond(ThymeleafContent("greeting", mapOf("name" to name)))
+            call.respondHtml {
+                head {
+                    title { +"Greeting" }
+                    script(src = "https://unpkg.com/htmx.org@1.9.10") {}
+                }
+                body {
+                    h1 { +"Hello, $name!" }
+                    p { +"Welcome to the snarkiest server-side rendering this side of the JVM." }
+                    button {
+                        attributes["hx-get"] = "/greet?name=meatbag"
+                        attributes["hx-target"] = "#greeting"
+                        +"Greet a meatbag"
+                    }
+                    div { id = "greeting" }
+                }
+            }
         }
     }
 }
