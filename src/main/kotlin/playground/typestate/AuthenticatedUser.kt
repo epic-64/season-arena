@@ -83,16 +83,52 @@ fun handleRoute(request: Request): String {
 
     return when (request.route) {
         "/dashboard" -> handleDashboard(request, authedUser)
+        "/health"    -> "OK"
         else         -> "Unknown route: ${request.route}"
     }
 }
 
+fun rawHttpToRequest(raw: String): Request {
+    val lines = raw.lines()
+    val headers = mutableMapOf<String, String>()
+    var body = ""
+    var route = "/"
+
+    for (line in lines) {
+        when {
+            line.startsWith("GET") || line.startsWith("POST") -> {
+                val parts = line.split(" ")
+                if (parts.size >= 2) {
+                    route = parts[1]
+                }
+            }
+            line.contains(":") -> {
+                val (key, value) = line.split(":", limit = 2)
+                headers[key.trim()] = value.trim()
+            }
+            line.isBlank() -> {
+                // Body starts after a blank line
+                body = lines.dropWhile { it != line }.drop(1).joinToString("\n")
+                break
+            }
+        }
+    }
+
+    return Request(headers, body, route)
+}
+
 fun main() {
-    val request = Request(
-        headers = mapOf("Authorization" to "Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImFsaWNlIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.LJpzFMhwyqCTDxXBpnWVsHWXiX5OGambIa0HWTfFYtE"),
-        body = """{"displayTime": true}""",
-        route = "/dashboard"
-    )
+    val rawHttpRequest = """
+        POST /dashboard HTTP/1.1
+        Host: example.com
+        Authorization: Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImFsaWNlIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.LJpzFMhwyqCTDxXBpnWVsHWXiX5OGambIa0HWTfFYtE
+        Content-Type: application/json
+        Content-Length: 27
+        
+        {"displayTime": true}
+    """.trimIndent()
+
+    val request = rawHttpToRequest(rawHttpRequest)
 
     val response = handleRoute(request)
 
