@@ -1,7 +1,10 @@
 package playground.typestate
 
 import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
+import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.exceptions.JWTDecodeException
+import com.auth0.jwt.exceptions.JWTVerificationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -20,6 +23,10 @@ data class WebRequest (val headers: Map<String, String>, val body: String, val r
 
 val jsonHandler = Json { ignoreUnknownKeys = true }
 
+const val JWT_SECRET = "a-string-secret-at-least-256-bits-long"
+val jwtAlgorithm = Algorithm.HMAC256(JWT_SECRET)
+val jwtVerifier: JWTVerifier = JWT.require(jwtAlgorithm).build()
+
 fun parseUserFromRequest(request: WebRequest): Result<User<Unauthenticated>> {
     val header = request.headers["Authorization"]
     val prefix = "Basic "
@@ -28,9 +35,11 @@ fun parseUserFromRequest(request: WebRequest): Result<User<Unauthenticated>> {
         ?: return Result.failure(AuthenticationException("Missing or invalid Authorization header"))
 
     val jwt = try {
-        JWT.decode(jwtToken)
-    } catch (e: JWTDecodeException) {
-        return Result.failure(AuthenticationException("Invalid JWT: ${e.message}"))
+        jwtVerifier.verify(jwtToken)
+    } catch (e: JWTVerificationException) {
+        return Result.failure(AuthenticationException("Invalid JWT signature: ${e.message}"))
+    } catch (e: Exception) {
+        return Result.failure(AuthenticationException("JWT verification failed: ${e.message}"))
     }
 
     val sub = jwt.subject ?: jwt.getClaim("user").asString()
@@ -141,7 +150,7 @@ val healthRequest = """
 const val badRequest = "asdf"
 
 fun main() {
-    val webRequest = rawHttpToRequest(badRequest)
+    val webRequest = rawHttpToRequest(dashboardRequest)
 
     val response = handleRoute(webRequest)
 
