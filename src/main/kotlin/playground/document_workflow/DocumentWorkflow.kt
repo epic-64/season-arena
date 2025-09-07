@@ -6,7 +6,7 @@ object Reviewed : DocumentState
 object Published : DocumentState
 object Archived : DocumentState
 
-class Document<S: DocumentState>(val id: String, val content: String) {
+data class Document<S: DocumentState>(val id: String, val content: String) {
     companion object {
         fun draft(id: String, content: String): Document<Draft> {
             println("Creating draft document: $id")
@@ -36,6 +36,8 @@ fun <S: DocumentState> Document<S>.delete(): String {
 }
 
 fun main() {
+    val doc = Document<Draft>(id="doc-123", content="This is a draft.")
+
     val draft = Document.draft("doc-123", "This is a draft.")
     val reviewed = draft.review()
     val published = reviewed.publish()
