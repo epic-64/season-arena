@@ -10,9 +10,17 @@ object Unauthenticated : AuthState
 object Authenticated : AuthState
 
 data class User<S: AuthState>(val sub: String, val name: String)
+
 data class AuthenticationException(override val message: String) : Exception(message)
 
-fun parseUserFromRequest(request: Request): Result<User<Unauthenticated>> {
+@Serializable
+data class DashboardBody(val displayTime: Boolean? = null)
+
+data class WebRequest (val headers: Map<String, String>, val body: String, val route: String)
+
+val jsonHandler = Json { ignoreUnknownKeys = true }
+
+fun parseUserFromRequest(request: WebRequest): Result<User<Unauthenticated>> {
     val header = request.headers["Authorization"]
     val prefix = "Basic "
 
@@ -38,14 +46,7 @@ fun parseUserFromRequest(request: Request): Result<User<Unauthenticated>> {
 fun authenticate(user: User<Unauthenticated>): Result<User<Authenticated>> =
     Result.success(User(user.sub, user.name))
 
-@Serializable
-data class DashboardBody(val displayTime: Boolean? = null)
-
-data class Request (val headers: Map<String, String>, val body: String, val route: String)
-
-val jsonHandler = Json { ignoreUnknownKeys = true }
-
-fun handleDashboard(request: Request, user: User<Authenticated>): String {
+fun handleDashboard(request: WebRequest, user: User<Authenticated>): String {
     val body = try {
         jsonHandler.decodeFromString<DashboardBody>(request.body)
     } catch (e: Exception) {
@@ -64,11 +65,11 @@ fun handleDashboard(request: Request, user: User<Authenticated>): String {
     """.trimIndent()
 }
 
-fun handleProfile(request: Request, user: User<Authenticated>): String {
+fun handleProfile(request: WebRequest, user: User<Authenticated>): String {
     return "Welcome to your profile, ${user.name}!"
 }
 
-fun withAuthenticatedUser(request: Request, handler: (User<Authenticated>) -> String): String {
+fun withAuthenticatedUser(request: WebRequest, handler: (User<Authenticated>) -> String): String {
     val rawUser = parseUserFromRequest(request).getOrElse {
         return "Failed to parse user from request: ${it.message}"
     }
@@ -78,7 +79,7 @@ fun withAuthenticatedUser(request: Request, handler: (User<Authenticated>) -> St
     return handler(authedUser)
 }
 
-fun handleRoute(request: Request): String {
+fun handleRoute(request: WebRequest): String {
     return when (request.route) {
         "/health"    -> "OK"
         "/dashboard" -> withAuthenticatedUser(request) { user -> handleDashboard(request, user) }
@@ -87,7 +88,7 @@ fun handleRoute(request: Request): String {
     }
 }
 
-fun rawHttpToRequest(raw: String): Request {
+fun rawHttpToRequest(raw: String): WebRequest {
     val lines = raw.lines()
     val headers = mutableMapOf<String, String>()
     var body = ""
@@ -113,31 +114,34 @@ fun rawHttpToRequest(raw: String): Request {
         }
     }
 
-    return Request(headers, body, route)
+    return WebRequest(headers, body, route)
 }
 
+val dashboardRequest = """
+    POST /dashboard HTTP/1.1
+    Host: example.com
+    Authorization: Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImFsaWNlIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.LJpzFMhwyqCTDxXBpnWVsHWXiX5OGambIa0HWTfFYtE
+    Content-Type: application/json
+    Content-Length: 27
+    
+    {}
+""".trimIndent()
+
+val profileRequest = """
+    GET /profile HTTP/1.1
+    Host: example.com
+    Authorization: Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImFsaWNlIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.LJpzFMhwyqCTDxXBpnWVsHWXiX5OGambIa0HWTfFYtE
+""".trimIndent()
+
+val healthRequest = """
+    GET /health HTTP/1.1
+    Host: example.com
+""".trimIndent()
+
 fun main() {
-    val rawInput = """
-        POST /dashboard HTTP/1.1
-        Host: example.com
-        Authorization: Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImFsaWNlIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.LJpzFMhwyqCTDxXBpnWVsHWXiX5OGambIa0HWTfFYtE
-        Content-Type: application/json
-        Content-Length: 27
-        
-        {}
-    """.trimIndent()
+    val webRequest = rawHttpToRequest(healthRequest)
 
-    val dashboardRequest = rawHttpToRequest(rawInput)
-    val dashboardResponse = handleRoute(dashboardRequest)
-    println(dashboardResponse)
+    val response = handleRoute(webRequest)
 
-    val rawProfileRequest = """
-        GET /profile HTTP/1.1
-        Host: example.com
-        Authorization: Basic eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImFsaWNlIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.LJpzFMhwyqCTDxXBpnWVsHWXiX5OGambIa0HWTfFYtE
-    """.trimIndent()
-
-    val profileRequest = rawHttpToRequest(rawProfileRequest)
-    val profileResponse = handleRoute(profileRequest)
-    println(profileResponse)
+    println(response)
 }
