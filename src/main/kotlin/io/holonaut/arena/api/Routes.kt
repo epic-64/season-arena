@@ -10,6 +10,8 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 
 fun Application.installRoutes() {
+    ApiRegistry.registerKnownRoutes()
+
     routing {
         staticResources("/", "static")
 

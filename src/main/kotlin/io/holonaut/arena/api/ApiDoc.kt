@@ -11,6 +11,15 @@ object ApiRegistry {
         _routes.removeAll { it.method == method.value && it.path == path }
         _routes += RouteInfo(method.value, path, description, sampleBody)
     }
+
+    fun registerKnownRoutes() {
+        register(HttpMethod.Get, "/health", "Server health check")
+        register(HttpMethod.Get, "/units", "List available unit templates")
+        register(
+            HttpMethod.Post, "/simulate", "Simulate a 3v3 match",
+            """{"team1":["guardian","ranger","healer"],"team2":["berserker","assassin","mage"]}"""
+        )
+    }
 }
 
 @Serializable
