@@ -13,18 +13,16 @@ object Unauthenticated : AuthState
 object Authenticated : AuthState
 
 data class User<S: AuthState>(val sub: String, val name: String)
-
 data class AuthenticationException(override val message: String) : Exception(message)
+data class WebRequest (val headers: Map<String, String>, val body: String, val route: String)
 
 @Serializable
 data class DashboardBody(val displayTime: Boolean? = null)
 
-data class WebRequest (val headers: Map<String, String>, val body: String, val route: String)
-
 val jsonHandler = Json { ignoreUnknownKeys = true }
 
 const val JWT_SECRET = "a-string-secret-at-least-256-bits-long"
-val jwtAlgorithm = Algorithm.HMAC256(JWT_SECRET)
+val jwtAlgorithm: Algorithm = Algorithm.HMAC256(JWT_SECRET) // Specified as HS256 in the token.
 val jwtVerifier: JWTVerifier = JWT.require(jwtAlgorithm).build()
 
 fun parseUserFromRequest(request: WebRequest): Result<User<Unauthenticated>> {
@@ -93,7 +91,7 @@ fun handleRoute(request: WebRequest): String {
         "/health"    -> "OK"
         "/dashboard" -> withAuthenticatedUser(request) { user -> handleDashboard(request, user) }
         "/profile"   -> withAuthenticatedUser(request) { user -> handleProfile(request, user) }
-        else          -> "Unknown route: ${request.route}"
+        else         -> "Unknown route: ${request.route}"
     }
 }
 
