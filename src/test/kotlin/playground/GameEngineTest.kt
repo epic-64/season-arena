@@ -13,7 +13,7 @@ import playground.engine_v1.doubleStrike
 import playground.engine_v1.fireball
 import playground.engine_v1.groupHeal
 import playground.engine_v1.poisonStrike
-import playground.engine_v1.print_battle_events
+import playground.engine_v1.printBattleEvents
 import playground.engine_v1.snapshotActors
 import playground.engine_v1.whirlwind
 
@@ -88,7 +88,7 @@ class GameEngineTest : StringSpec({
         val teamB = Team(mutableListOf(actorB))
         val events = BattleSimulation(teamA, teamB).run()
 
-        print_battle_events(events)
+        printBattleEvents(events)
 
         val endEvent = events.last() as CombatEvent.BattleEnd
         val winner = endEvent.winner
@@ -137,7 +137,7 @@ class GameEngineTest : StringSpec({
         val teamB = Team(mutableListOf(villain, henchman))
         val events = BattleSimulation(teamA, teamB).run()
 
-        print_battle_events(events)
+        printBattleEvents(events)
 
         val endEvent = events.last() as CombatEvent.BattleEnd
         val winner = endEvent.winner
