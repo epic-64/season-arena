@@ -316,13 +316,13 @@ class BattleSimulation(
     }
 }
 
-fun print_battle_events(events: List<CombatEvent>) {
+fun printBattleEvents(events: List<CombatEvent>) {
     for (event in events) {
-        print_battle_event(event)
+        printBattleEvent(event)
     }
 }
 
-fun print_battle_event(event: CombatEvent) {
+fun printBattleEvent(event: CombatEvent) {
     when (event) {
         is CombatEvent.TurnStart -> println("--- Turn ${event.turn} ---")
         is CombatEvent.SkillUsed -> println("${event.actor} uses ${event.skill} on ${event.targets.joinToString()}")
@@ -563,7 +563,7 @@ fun main() {
     val teamB = Team(mutableListOf(actorB1))
 
     val events = BattleSimulation(teamA.deepCopy(), teamB.deepCopy()).run()
-    print_battle_events(events)
+    printBattleEvents(events)
 
     benchmark(teamA, teamB)
 }
