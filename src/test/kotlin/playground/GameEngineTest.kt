@@ -9,8 +9,13 @@ import playground.engine_v1.Buff
 import playground.engine_v1.CombatEvent
 import playground.engine_v1.Team
 import playground.engine_v1.basicAttack
+import playground.engine_v1.doubleStrike
+import playground.engine_v1.fireball
+import playground.engine_v1.groupHeal
+import playground.engine_v1.poisonStrike
 import playground.engine_v1.print_battle_events
 import playground.engine_v1.snapshotActors
+import playground.engine_v1.whirlwind
 
 class GameEngineTest : StringSpec({
     "snapshotActors correctly snapshots a single actor" {
@@ -97,5 +102,54 @@ class GameEngineTest : StringSpec({
 
         val turnCount = events.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
         turnCount shouldBe 2
+    }
+
+    "epic battle is epic" {
+        val hero = Actor(
+            name = "EpicHero",
+            hp = 120,
+            maxHp = 120,
+            skills = listOf(doubleStrike, basicAttack),
+            team = 0
+        )
+        val sidekick = Actor(
+            name = "Sidekick",
+            hp = 80,
+            maxHp = 80,
+            skills = listOf(whirlwind, groupHeal, basicAttack),
+            team = 0
+        )
+        val villain = Actor(
+            name = "EpicVillain",
+            hp = 150,
+            maxHp = 150,
+            skills = listOf(fireball),
+            team = 1
+        )
+        val henchman = Actor(
+            name = "Henchman",
+            hp = 70,
+            maxHp = 70,
+            skills = listOf(poisonStrike, basicAttack),
+            team = 1
+        )
+        val teamA = Team(mutableListOf(hero, sidekick))
+        val teamB = Team(mutableListOf(villain, henchman))
+        val events = BattleSimulation(teamA, teamB).run()
+
+        print_battle_events(events)
+
+        val endEvent = events.last() as CombatEvent.BattleEnd
+        val winner = endEvent.winner
+        val snapshot = endEvent.snapshot
+        val epicHero = snapshot.actors.find { it.name == "EpicHero" }!!
+        val epicVillain = snapshot.actors.find { it.name == "EpicVillain" }!!
+
+        winner shouldBe "Team A"
+        epicVillain.hp shouldBe 0
+        epicHero.hp shouldBeGreaterThan 0
+
+        val turnCount = events.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
+        turnCount shouldBeGreaterThan 2
     }
 })
