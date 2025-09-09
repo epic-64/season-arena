@@ -4,6 +4,9 @@ import kotlin.collections.iterator
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.time.measureTime
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 // --- Buff (Unified) ---
 sealed class Buff {
@@ -88,6 +91,7 @@ data class Team(val actors: MutableList<Actor>) {
 }
 
 // --- Actor Snapshot Data Structure ---
+@Serializable
 data class ActorSnapshot(
     val name: String,
     val hp: Int,
@@ -99,18 +103,21 @@ data class ActorSnapshot(
     val cooldowns: Map<String, Int> // skill name -> cooldown
 )
 
+@Serializable
 data class StatBuffSnapshot(
     val id: String,
     val duration: Int,
     val statChanges: Map<String, Int>
 )
 
+@Serializable
 data class ResourceTickSnapshot(
     val id: String,
     val duration: Int,
     val resourceChanges: Map<String, Int>
 )
 
+@Serializable
 data class BattleSnapshot(
     val actors: List<ActorSnapshot>
 )
@@ -147,15 +154,64 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
 }
 
 // --- Combat Event Data Structure ---
+@Serializable
 sealed class CombatEvent {
+    @Serializable
     data class TurnStart(val turn: Int, val snapshot: BattleSnapshot) : CombatEvent()
-    data class SkillUsed(val actor: String, val skill: String, val targets: List<String>, val snapshot: BattleSnapshot) : CombatEvent()
-    data class DamageDealt(val source: String, val target: String, val amount: Int, val targetHp: Int, val snapshot: BattleSnapshot) : CombatEvent()
-    data class Healed(val source: String, val target: String, val amount: Int, val targetHp: Int, val snapshot: BattleSnapshot) : CombatEvent()
-    data class BuffApplied(val source: String, val target: String, val buffId: String, val snapshot: BattleSnapshot) : CombatEvent()
+
+    @Serializable
+    data class SkillUsed(
+        val actor: String,
+        val skill: String,
+        val targets: List<String>,
+        val snapshot: BattleSnapshot
+    ) : CombatEvent()
+
+    @Serializable
+    data class DamageDealt(
+        val source: String,
+        val target: String,
+        val amount: Int,
+        val targetHp: Int,
+        val snapshot: BattleSnapshot
+    ) : CombatEvent()
+
+    @Serializable
+    data class Healed(
+        val source: String,
+        val target: String,
+        val amount: Int,
+        val targetHp: Int,
+        val snapshot: BattleSnapshot
+    ) : CombatEvent()
+
+    @Serializable
+    data class BuffApplied(
+        val source: String,
+        val target: String,
+        val buffId: String,
+        val snapshot: BattleSnapshot
+    ) : CombatEvent()
+
+    @Serializable
     data class BuffExpired(val target: String, val buffId: String, val snapshot: BattleSnapshot) : CombatEvent()
-    data class ResourceDrained(val target: String, val buffId: String, val resource: String, val amount: Int, val targetResourceValue: Int, val snapshot: BattleSnapshot) : CombatEvent()
+
+    @Serializable
+    data class ResourceDrained(
+        val target: String,
+        val buffId: String,
+        val resource: String,
+        val amount: Int,
+        val targetResourceValue: Int,
+        val snapshot: BattleSnapshot
+    ) : CombatEvent()
+
+    @Serializable
     data class BattleEnd(val winner: String, val snapshot: BattleSnapshot) : CombatEvent()
+}
+
+fun combatEventsToJson(events: List<CombatEvent>): String {
+    return Json.encodeToString(events)
 }
 
 // --- BattleSimulation ---
