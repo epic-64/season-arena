@@ -9,6 +9,7 @@ import playground.engine_v1.Buff
 import playground.engine_v1.CombatEvent
 import playground.engine_v1.Team
 import playground.engine_v1.basicAttack
+import playground.engine_v1.combatEventsToJson
 import playground.engine_v1.doubleStrike
 import playground.engine_v1.fireball
 import playground.engine_v1.groupHeal
@@ -107,29 +108,29 @@ class GameEngineTest : StringSpec({
     "epic battle is epic" {
         val hero = Actor(
             name = "EpicHero",
-            hp = 120,
-            maxHp = 120,
+            hp = 50,
+            maxHp = 50,
             skills = listOf(doubleStrike, basicAttack),
             team = 0
         )
         val sidekick = Actor(
             name = "Sidekick",
-            hp = 80,
-            maxHp = 80,
+            hp = 50,
+            maxHp = 50,
             skills = listOf(whirlwind, groupHeal, basicAttack),
             team = 0
         )
         val villain = Actor(
             name = "EpicVillain",
-            hp = 150,
-            maxHp = 150,
+            hp = 30,
+            maxHp = 30,
             skills = listOf(fireball),
             team = 1
         )
         val henchman = Actor(
             name = "Henchman",
-            hp = 70,
-            maxHp = 70,
+            hp = 20,
+            maxHp = 20,
             skills = listOf(poisonStrike, basicAttack),
             team = 1
         )
@@ -137,7 +138,7 @@ class GameEngineTest : StringSpec({
         val teamB = Team(mutableListOf(villain, henchman))
         val events = BattleSimulation(teamA, teamB).run()
 
-        printBattleEvents(events)
+        print(combatEventsToJson(events))
 
         val endEvent = events.last() as CombatEvent.BattleEnd
         val winner = endEvent.winner
