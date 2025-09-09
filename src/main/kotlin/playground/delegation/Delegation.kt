@@ -23,10 +23,10 @@ class MyController(
     logger: Logger,
     cache: Cache
 ) : Logger by logger, Cache by cache {
-
     fun handleRequest(id: String): String = when (val cached = get(id)) {
         is String -> log("Cache HIT for id: $id, data: $cached")
             .let { cached }
+
         null -> log("Cache MISS for id: $id, computing data...")
             .let { (1..5).map { ('A'..'Z').random() }.joinToString("") }
             .also { put(id, it) }
