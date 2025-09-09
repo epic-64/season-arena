@@ -7,16 +7,19 @@ interface UserRepository {
     fun saveUser(user: User)
 }
 
-class MemoryUserRepository : UserRepository {
-    private val store = mutableMapOf<String, User>()
-
-    override fun findUser(id: String): User? = store[id]
-    override fun saveUser(user: User) { store[user.id] = user }
-}
-
 interface Cache<K, V> {
     fun get(key: K): V?
     fun put(key: K, value: V)
+}
+
+open class MemoryUserRepository : UserRepository {
+    private val store = mutableMapOf<String, User>()
+
+    override fun findUser(id: String): User? = store[id]
+
+    override fun saveUser(user: User) {
+        store[user.id] = user
+    }
 }
 
 class MemoryCache<K, V> : Cache<K, V> {
@@ -25,26 +28,28 @@ class MemoryCache<K, V> : Cache<K, V> {
     override fun put(key: K, value: V) { store[key] = value }
 }
 
-class CachingUserRepository(
-    private val inner: UserRepository,
-    private val cache: Cache<String, User?>
-) : UserRepository by inner, Cache<String, User?> by cache {
+class CachingUserRepository(): MemoryUserRepository() {
+    val cache = MemoryCache<String, User?>()
 
-    override fun findUser(id: String): User? = when (val cached = cache.get(id)) {
-        null -> {
+    override fun findUser(id: String): User? {
+        val cached = cache.get(id)
+
+        if (cached == null) {
             println("Cache MISS for $id → loading from DB...")
-            inner.findUser(id).also { cache.put(id, it) }
+            val user = super.findUser(id)
+            cache.put(id, user)
+            return user
+        } else {
+            println("Cache HIT for $id")
+            return cached
         }
-        else -> println("Cache HIT for $id").let { cached }
     }
 }
 
 fun main() {
-    val dbRepo = MemoryUserRepository()
-    val memoryCache = MemoryCache<String, User?>()
-    val repo = CachingUserRepository(dbRepo, memoryCache)
+    val repo = CachingUserRepository()
 
-    dbRepo.saveUser(User("1", "Alice"))
+    repo.saveUser(User("1", "Alice"))
 
     println(repo.findUser("1")) // MISS
     println(repo.findUser("1")) // HIT (cached)
