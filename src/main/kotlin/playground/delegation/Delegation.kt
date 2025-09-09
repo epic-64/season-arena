@@ -1,44 +1,51 @@
 package playground.delegation
 
-interface Logger {
-    fun log(msg: String)
+data class User(val id: String, val name: String)
+
+interface UserRepository {
+    fun findUser(id: String): User?
+    fun saveUser(user: User)
 }
 
-class ConsoleLogger : Logger {
-    override fun log(msg: String) = println("[LOG] $msg")
+class MemoryUserRepository : UserRepository {
+    private val store = mutableMapOf<String, User>()
+
+    override fun findUser(id: String): User? = store[id]
+    override fun saveUser(user: User) { store[user.id] = user }
 }
 
-interface Cache {
-    fun put(key: String, value: String)
-    fun get(key: String): String?
+interface Cache<K, V> {
+    fun get(key: K): V?
+    fun put(key: K, value: V)
 }
 
-class MemoryCache : Cache {
-    private val store = mutableMapOf<String, String>()
-    override fun put(key: String, value: String) = value.let { store[key] = value }
-    override fun get(key: String): String? = store[key]
+class MemoryCache<K, V> : Cache<K, V> {
+    private val store = mutableMapOf<K, V>()
+    override fun get(key: K): V? = store[key]
+    override fun put(key: K, value: V) { store[key] = value }
 }
 
-class MyController(
-    logger: Logger,
-    cache: Cache
-) : Logger by logger, Cache by cache {
-    fun handleRequest(id: String): String = when (val cached = get(id)) {
-        is String -> log("Cache HIT for id: $id, data: $cached")
-            .let { cached }
+class CachingUserRepository(
+    private val inner: UserRepository,
+    private val cache: Cache<String, User?>
+) : UserRepository by inner, Cache<String, User?> by cache {
 
-        null -> log("Cache MISS for id: $id, computing data...")
-            .let { (1..5).map { ('A'..'Z').random() }.joinToString("") }
-            .also { put(id, it) }
+    override fun findUser(id: String): User? = when (val cached = cache.get(id)) {
+        null -> {
+            println("Cache MISS for $id → loading from DB...")
+            inner.findUser(id).also { cache.put(id, it) }
+        }
+        else -> println("Cache HIT for $id").let { cached }
     }
 }
 
 fun main() {
-    val controller = MyController(
-        logger = ConsoleLogger(),
-        cache = MemoryCache()
-    )
+    val dbRepo = MemoryUserRepository()
+    val memoryCache = MemoryCache<String, User?>()
+    val repo = CachingUserRepository(dbRepo, memoryCache)
 
-    controller.handleRequest("123")
-    controller.handleRequest("123")
+    dbRepo.saveUser(User("1", "Alice"))
+
+    println(repo.findUser("1")) // MISS
+    println(repo.findUser("1")) // HIT (cached)
 }
