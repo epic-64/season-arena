@@ -18,6 +18,8 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.0")
     implementation("io.ktor:ktor-server-html-builder:3.0.0")
 
+    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
+
     // Logging (quiet and simple)
     implementation("ch.qos.logback:logback-classic:1.5.6")
 
