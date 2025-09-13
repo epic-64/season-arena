@@ -620,6 +620,7 @@ fun main() {
 
     val events = BattleSimulation(teamA.deepCopy(), teamB.deepCopy()).run()
     printBattleEvents(events)
+    println(combatEventsToJson(events))
 
     benchmark(teamA, teamB)
 }
@@ -632,7 +633,17 @@ fun benchmark(inputTeamA: Team, inputTeamB: Team) {
         val milliSecondsSimulation = measureTime {
             log = BattleSimulation(teamA, teamB).run()
         }
+
+        val json: String
+        val milliSecondsJsonEncode = measureTime {
+            json = combatEventsToJson(log)
+        }
+
         val turns = log.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
-        println("Run #$i: Simulation took $milliSecondsSimulation, turns: $turns")
+        println("Run #$i: Simulation took $milliSecondsSimulation," +
+                "JSON encoding took $milliSecondsJsonEncode," +
+                "Turns: $turns," +
+                "Events: ${log.size}," +
+                "JSON size: ${json.length} chars")
     }
 }
