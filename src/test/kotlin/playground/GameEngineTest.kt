@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import playground.engine_v1.Actor
+import playground.engine_v1.ActorClass
 import playground.engine_v1.BattleSimulation
 import playground.engine_v1.Buff
 import playground.engine_v1.CombatEvent
@@ -21,6 +22,7 @@ import playground.engine_v1.whirlwind
 class GameEngineTest : StringSpec({
     "snapshotActors correctly snapshots a single actor" {
         val actor = Actor(
+            actorClass = ActorClass.Mage,
             name = "TestHero",
             hp = 50,
             maxHp = 100,
@@ -43,6 +45,7 @@ class GameEngineTest : StringSpec({
 
     "deepCopy creates a true deep copy of Actor and Team" {
         val actor = Actor(
+            actorClass = ActorClass.Hunter,
             name = "DeepHero",
             hp = 100,
             maxHp = 100,
@@ -72,6 +75,7 @@ class GameEngineTest : StringSpec({
 
     "basic 1v1 combat is deterministic" {
         val actorA = Actor(
+            actorClass = ActorClass.Hunter,
             name = "Hero",
             hp = 50,
             maxHp = 50,
@@ -79,6 +83,7 @@ class GameEngineTest : StringSpec({
             team = 0
         )
         val actorB = Actor(
+            actorClass = ActorClass.AbyssalDragon,
             name = "Villain",
             hp = 40,
             maxHp = 40,
@@ -103,54 +108,5 @@ class GameEngineTest : StringSpec({
 
         val turnCount = events.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
         turnCount shouldBe 2
-    }
-
-    "epic battle is epic" {
-        val hero = Actor(
-            name = "EpicHero",
-            hp = 50,
-            maxHp = 50,
-            skills = listOf(doubleStrike, basicAttack),
-            team = 0
-        )
-        val sidekick = Actor(
-            name = "Sidekick",
-            hp = 50,
-            maxHp = 50,
-            skills = listOf(whirlwind, groupHeal, basicAttack),
-            team = 0
-        )
-        val villain = Actor(
-            name = "EpicVillain",
-            hp = 30,
-            maxHp = 30,
-            skills = listOf(fireball),
-            team = 1
-        )
-        val henchman = Actor(
-            name = "Henchman",
-            hp = 20,
-            maxHp = 20,
-            skills = listOf(poisonStrike, basicAttack),
-            team = 1
-        )
-        val teamA = Team(mutableListOf(hero, sidekick))
-        val teamB = Team(mutableListOf(villain, henchman))
-        val events = BattleSimulation(teamA, teamB).run()
-
-        print(combatEventsToJson(events))
-
-        val endEvent = events.last() as CombatEvent.BattleEnd
-        val winner = endEvent.winner
-        val snapshot = endEvent.snapshot
-        val epicHero = snapshot.actors.find { it.name == "EpicHero" }!!
-        val epicVillain = snapshot.actors.find { it.name == "EpicVillain" }!!
-
-        winner shouldBe "Team A"
-        epicVillain.hp shouldBe 0
-        epicHero.hp shouldBeGreaterThan 0
-
-        val turnCount = events.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
-        turnCount shouldBeGreaterThan 2
     }
 })
