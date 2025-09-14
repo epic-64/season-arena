@@ -50,8 +50,21 @@ data class Skill(
     val cooldown: Int // cooldown in turns
 )
 
+enum class ActorClass {
+    Fighter,
+    Mage,
+    Cleric,
+    Rogue,
+    Hunter,
+    Paladin,
+    AbyssalDragon,
+    Bard,
+    Fishman,
+}
+
 // --- Actor ---
 data class Actor(
+    val actorClass: ActorClass,
     val name: String,
     var hp: Int,
     val maxHp: Int,
@@ -65,18 +78,14 @@ data class Actor(
 
     fun deepCopy(): Actor {
         return Actor(
+            actorClass = actorClass,
             name = name,
             hp = hp,
             maxHp = maxHp,
             skills = skills, // Skills are immutable
             team = team,
             stats = stats.toMutableMap(),
-            buffs = buffs.map {
-                when (it) {
-                    is Buff.StatBuff -> it.copy()
-                    is Buff.ResourceTick -> it.copy()
-                }
-            }.toMutableList(),
+            buffs = buffs.toMutableList(),
             cooldowns = cooldowns.toMutableMap()
         )
     }
@@ -93,6 +102,7 @@ data class Team(val actors: MutableList<Actor>) {
 // --- Actor Snapshot Data Structure ---
 @Serializable
 data class ActorSnapshot(
+    val actorClass: ActorClass,
     val name: String,
     val hp: Int,
     val maxHp: Int,
@@ -127,6 +137,7 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
         actors = teams.flatMap { team ->
             team.actors.map { actor ->
                 ActorSnapshot(
+                    actorClass = actor.actorClass,
                     name = actor.name,
                     hp = actor.hp,
                     maxHp = actor.maxHp,
@@ -272,9 +283,10 @@ class BattleSimulation(
                 SkillEffectType.Damage -> {
                     for (target in targets) {
                         val rawDmg = max(1, effect.power + (actor.stats["atk"] ?: 0))
+                        val amplifiedDmg = (rawDmg * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt()
                         val protection = target.stats["protection"]?.coerceIn(0, 100) ?: 0
                         // Protection is a percentage: 10 = 10% reduced damage
-                        val finalDmg = max(1, (rawDmg * (1 - protection / 100.0)).toInt())
+                        val finalDmg = max(1, (amplifiedDmg * (1 - protection / 100.0)).toInt())
                         target.hp = max(0, target.hp - finalDmg)
                         log.add(CombatEvent.DamageDealt(actor.name, target.name, finalDmg, target.hp, snapshotActors(listOf(teamA, teamB))))
                     }
@@ -420,6 +432,19 @@ val basicAttack = Skill(
     cooldown = 1
 )
 
+val takeAim = Skill(
+    name = "Take Aim",
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.StatBuff,
+            power = 0,
+            targetRule = { actor, _, _ -> listOf(actor) },
+            statBuff = Buff.StatBuff(id = "Amplify", duration = 2, statChanges = mapOf("amplify" to 200))
+        )
+    ),
+    cooldown = 3
+)
+
 val doubleStrike = Skill(
     name = "Double Strike",
     effects = listOf(
@@ -473,24 +498,6 @@ val fireball = Skill(
     cooldown = 4
 )
 
-val explode = Skill(
-    name = "Explode",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.Damage,
-            power = 50,
-            targetRule = { _, _, enemies -> enemies }
-        ),
-        SkillEffect(
-            type = SkillEffectType.Damage,
-            power = 50,
-            targetRule = { actor, _, _ -> listOf(actor) } // Self-target
-        )
-    ),
-    activationRule = { actor, _, _ -> actor.hp < actor.maxHp / 4 },
-    cooldown = 6
-)
-
 val spark = Skill(
     name = "Spark",
     effects = listOf(
@@ -500,9 +507,15 @@ val spark = Skill(
             targetRule = { _, _, enemies ->
                 if (enemies.isNotEmpty()) enemies.shuffled().take(2) else emptyList()
             }
+        ),
+        SkillEffect(
+            type = SkillEffectType.StatBuff,
+            targetRule = { _, _, enemies ->
+                if (enemies.isNotEmpty()) enemies.shuffled().take(2) else emptyList()
+            },
+            statBuff = Buff.StatBuff(id = "Shock", duration = 2, statChanges = mapOf("def" to -5)),
         )
     ),
-    activationRule = { _, _, enemies -> enemies.isNotEmpty() },
     cooldown = 1
 )
 
@@ -542,6 +555,27 @@ val flashHeal = Skill(
         target != null && target.hp < target.maxHp / 2
     },
     cooldown = 2
+)
+
+val iceShot = Skill(
+    name = "Ice Shot",
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.Damage,
+            power = 25,
+            targetRule = { _, _, enemies ->
+                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
+            }
+        ),
+        SkillEffect(
+            type = SkillEffectType.StatBuff,
+            targetRule = { _, _, enemies ->
+                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
+            },
+            statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("atk" to -10))
+        )
+    ),
+    cooldown = 3
 )
 
 val groupHeal = Skill(
@@ -585,38 +619,114 @@ val poisonStrike = Skill(
     cooldown = 2
 )
 
+val blackHole = Skill(
+    name = "Black Hole",
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.Damage,
+            power = 40,
+            targetRule = { _, _, enemies -> enemies }
+        ),
+    ),
+    cooldown = 5
+)
+
+val iceLance = Skill(
+    name = "Ice Lance",
+    effects = listOf(
+        SkillEffect(
+            type = SkillEffectType.Damage,
+            power = 30,
+            targetRule = { _, _, enemies ->
+                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
+            }
+        ),
+        SkillEffect(
+            type = SkillEffectType.StatBuff,
+            targetRule = { _, _, enemies ->
+                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
+            },
+            statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("atk" to -5))
+        ),
+        SkillEffect(
+            type = SkillEffectType.StatBuff,
+            targetRule = { _, _, enemies ->
+                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
+            },
+            statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("atk" to -5))
+        ),
+        SkillEffect(
+            type = SkillEffectType.StatBuff,
+            targetRule = { _, _, enemies ->
+                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
+            },
+            statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("atk" to -5))
+        ),
+    ),
+    cooldown = 3
+)
+
 // --- Example Usage ---
 fun main() {
     val actorA1 = Actor(
-        name = "Hero Fighter Jason",
+        actorClass = ActorClass.Hunter,
+        name = "Alice",
         hp = 100,
         maxHp = 100,
-        skills = listOf(whirlwind, doubleStrike, basicAttack),
+        skills = listOf(takeAim, iceShot, basicAttack),
         team = 0
     )
     val actorA2 = Actor(
-        name = "Hero Mage Alice",
+        actorClass = ActorClass.Mage,
+        name = "Jane",
         hp = 100,
         maxHp = 100,
-        skills = listOf(explode, fireball, spark, basicAttack),
+        skills = listOf(fireball, spark, basicAttack),
         team = 0
     )
     val actorA3 = Actor(
-        name = "Hero Cleric Mary",
+        actorClass = ActorClass.Cleric,
+        name = "Aidan",
         hp = 100,
         maxHp = 100,
-        skills = listOf(groupHeal, flashHeal, basicAttack),
+        skills = listOf(groupHeal, flashHeal, iceLance, basicAttack),
+        team = 0
+    )
+    val actorA4 = Actor(
+        actorClass = ActorClass.Paladin,
+        name = "Bob",
+        hp = 100,
+        maxHp = 100,
+        skills = listOf(blackHole, hotBuff, basicAttack),
         team = 0
     )
     val actorB1 = Actor(
-        name = "Villain",
+        actorClass = ActorClass.AbyssalDragon,
+        name = "Abyssal Dragon",
         hp = 400,
         maxHp = 400,
-        skills = listOf(fireball, hotBuff, poisonStrike),
+        skills = listOf(fireball, spark, iceLance, poisonStrike, basicAttack),
         team = 1
     )
-    val teamA = Team(mutableListOf(actorA1, actorA2, actorA3))
-    val teamB = Team(mutableListOf(actorB1))
+    val actorB2 = Actor(
+        actorClass = ActorClass.Fishman,
+        name = "Fishman Henchman",
+        hp = 120,
+        maxHp = 120,
+        skills = listOf(groupHeal, doubleStrike, basicAttack),
+        team = 1
+    )
+    val actorB3 = Actor(
+        actorClass = ActorClass.Bard,
+        name = "Bard Henchman",
+        hp = 120,
+        maxHp = 120,
+        skills = listOf(hotBuff, flashHeal, spark, basicAttack),
+        team = 1
+    )
+
+    val teamA = Team(mutableListOf(actorA1, actorA2, actorA3, actorA4))
+    val teamB = Team(mutableListOf(actorB1, actorB2, actorB3))
 
     val events = BattleSimulation(teamA.deepCopy(), teamB.deepCopy()).run()
     printBattleEvents(events)
