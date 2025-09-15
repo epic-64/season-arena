@@ -733,10 +733,10 @@ fun main() {
     val teamB = Team(mutableListOf(actorB1, actorB2, actorB3))
 
     val events = BattleSimulation(teamA.deepCopy(), teamB.deepCopy()).run()
-    printBattleEvents(events)
-    println(combatEventsToJson(events))
+    val json = combatEventsToJson(events)
 
-    benchmark(teamA, teamB)
+    // write to file output/battle_log.json
+    java.io.File("output/battle_log.json").writeText(json)
 }
 
 fun benchmark(inputTeamA: Team, inputTeamB: Team) {
