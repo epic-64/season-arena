@@ -275,6 +275,14 @@ class BattleSimulation(
                 // else: actor skips turn
             }
 
+            // clear buffs and cooldowns on dead actors
+            for (actor in teamA.actors + teamB.actors) {
+                if (!actor.isAlive) {
+                    actor.buffs.clear()
+                    actor.cooldowns.clear()
+                }
+            }
+
             processBuffs(teamA, log)
             processBuffs(teamB, log)
 
