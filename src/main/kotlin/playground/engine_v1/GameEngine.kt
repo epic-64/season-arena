@@ -461,7 +461,7 @@ val takeAim = Skill(
             type = SkillEffectType.StatBuff,
             power = 0,
             targetRule = { actor, _, _ -> listOf(actor) },
-            statBuff = Buff.StatBuff(id = "Amplify", duration = 2, statChanges = mapOf("amplify" to 200))
+            statBuff = Buff.StatBuff(id = "Amplify", duration = 1, statChanges = mapOf("amplify" to 200))
         )
     ),
     cooldown = 3
@@ -722,6 +722,14 @@ fun main() {
         skills = listOf(blackHole, hotBuff, basicAttack),
         team = 0
     )
+    val actorA5 = Actor(
+        actorClass = ActorClass.Bard,
+        name = "Charlie",
+        hp = 100,
+        maxHp = 100,
+        skills = listOf(spark, spark, basicAttack),
+        team = 0
+    )
     val actorB1 = Actor(
         actorClass = ActorClass.AbyssalDragon,
         name = "Abyssal Dragon",
@@ -739,18 +747,69 @@ fun main() {
         team = 1
     )
     val actorB3 = Actor(
-        actorClass = ActorClass.Bard,
-        name = "Bard Henchman",
+        actorClass = ActorClass.Fishman,
+        name = "Fishman Archer",
         hp = 120,
         maxHp = 120,
-        skills = listOf(hotBuff, flashHeal, spark, basicAttack),
+        skills = listOf(takeAim, iceShot, basicAttack),
+        team = 1
+    )
+    val actorB4 = Actor(
+        actorClass = ActorClass.Fishman,
+        name = "Fishman Warrior",
+        hp = 120,
+        maxHp = 120,
+        skills = listOf(whirlwind, basicAttack),
+        team = 1
+    )
+    val actorB5 = Actor(
+        actorClass = ActorClass.Fishman,
+        name = "Fishman Shaman",
+        hp = 120,
+        maxHp = 120,
+        skills = listOf(flashHeal, hotBuff, basicAttack),
+        team = 1
+    )
+    val actorB6 = Actor(
+        actorClass = ActorClass.Fishman,
+        name = "Fishman Scout",
+        hp = 120,
+        maxHp = 120,
+        skills = listOf(poisonStrike, basicAttack),
+        team = 1
+    )
+    val actorB7 = Actor(
+        actorClass = ActorClass.Fishman,
+        name = "Fishman Captain",
+        hp = 150,
+        maxHp = 150,
+        skills = listOf(takeAim, doubleStrike, basicAttack),
+        team = 1
+    )
+    val actorB8 = Actor(
+        actorClass = ActorClass.Fishman,
+        name = "Fishman Elite",
+        hp = 150,
+        maxHp = 150,
+        skills = listOf(whirlwind, poisonStrike, basicAttack),
         team = 1
     )
 
-    val teamA = Team(mutableListOf(actorA1, actorA2, actorA3, actorA4))
-    val teamB = Team(mutableListOf(actorB1, actorB2, actorB3))
+    val teamA = Team(mutableListOf(actorA1, actorA2, actorA3, actorA4, actorA5))
+    val teamB = Team(mutableListOf(
+        actorB1,
+        actorB2,
+        actorB3,
+        actorB4,
+        actorB5,
+        actorB6,
+        actorB7,
+        actorB8
+    ))
 
-    val events = BattleSimulation(teamA.deepCopy(), teamB.deepCopy()).run()
+    val events = BattleSimulation(teamA.deepCopy(), teamB.deepCopy()).run().filterNot {
+        it is CombatEvent.BuffExpired // currently not used in UI
+    }
     val json = combatEventsToJson(events)
 
     // write to file output/battle_log.json
@@ -763,7 +822,9 @@ fun benchmark(inputTeamA: Team, inputTeamB: Team) {
         val teamB = inputTeamB.deepCopy()
         val log: List<CombatEvent>
         val milliSecondsSimulation = measureTime {
-            log = BattleSimulation(teamA, teamB).run()
+            log = BattleSimulation(teamA, teamB).run().filterNot {
+                it is CombatEvent.BuffExpired // currently not used in UI
+            }
         }
 
         val json: String
