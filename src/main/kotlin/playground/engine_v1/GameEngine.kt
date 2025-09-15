@@ -259,24 +259,32 @@ class BattleSimulation(
             turn++
             log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
             val allActors = teamA.aliveActors() + teamB.aliveActors()
+
             for (actor in allActors) {
-                if (!actor.isAlive) continue
                 val allies = if (actor.team == 0) teamA.aliveActors() else teamB.aliveActors()
                 val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
                 val skill = pickSkill(actor, allies, enemies)
                 if (skill != null) {
-                    // Collect all unique target names for this skill
+                    // Collect all target names for this skill
                     val targetNames = skill.effects
                         .flatMap { it.targetRule(actor, allies, enemies) }
                         .map { it.name }
-                        .distinct()
                     log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, snapshotActors(listOf(teamA, teamB))))
                     applySkill(actor, skill, allies, enemies, log)
                 }
                 // else: actor skips turn
             }
+
             processBuffs(teamA, log)
             processBuffs(teamB, log)
+
+            // clear buffs and cooldowns on dead actors
+            for (actor in teamA.actors + teamB.actors) {
+                if (!actor.isAlive) {
+                    actor.buffs.clear()
+                    actor.cooldowns.clear()
+                }
+            }
         }
         val winner = when {
             teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isEmpty() -> "Team A"
