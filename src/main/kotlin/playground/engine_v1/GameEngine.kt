@@ -321,7 +321,6 @@ class BattleSimulation(
             val expiredStatBuffs = mutableListOf<Buff.StatBuff>()
             val expiredResourceTicks = mutableListOf<Buff.ResourceTick>()
             // --- StatBuffs: Only apply statChanges on buff application, remove on expiration ---
-            // Track buffs that are newly applied this turn
             val previousStatBuffs = actor.stats.toMap()
             val activeStatBuffs = actor.buffs.filterIsInstance<Buff.StatBuff>()
             val statBuffTotals = mutableMapOf<String, Int>()
@@ -344,10 +343,15 @@ class BattleSimulation(
                     }
                 }
             }
-            // --- ResourceTicks: process as before ---
-            for (buff in actor.buffs.filterIsInstance<Buff.ResourceTick>()) {
-                if (buff.resourceChanges.isNotEmpty()) {
-                    for ((resource, amount) in buff.resourceChanges) {
+            // --- ResourceTicks: aggregate by id ---
+            val resourceTickGroups = actor.buffs.filterIsInstance<Buff.ResourceTick>().groupBy { it.id }
+            for ((id, ticks) in resourceTickGroups) {
+                if (ticks.isNotEmpty()) {
+                    // Aggregate resource changes
+                    val totalResourceChanges = ticks.flatMap { it.resourceChanges.entries }
+                        .groupBy { it.key }
+                        .mapValues { (_, v) -> v.sumOf { it.value } }
+                    for ((resource, amount) in totalResourceChanges) {
                         when (resource) {
                             "hp" -> {
                                 actor.hp = if (amount > 0) {
@@ -355,7 +359,7 @@ class BattleSimulation(
                                 } else {
                                     max(0, actor.hp + amount)
                                 }
-                                log.add(CombatEvent.ResourceDrained(actor.name, buff.id, resource, amount, actor.hp, snapshotActors(listOf(teamA, teamB))))
+                                log.add(CombatEvent.ResourceDrained(actor.name, id, resource, amount, actor.hp, snapshotActors(listOf(teamA, teamB))))
                             }
                         }
                     }
