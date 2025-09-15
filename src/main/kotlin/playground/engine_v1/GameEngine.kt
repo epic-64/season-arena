@@ -609,7 +609,7 @@ val iceShot = Skill(
             statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -10))
         )
     ),
-    cooldown = 3
+    cooldown = 2
 )
 
 val groupHeal = Skill(
@@ -752,10 +752,10 @@ fun main() {
     )
     val actorB2 = Actor(
         actorClass = ActorClass.Fishman,
-        name = "Fishman Henchman",
+        name = "Fishman Shaman",
         hp = 120,
         maxHp = 120,
-        skills = listOf(groupHeal, doubleStrike, basicAttack),
+        skills = listOf(groupHeal, flashHeal, hotBuff, spark, basicAttack),
         team = 1
     )
     val actorB3 = Actor(
@@ -771,39 +771,7 @@ fun main() {
         name = "Fishman Warrior",
         hp = 120,
         maxHp = 120,
-        skills = listOf(whirlwind, basicAttack),
-        team = 1
-    )
-    val actorB5 = Actor(
-        actorClass = ActorClass.Fishman,
-        name = "Fishman Shaman",
-        hp = 120,
-        maxHp = 120,
-        skills = listOf(flashHeal, hotBuff, basicAttack),
-        team = 1
-    )
-    val actorB6 = Actor(
-        actorClass = ActorClass.Fishman,
-        name = "Fishman Scout",
-        hp = 120,
-        maxHp = 120,
-        skills = listOf(poisonStrike, basicAttack),
-        team = 1
-    )
-    val actorB7 = Actor(
-        actorClass = ActorClass.Fishman,
-        name = "Fishman Captain",
-        hp = 150,
-        maxHp = 150,
-        skills = listOf(takeAim, doubleStrike, basicAttack),
-        team = 1
-    )
-    val actorB8 = Actor(
-        actorClass = ActorClass.Fishman,
-        name = "Fishman Elite",
-        hp = 150,
-        maxHp = 150,
-        skills = listOf(whirlwind, poisonStrike, basicAttack),
+        skills = listOf(whirlwind, doubleStrike, basicAttack),
         team = 1
     )
 
@@ -813,10 +781,6 @@ fun main() {
         actorB2,
         actorB3,
         actorB4,
-        actorB5,
-        actorB6,
-        actorB7,
-        actorB8
     ))
 
     val events = BattleSimulation(teamA.deepCopy(), teamB.deepCopy()).run().filterNot {
