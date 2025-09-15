@@ -66,7 +66,7 @@ enum class ActorClass {
 data class Actor(
     val actorClass: ActorClass,
     val name: String,
-    var hp: Int,
+    private var hp: Int,
     val maxHp: Int,
     val skills: List<Skill>,
     val team: Int, // 0 or 1
@@ -75,6 +75,17 @@ data class Actor(
     val cooldowns: MutableMap<Skill, Int> = mutableMapOf() // skill -> turns left
 ) {
     val isAlive: Boolean get() = hp > 0
+
+    fun getHp(): Int = hp
+
+    fun setHp(value: Int) {
+        hp = value.coerceIn(0, maxHp)
+
+        if (!isAlive) {
+            buffs.clear()
+            cooldowns.clear()
+        }
+    }
 
     fun deepCopy(): Actor {
         return Actor(
@@ -139,7 +150,7 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
                 ActorSnapshot(
                     actorClass = actor.actorClass,
                     name = actor.name,
-                    hp = actor.hp,
+                    hp = actor.getHp(),
                     maxHp = actor.maxHp,
                     team = actor.team,
                     stats = actor.stats.toMap(),
@@ -275,24 +286,8 @@ class BattleSimulation(
                 // else: actor skips turn
             }
 
-            // clear buffs and cooldowns on dead actors
-            for (actor in teamA.actors + teamB.actors) {
-                if (!actor.isAlive) {
-                    actor.buffs.clear()
-                    actor.cooldowns.clear()
-                }
-            }
-
             processBuffs(teamA, log)
             processBuffs(teamB, log)
-
-            // clear buffs and cooldowns on dead actors
-            for (actor in teamA.actors + teamB.actors) {
-                if (!actor.isAlive) {
-                    actor.buffs.clear()
-                    actor.cooldowns.clear()
-                }
-            }
         }
         val winner = when {
             teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isEmpty() -> "Team A"
@@ -321,15 +316,15 @@ class BattleSimulation(
                         val protection = target.stats["protection"]?.coerceIn(0, 100) ?: 0
                         // Protection is a percentage: 10 = 10% reduced damage
                         val finalDmg = max(1, (amplifiedDmg * (1 - protection / 100.0)).toInt())
-                        target.hp = max(0, target.hp - finalDmg)
-                        log.add(CombatEvent.DamageDealt(actor.name, target.name, finalDmg, target.hp, snapshotActors(listOf(teamA, teamB))))
+                        target.setHp(max(0, target.getHp() - finalDmg))
+                        log.add(CombatEvent.DamageDealt(actor.name, target.name, finalDmg, target.getHp(), snapshotActors(listOf(teamA, teamB))))
                     }
                 }
                 SkillEffectType.Heal -> {
                     for (target in targets) {
                         val heal = max(1, effect.power + (actor.stats["matk"] ?: 0))
-                        target.hp = min(target.maxHp, target.hp + heal)
-                        log.add(CombatEvent.Healed(actor.name, target.name, heal, target.hp, snapshotActors(listOf(teamA, teamB))))
+                        target.setHp(min(target.maxHp, target.getHp() + heal))
+                        log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), snapshotActors(listOf(teamA, teamB))))
                     }
                 }
                 SkillEffectType.StatBuff -> {
@@ -388,12 +383,13 @@ class BattleSimulation(
                     for ((resource, amount) in totalResourceChanges) {
                         when (resource) {
                             "hp" -> {
-                                actor.hp = if (amount > 0) {
-                                    min(actor.maxHp, actor.hp + amount)
+                                val newHp = if (amount > 0) {
+                                    min(actor.maxHp, actor.getHp() + amount)
                                 } else {
-                                    max(0, actor.hp + amount)
+                                    max(0, actor.getHp() + amount)
                                 }
-                                log.add(CombatEvent.ResourceDrained(actor.name, id, resource, amount, actor.hp, snapshotActors(listOf(teamA, teamB))))
+                                actor.setHp(newHp)
+                                log.add(CombatEvent.ResourceDrained(actor.name, id, resource, amount, actor.getHp(), snapshotActors(listOf(teamA, teamB))))
                             }
                         }
                     }
@@ -583,14 +579,14 @@ val flashHeal = Skill(
             type = SkillEffectType.Heal,
             power = 25,
             targetRule = { _, allies, _ ->
-                val target = allies.minByOrNull { it.hp }
+                val target = allies.minByOrNull { it.getHp() }
                 if (target != null) listOf(target) else emptyList()
             }
         )
     ),
     activationRule = { _, allies, _ ->
-        val target = allies.minByOrNull { it.hp }
-        target != null && target.hp < target.maxHp / 2
+        val target = allies.minByOrNull { it.getHp() }
+        target != null && target.getHp() < target.maxHp / 2
     },
     cooldown = 2
 )
@@ -631,7 +627,7 @@ val groupHeal = Skill(
         )
     ),
     activationRule = { _, allies, _ ->
-        allies.count { it.hp < it.maxHp * 0.7 } >= 2
+        allies.count { it.getHp() < it.maxHp * 0.7 } >= 2
     },
     cooldown = 6
 )
