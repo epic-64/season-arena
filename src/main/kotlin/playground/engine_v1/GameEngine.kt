@@ -606,7 +606,7 @@ val iceShot = Skill(
             targetRule = { _, _, enemies ->
                 if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
             },
-            statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("atk" to -10))
+            statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -10))
         )
     ),
     cooldown = 3
