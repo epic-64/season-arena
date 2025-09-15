@@ -812,8 +812,10 @@ fun main() {
     }
     val json = combatEventsToJson(events)
 
-    // write to file output/battle_log.json
-    java.io.File("output/battle_log.json").writeText(json)
+    java.io.File("output/battle_log.json").apply {
+        writeText(json)
+        println("Battle log written to $path, size: ${length()} bytes")
+    }
 }
 
 fun benchmark(inputTeamA: Team, inputTeamB: Team) {
