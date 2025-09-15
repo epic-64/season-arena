@@ -143,20 +143,38 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
                     maxHp = actor.maxHp,
                     team = actor.team,
                     stats = actor.stats.toMap(),
-                    statBuffs = actor.buffs.filterIsInstance<Buff.StatBuff>().map { buff ->
-                        StatBuffSnapshot(
-                            id = buff.id,
-                            duration = buff.duration,
-                            statChanges = buff.statChanges
-                        )
-                    },
-                    resourceTicks = actor.buffs.filterIsInstance<Buff.ResourceTick>().map { tick ->
-                        ResourceTickSnapshot(
-                            id = tick.id,
-                            duration = tick.duration,
-                            resourceChanges = tick.resourceChanges
-                        )
-                    },
+                    statBuffs = actor.buffs.filterIsInstance<Buff.StatBuff>()
+                        .groupBy { it.id }
+                        .map { (id, buffs) ->
+                            // Summarize statChanges by summing values for each stat
+                            val mergedStatChanges = mutableMapOf<String, Int>()
+                            buffs.forEach { buff ->
+                                buff.statChanges.forEach { (stat, value) ->
+                                    mergedStatChanges[stat] = (mergedStatChanges[stat] ?: 0) + value
+                                }
+                            }
+                            StatBuffSnapshot(
+                                id = id,
+                                duration = buffs.maxOf { it.duration }, // longest duration
+                                statChanges = mergedStatChanges
+                            )
+                        },
+                    resourceTicks = actor.buffs.filterIsInstance<Buff.ResourceTick>()
+                        .groupBy { it.id }
+                        .map { (id, ticks) ->
+                            // Summarize resourceChanges by summing values for each resource
+                            val mergedResourceChanges = mutableMapOf<String, Int>()
+                            ticks.forEach { tick ->
+                                tick.resourceChanges.forEach { (resource, value) ->
+                                    mergedResourceChanges[resource] = (mergedResourceChanges[resource] ?: 0) + value
+                                }
+                            }
+                            ResourceTickSnapshot(
+                                id = id,
+                                duration = ticks.maxOf { it.duration }, // longest duration
+                                resourceChanges = mergedResourceChanges
+                            )
+                        },
                     cooldowns = actor.skills.associate { it.name to (actor.cooldowns[it] ?: 0) }
                 )
             }
