@@ -789,6 +789,7 @@ fun main() {
     val json = combatEventsToJson(events)
 
     java.io.File("output/battle_log.json").apply {
+        parentFile.mkdirs()
         writeText(json)
         println("Battle log written to $path, size: ${length()} bytes")
     }
