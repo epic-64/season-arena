@@ -18,6 +18,7 @@ sealed class Buff {
         override val duration: Int,
         val statChanges: Map<String, Int> = emptyMap()
     ) : Buff()
+
     data class ResourceTick(
         override val id: String,
         override val duration: Int,
@@ -121,7 +122,7 @@ data class ActorSnapshot(
     val stats: Map<String, Int>,
     val statBuffs: List<StatBuffSnapshot>,
     val resourceTicks: List<ResourceTickSnapshot>,
-    val cooldowns: Map<String, Int> // skill name -> cooldown
+    val cooldowns: Map<String, Int>
 )
 
 @Serializable
