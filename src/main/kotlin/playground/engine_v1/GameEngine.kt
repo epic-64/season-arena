@@ -195,6 +195,10 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
         log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
         val allActors = teamA.aliveActors() + teamB.aliveActors()
 
+        // process buffs at start of turn
+        processBuffs(teamA, log)
+        processBuffs(teamB, log)
+
         for (actor in allActors) {
             val allies = if (actor.team == 0) teamA.aliveActors() else teamB.aliveActors()
             val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
@@ -209,9 +213,6 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
             }
             // else: actor skips turn
         }
-
-        processBuffs(teamA, log)
-        processBuffs(teamB, log)
     }
     val winner = when {
         teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isEmpty() -> "Team A"
