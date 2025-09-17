@@ -1,5 +1,6 @@
 package playground.engine_v1
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 sealed class Buff {
@@ -137,9 +138,11 @@ data class BattleSnapshot(
 @Serializable
 sealed class CombatEvent {
     @Serializable
+    @SerialName("TurnStart")
     data class TurnStart(val turn: Int, val snapshot: BattleSnapshot) : CombatEvent()
 
     @Serializable
+    @SerialName("SkillUsed")
     data class SkillUsed(
         val actor: String,
         val skill: String,
@@ -148,6 +151,7 @@ sealed class CombatEvent {
     ) : CombatEvent()
 
     @Serializable
+    @SerialName("DamageDealt")
     data class DamageDealt(
         val source: String,
         val target: String,
@@ -157,6 +161,7 @@ sealed class CombatEvent {
     ) : CombatEvent()
 
     @Serializable
+    @SerialName("Healed")
     data class Healed(
         val source: String,
         val target: String,
@@ -166,6 +171,7 @@ sealed class CombatEvent {
     ) : CombatEvent()
 
     @Serializable
+    @SerialName("BuffApplied")
     data class BuffApplied(
         val source: String,
         val target: String,
@@ -174,9 +180,11 @@ sealed class CombatEvent {
     ) : CombatEvent()
 
     @Serializable
+    @SerialName("BuffExpired")
     data class BuffExpired(val target: String, val buffId: String, val snapshot: BattleSnapshot) : CombatEvent()
 
     @Serializable
+    @SerialName("ResourceDrained")
     data class ResourceDrained(
         val target: String,
         val buffId: String,
@@ -187,5 +195,6 @@ sealed class CombatEvent {
     ) : CombatEvent()
 
     @Serializable
+    @SerialName("BattleEnd")
     data class BattleEnd(val winner: String, val snapshot: BattleSnapshot) : CombatEvent()
 }
