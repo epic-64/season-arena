@@ -1,6 +1,5 @@
 package playground.engine_v1
 
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.math.max
@@ -62,56 +61,20 @@ fun combatEventsToJson(events: List<CombatEvent>): String {
 }
 
 // --- BattleSimulation ---
-class BattleSimulation(
-    val teamA: Team,
-    val teamB: Team
-) {
-    private var turn: Int = 0
+fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
+    val teamA = teamA.deepCopy()
+    val teamB = teamB.deepCopy()
 
-    fun run(): List<CombatEvent> {
-        val maxTurns = 100
-        val log = mutableListOf<CombatEvent>()
-        log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
+    var turn: Int = 0
+    val maxTurns = 100
 
-        while (teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isNotEmpty() && turn < maxTurns) {
-            turn++
-            log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
-            val allActors = teamA.aliveActors() + teamB.aliveActors()
-
-            for (actor in allActors) {
-                val allies = if (actor.team == 0) teamA.aliveActors() else teamB.aliveActors()
-                val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
-                val skill = pickSkill(actor, allies, enemies)
-                if (skill != null) {
-                    // Collect all target names for this skill
-                    val targetNames = skill.effects
-                        .flatMap { it.targetRule(actor, allies, enemies) }
-                        .map { it.name }
-                    log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, snapshotActors(listOf(teamA, teamB))))
-                    applySkill(actor, skill, allies, enemies, log)
-                }
-                // else: actor skips turn
-            }
-
-            processBuffs(teamA, log)
-            processBuffs(teamB, log)
-        }
-        val winner = when {
-            teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isEmpty() -> "Team A"
-            teamB.aliveActors().isNotEmpty() && teamA.aliveActors().isEmpty() -> "Team B"
-            else -> "Draw (turn limit reached)"
-        }
-        log.add(CombatEvent.BattleEnd(winner, snapshotActors(listOf(teamA, teamB))))
-        return log
-    }
-
-    private fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill? {
+    fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill? {
         // Only pick skills that are not on cooldown
         val availableSkills = actor.skills.filter { (actor.cooldowns[it] ?: 0) <= 0 }
         return availableSkills.firstOrNull { it.activationRule(actor, allies, enemies) } ?: availableSkills.firstOrNull()
     }
 
-    private fun applySkill(actor: Actor, skill: Skill, allies: List<Actor>, enemies: List<Actor>, log: MutableList<CombatEvent>) {
+    fun applySkill(actor: Actor, skill: Skill, allies: List<Actor>, enemies: List<Actor>, log: MutableList<CombatEvent>) {
         for (effect in skill.effects) {
             val targets = effect.targetRule(actor, allies, enemies)
             if (targets.isEmpty()) continue // Skip if no valid targets
@@ -152,7 +115,7 @@ class BattleSimulation(
         actor.cooldowns[skill] = skill.cooldown
     }
 
-    private fun processBuffs(team: Team, log: MutableList<CombatEvent>) {
+    fun processBuffs(team: Team, log: MutableList<CombatEvent>) {
         for (actor in team.actors) {
             val expiredStatBuffs = mutableListOf<Buff.StatBuff>()
             val expiredResourceTicks = mutableListOf<Buff.ResourceTick>()
@@ -223,6 +186,40 @@ class BattleSimulation(
             actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
         }
     }
+
+    val log = mutableListOf<CombatEvent>()
+    log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
+
+    while (teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isNotEmpty() && turn < maxTurns) {
+        turn++
+        log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
+        val allActors = teamA.aliveActors() + teamB.aliveActors()
+
+        for (actor in allActors) {
+            val allies = if (actor.team == 0) teamA.aliveActors() else teamB.aliveActors()
+            val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
+            val skill = pickSkill(actor, allies, enemies)
+            if (skill != null) {
+                // Collect all target names for this skill
+                val targetNames = skill.effects
+                    .flatMap { it.targetRule(actor, allies, enemies) }
+                    .map { it.name }
+                log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, snapshotActors(listOf(teamA, teamB))))
+                applySkill(actor, skill, allies, enemies, log)
+            }
+            // else: actor skips turn
+        }
+
+        processBuffs(teamA, log)
+        processBuffs(teamB, log)
+    }
+    val winner = when {
+        teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isEmpty() -> "Team A"
+        teamB.aliveActors().isNotEmpty() && teamA.aliveActors().isEmpty() -> "Team B"
+        else -> "Draw (turn limit reached)"
+    }
+    log.add(CombatEvent.BattleEnd(winner, snapshotActors(listOf(teamA, teamB))))
+    return log
 }
 
 fun printBattleEvents(events: List<CombatEvent>) {
