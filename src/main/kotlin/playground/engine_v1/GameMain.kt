@@ -1,15 +1,24 @@
 package playground.engine_v1
 
 import kotlin.time.measureTime
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 fun main() {
     val teamA = exampleTeam1()
     val teamB = exampleTeam2()
 
-    val events = BattleSimulation(teamA.deepCopy(), teamB.deepCopy()).run().filterNot {
-        it is CombatEvent.BuffExpired // currently not used in UI
+    val events = simulate_battle(teamA, teamB)
+    println("Battle log has ${events.size} events")
+    println("Battle finished in ${events.count { it is CombatEvent.TurnStart } - 1} turns")
+
+    val compactEvents = toCompactCombatEvents(events)
+    println("Original events: ${events.size}, compact events: ${compactEvents.size}")
+    if (events.size != compactEvents.size) {
+        throw IllegalStateException("Event size mismatch after compaction")
     }
-    val json = combatEventsToJson(events)
+
+    val json = Json.encodeToString(compactEvents)
 
     java.io.File("output/battle_log.json").apply {
         parentFile.mkdirs()
@@ -109,7 +118,7 @@ fun benchmark(inputTeamA: Team, inputTeamB: Team) {
         val teamB = inputTeamB.deepCopy()
         val log: List<CombatEvent>
         val milliSecondsSimulation = measureTime {
-            log = BattleSimulation(teamA, teamB).run().filterNot {
+            log = simulate_battle(teamA, teamB).filterNot {
                 it is CombatEvent.BuffExpired // currently not used in UI
             }
         }
