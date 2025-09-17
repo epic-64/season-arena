@@ -8,7 +8,7 @@ fun main() {
     val teamA = exampleTeam1()
     val teamB = exampleTeam2()
 
-    val events = simulate_battle(teamA, teamB)
+    val events = simulate_battle(teamA, teamB).filter { it !is CombatEvent.BuffExpired }
     println("Battle log has ${events.size} events")
     println("Battle finished in ${events.count { it is CombatEvent.TurnStart } - 1} turns")
 
