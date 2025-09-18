@@ -68,13 +68,15 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
     var turn: Int = 0
     val maxTurns = 100
 
-    fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill? {
+    fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill?
+    {
         // Only pick skills that are not on cooldown
         val availableSkills = actor.skills.filter { (actor.cooldowns[it] ?: 0) <= 0 }
         return availableSkills.firstOrNull { it.activationRule(actor, allies, enemies) } ?: availableSkills.firstOrNull()
     }
 
-    fun applySkill(actor: Actor, skill: Skill, allies: List<Actor>, enemies: List<Actor>, log: MutableList<CombatEvent>) {
+    fun applySkill(actor: Actor, skill: Skill, allies: List<Actor>, enemies: List<Actor>, log: MutableList<CombatEvent>)
+    {
         for (effect in skill.effects) {
             val targets = effect.targetRule(actor, allies, enemies)
             if (targets.isEmpty()) continue // Skip if no valid targets
@@ -115,76 +117,75 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
         actor.cooldowns[skill] = skill.cooldown
     }
 
-    fun processBuffs(team: Team, log: MutableList<CombatEvent>) {
-        for (actor in team.actors) {
-            val expiredStatBuffs = mutableListOf<Buff.StatBuff>()
-            val expiredResourceTicks = mutableListOf<Buff.ResourceTick>()
-            // --- StatBuffs: Only apply statChanges on buff application, remove on expiration ---
-            val previousStatBuffs = actor.stats.toMap()
-            val activeStatBuffs = actor.buffs.filterIsInstance<Buff.StatBuff>()
-            val statBuffTotals = mutableMapOf<String, Int>()
-            for (buff in activeStatBuffs) {
-                for ((stat, change) in buff.statChanges) {
-                    statBuffTotals[stat] = (statBuffTotals[stat] ?: 0) + change
+    fun processBuffs(actor: Actor, log: MutableList<CombatEvent>)
+    {
+        val expiredStatBuffs = mutableListOf<Buff.StatBuff>()
+        val expiredResourceTicks = mutableListOf<Buff.ResourceTick>()
+        // --- StatBuffs: Only apply statChanges on buff application, remove on expiration ---
+        val previousStatBuffs = actor.stats.toMap()
+        val activeStatBuffs = actor.buffs.filterIsInstance<Buff.StatBuff>()
+        val statBuffTotals = mutableMapOf<String, Int>()
+        for (buff in activeStatBuffs) {
+            for ((stat, change) in buff.statChanges) {
+                statBuffTotals[stat] = (statBuffTotals[stat] ?: 0) + change
+            }
+        }
+        // Set stats to base + total from active buffs
+        for ((stat, value) in statBuffTotals) {
+            actor.stats[stat] = value
+        }
+        // Remove stats for buffs that have expired
+        val expiredBuffs = actor.buffs.filterIsInstance<Buff.StatBuff>().filter { it.duration <= 0 }
+        for (buff in expiredBuffs) {
+            for ((stat, _) in buff.statChanges) {
+                // Remove stat if no other active buff provides it
+                if (activeStatBuffs.none { it.statChanges.containsKey(stat) }) {
+                    actor.stats.remove(stat)
                 }
             }
-            // Set stats to base + total from active buffs
-            for ((stat, value) in statBuffTotals) {
-                actor.stats[stat] = value
-            }
-            // Remove stats for buffs that have expired
-            val expiredBuffs = actor.buffs.filterIsInstance<Buff.StatBuff>().filter { it.duration <= 0 }
-            for (buff in expiredBuffs) {
-                for ((stat, _) in buff.statChanges) {
-                    // Remove stat if no other active buff provides it
-                    if (activeStatBuffs.none { it.statChanges.containsKey(stat) }) {
-                        actor.stats.remove(stat)
-                    }
-                }
-            }
-            // --- ResourceTicks: aggregate by id ---
-            val resourceTickGroups = actor.buffs.filterIsInstance<Buff.ResourceTick>().groupBy { it.id }
-            for ((id, ticks) in resourceTickGroups) {
-                if (ticks.isNotEmpty()) {
-                    // Aggregate resource changes
-                    val totalResourceChanges = ticks.flatMap { it.resourceChanges.entries }
-                        .groupBy { it.key }
-                        .mapValues { (_, v) -> v.sumOf { it.value } }
-                    for ((resource, amount) in totalResourceChanges) {
-                        when (resource) {
-                            "hp" -> {
-                                val newHp = if (amount > 0) {
-                                    min(actor.maxHp, actor.getHp() + amount)
-                                } else {
-                                    max(0, actor.getHp() + amount)
-                                }
-                                actor.setHp(newHp)
-                                log.add(CombatEvent.ResourceDrained(actor.name, id, resource, amount, actor.getHp(), snapshotActors(listOf(teamA, teamB))))
+        }
+        // --- ResourceTicks: aggregate by id ---
+        val resourceTickGroups = actor.buffs.filterIsInstance<Buff.ResourceTick>().groupBy { it.id }
+        for ((id, ticks) in resourceTickGroups) {
+            if (ticks.isNotEmpty()) {
+                // Aggregate resource changes
+                val totalResourceChanges = ticks.flatMap { it.resourceChanges.entries }
+                    .groupBy { it.key }
+                    .mapValues { (_, v) -> v.sumOf { it.value } }
+                for ((resource, amount) in totalResourceChanges) {
+                    when (resource) {
+                        "hp" -> {
+                            val newHp = if (amount > 0) {
+                                min(actor.maxHp, actor.getHp() + amount)
+                            } else {
+                                max(0, actor.getHp() + amount)
                             }
+                            actor.setHp(newHp)
+                            log.add(CombatEvent.ResourceDrained(actor.name, id, resource, amount, actor.getHp(), snapshotActors(listOf(teamA, teamB))))
                         }
                     }
                 }
             }
-            actor.buffs.replaceAll { when (it) {
-                is Buff.StatBuff -> it.copy(duration = it.duration - 1)
-                is Buff.ResourceTick -> it.copy(duration = it.duration - 1)
-            } }
-
-            expiredStatBuffs.addAll(actor.buffs.filterIsInstance<Buff.StatBuff>().filter { it.duration <= 0 })
-            expiredResourceTicks.addAll(actor.buffs.filterIsInstance<Buff.ResourceTick>().filter { it.duration <= 0 })
-
-            actor.buffs.removeAll { it is Buff.StatBuff && it.duration <= 0 }
-            actor.buffs.removeAll { it is Buff.ResourceTick && it.duration <= 0 }
-
-            for (buff in expiredStatBuffs) {
-                log.add(CombatEvent.BuffExpired(actor.name, buff.id, snapshotActors(listOf(teamA, teamB))))
-            }
-            for (tick in expiredResourceTicks) {
-                log.add(CombatEvent.BuffExpired(actor.name, tick.id, snapshotActors(listOf(teamA, teamB))))
-            }
-            // Decrease cooldowns and clamp to zero
-            actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
         }
+        actor.buffs.replaceAll { when (it) {
+            is Buff.StatBuff -> it.copy(duration = it.duration - 1)
+            is Buff.ResourceTick -> it.copy(duration = it.duration - 1)
+        } }
+
+        expiredStatBuffs.addAll(actor.buffs.filterIsInstance<Buff.StatBuff>().filter { it.duration <= 0 })
+        expiredResourceTicks.addAll(actor.buffs.filterIsInstance<Buff.ResourceTick>().filter { it.duration <= 0 })
+
+        actor.buffs.removeAll { it is Buff.StatBuff && it.duration <= 0 }
+        actor.buffs.removeAll { it is Buff.ResourceTick && it.duration <= 0 }
+
+        for (buff in expiredStatBuffs) {
+            log.add(CombatEvent.BuffExpired(actor.name, buff.id, snapshotActors(listOf(teamA, teamB))))
+        }
+        for (tick in expiredResourceTicks) {
+            log.add(CombatEvent.BuffExpired(actor.name, tick.id, snapshotActors(listOf(teamA, teamB))))
+        }
+        // Decrease cooldowns and clamp to zero
+        actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
     }
 
     val log = mutableListOf<CombatEvent>()
@@ -195,11 +196,8 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
         log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
         val allActors = teamA.aliveActors() + teamB.aliveActors()
 
-        // process buffs at start of turn
-        processBuffs(teamA, log)
-        processBuffs(teamB, log)
-
         for (actor in allActors) {
+            processBuffs(actor, log)
             val allies = if (actor.team == 0) teamA.aliveActors() else teamB.aliveActors()
             val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
             val skill = pickSkill(actor, allies, enemies)
