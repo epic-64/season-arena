@@ -80,8 +80,6 @@ class GameEngineTest : StringSpec({
         val teamB = Team(mutableListOf(actorB))
         val events = simulate_battle(teamA, teamB)
 
-        printBattleEvents(events)
-
         val endEvent = events.last() as CombatEvent.BattleEnd
         val winner = endEvent.winner
         val snapshot = endEvent.snapshot
