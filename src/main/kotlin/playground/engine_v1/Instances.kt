@@ -223,7 +223,7 @@ val iceLance = Skill(
         SkillEffect(
             type = SkillEffectType.StatBuff,
             targetRule = { _, _, _, previous -> previous },
-            statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("atk" to -5))
+            statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -5))
         ),
     ),
     cooldown = 3
