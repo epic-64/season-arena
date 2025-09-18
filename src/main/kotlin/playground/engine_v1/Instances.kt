@@ -6,7 +6,7 @@ val basicAttack = Skill(
         SkillEffect(
             type = SkillEffectType.Damage,
             power = 20,
-            targetRule = { _, _, enemies ->
+            targetRule = { _, _, enemies, _ ->
                 if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
             }
         )
@@ -21,7 +21,7 @@ val takeAim = Skill(
         SkillEffect(
             type = SkillEffectType.StatBuff,
             power = 0,
-            targetRule = { actor, _, _ -> listOf(actor) },
+            targetRule = { actor, _, _, _ -> listOf(actor) },
             statBuff = Buff.StatBuff(id = "Amplify", duration = 1, statChanges = mapOf("amplify" to 200))
         )
     ),
@@ -34,14 +34,14 @@ val doubleStrike = Skill(
         SkillEffect(
             type = SkillEffectType.Damage,
             power = 15,
-            targetRule = { _, _, enemies ->
+            targetRule = { _, _, enemies, _ ->
                 if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
             }
         ),
         SkillEffect(
             type = SkillEffectType.Damage,
             power = 15,
-            targetRule = { _, _, enemies ->
+            targetRule = { _, _, enemies, _ ->
                 if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
             }
         )
@@ -56,7 +56,7 @@ val whirlwind = Skill(
         SkillEffect(
             type = SkillEffectType.Damage,
             power = 15,
-            targetRule = { _, _, enemies -> enemies } // All enemies
+            targetRule = { _, _, enemies, _ -> enemies } // All enemies
         )
     ),
     activationRule = { _, _, enemies -> enemies.isNotEmpty() },
@@ -69,11 +69,11 @@ val fireball = Skill(
         SkillEffect(
             type = SkillEffectType.Damage,
             power = 25,
-            targetRule = { _, _, enemies -> enemies }
+            targetRule = { _, _, enemies, _ -> enemies }
         ),
         SkillEffect(
             type = SkillEffectType.ResourceTick,
-            targetRule = { _, _, enemies -> enemies },
+            targetRule = { _, _, enemies, _ -> enemies },
             resourceTick = Buff.ResourceTick(id = "Burn", duration = 2, resourceChanges = mapOf("hp" to -10))
         )
     ),
@@ -87,15 +87,13 @@ val spark = Skill(
         SkillEffect(
             type = SkillEffectType.Damage,
             power = 10,
-            targetRule = { _, _, enemies ->
+            targetRule = { _, _, enemies, _ ->
                 if (enemies.isNotEmpty()) enemies.shuffled().take(2) else emptyList()
             }
         ),
         SkillEffect(
             type = SkillEffectType.StatBuff,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) enemies.shuffled().take(2) else emptyList()
-            },
+            targetRule = { _, _, _, previousTargets -> previousTargets }, // Chain to previous effect's targets
             statBuff = Buff.StatBuff(id = "Shock", duration = 2, statChanges = mapOf("def" to -5)),
         )
     ),
@@ -107,13 +105,13 @@ val hotBuff = Skill(
     effects = listOf(
         SkillEffect(
             type = SkillEffectType.ResourceTick,
-            targetRule = { actor, _, _ -> listOf(actor) },
+            targetRule = { actor, _, _, _ -> listOf(actor) },
             resourceTick = Buff.ResourceTick(id = "Regen", duration = 3, resourceChanges = mapOf("hp" to 10)) // Regeneration should heal
         ),
         SkillEffect(
             type = SkillEffectType.StatBuff,
             power = 0,
-            targetRule = { actor, _, _ -> listOf(actor) },
+            targetRule = { actor, _, _, _ -> listOf(actor) },
             statBuff = Buff.StatBuff(id = "Protection", duration = 3, statChanges = mapOf("protection" to 10))
         ),
     ),
@@ -127,7 +125,7 @@ val flashHeal = Skill(
         SkillEffect(
             type = SkillEffectType.Heal,
             power = 25,
-            targetRule = { _, allies, _ ->
+            targetRule = { _, allies, _, _ ->
                 val target = allies.minByOrNull { it.getHp() }
                 if (target != null) listOf(target) else emptyList()
             }
@@ -146,15 +144,13 @@ val iceShot = Skill(
         SkillEffect(
             type = SkillEffectType.Damage,
             power = 25,
-            targetRule = { _, _, enemies ->
+            targetRule = { _, _, enemies, _ ->
                 if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
             }
         ),
         SkillEffect(
             type = SkillEffectType.StatBuff,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
-            },
+            targetRule = { _, _, _, previous -> previous },
             statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -10))
         )
     ),
@@ -167,11 +163,11 @@ val groupHeal = Skill(
         SkillEffect(
             type = SkillEffectType.Heal,
             power = 20,
-            targetRule = { _, allies, _ -> allies }
+            targetRule = { _, allies, _, _ -> allies }
         ),
         SkillEffect(
             type = SkillEffectType.ResourceTick,
-            targetRule = { _, allies, _ -> allies },
+            targetRule = { _, allies, _, _ -> allies },
             resourceTick = Buff.ResourceTick(id = "Regen", duration = 2, resourceChanges = mapOf("hp" to 5)) // Should heal, not damage
         )
     ),
@@ -187,13 +183,13 @@ val poisonStrike = Skill(
         SkillEffect(
             type = SkillEffectType.Damage,
             power = 15,
-            targetRule = { _, _, enemies ->
+            targetRule = { _, _, enemies, _ ->
                 if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
             }
         ),
         SkillEffect(
             type = SkillEffectType.ResourceTick,
-            targetRule = { _, _, enemies ->
+            targetRule = { _, _, enemies, _ ->
                 if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
             },
             resourceTick = Buff.ResourceTick(id = "Poison", duration = 4, resourceChanges = mapOf("hp" to -5)) // Poison should damage
@@ -208,7 +204,7 @@ val blackHole = Skill(
         SkillEffect(
             type = SkillEffectType.Damage,
             power = 40,
-            targetRule = { _, _, enemies -> enemies }
+            targetRule = { _, _, enemies, _ -> enemies }
         ),
     ),
     cooldown = 5
@@ -220,29 +216,13 @@ val iceLance = Skill(
         SkillEffect(
             type = SkillEffectType.Damage,
             power = 30,
-            targetRule = { _, _, enemies ->
+            targetRule = { _, _, enemies, _ ->
                 if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
             }
         ),
         SkillEffect(
             type = SkillEffectType.StatBuff,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
-            },
-            statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("atk" to -5))
-        ),
-        SkillEffect(
-            type = SkillEffectType.StatBuff,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
-            },
-            statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("atk" to -5))
-        ),
-        SkillEffect(
-            type = SkillEffectType.StatBuff,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
-            },
+            targetRule = { _, _, _, previous -> previous },
             statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("atk" to -5))
         ),
     ),

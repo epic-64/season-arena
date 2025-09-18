@@ -30,7 +30,7 @@ sealed class SkillEffectType {
 data class SkillEffect(
     val type: SkillEffectType,
     val power: Int = 0,
-    val targetRule: (Actor, List<Actor>, List<Actor>) -> List<Actor>,
+    val targetRule: (Actor, List<Actor>, List<Actor>, List<Actor>) -> List<Actor>,
     val statBuff: Buff.StatBuff? = null, // For stat buff effects
     val resourceTick: Buff.ResourceTick? = null // For resource tick effects
 )
