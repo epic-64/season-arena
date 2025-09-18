@@ -215,11 +215,7 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
             val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
             val skill = pickSkill(actor, allies, enemies)
             if (skill != null) {
-                // Collect all target names for this skill
-                val targetNames = skill.effects
-                    .flatMap { it.targetRule(actor, allies, enemies, listOf()) }
-                    .map { it.name }
-                log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, snapshotActors(listOf(teamA, teamB))))
+                log.add(CombatEvent.SkillUsed(actor.name, skill.name, snapshotActors(listOf(teamA, teamB))))
                 applySkill(actor, skill, allies, enemies, log)
             }
             // else: actor skips turn
@@ -232,37 +228,4 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
     }
     log.add(CombatEvent.BattleEnd(winner, snapshotActors(listOf(teamA, teamB))))
     return log
-}
-
-fun printBattleEvents(events: List<CombatEvent>) {
-    for (event in events) {
-        printBattleEvent(event)
-    }
-}
-
-fun printBattleEvent(event: CombatEvent) {
-    when (event) {
-        is CombatEvent.TurnStart -> println("--- Turn ${event.turn} ---")
-        is CombatEvent.SkillUsed -> println("${event.actor} uses ${event.skill} on ${event.targets.joinToString()}")
-        is CombatEvent.DamageDealt -> println("${event.target} takes ${event.amount} damage! (HP: ${event.targetHp})")
-        is CombatEvent.Healed -> println("${event.target} heals ${event.amount} HP! (HP: ${event.targetHp})")
-        is CombatEvent.BuffApplied -> println("${event.target} receives buff ${event.buffId}")
-        is CombatEvent.ResourceDrained -> println("${event.target} gains ${event.amount} ${event.resource} from ${event.buffId}! (${event.resource}: ${event.targetResourceValue})")
-        is CombatEvent.BuffExpired -> println("${event.target}'s buff ${event.buffId} expired.")
-        is CombatEvent.BattleEnd -> println("Battle Over! Winner: ${event.winner}")
-    }
-    // Print actor snapshot after each event
-    val snapshot = when (event) {
-        is CombatEvent.TurnStart -> event.snapshot
-        is CombatEvent.BattleEnd -> event.snapshot
-        else -> null
-    }
-
-    if (snapshot == null)
-        return
-
-    println("Actors:")
-    for (actor in snapshot.actors) {
-        println("  ${actor.name} (Team ${actor.team}): HP=${actor.hp}/${actor.maxHp}, Stats=${actor.stats}, Buffs=[${actor.statBuffs.joinToString { b -> "${b.id}(dur=${b.duration})" }}], Ticks=[${actor.resourceTicks.joinToString { t -> "${t.id}(dur=${t.duration})" }}]")
-    }
 }
