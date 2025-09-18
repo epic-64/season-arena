@@ -65,7 +65,7 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
     val teamA = teamA.deepCopy()
     val teamB = teamB.deepCopy()
 
-    var turn: Int = 0
+    var turn = 0
     val maxTurns = 100
 
     fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill?
