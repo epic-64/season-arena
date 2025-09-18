@@ -3,21 +3,7 @@ package playground
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
-import playground.engine_v1.Actor
-import playground.engine_v1.ActorClass
-import playground.engine_v1.BattleSimulation
-import playground.engine_v1.Buff
-import playground.engine_v1.CombatEvent
-import playground.engine_v1.Team
-import playground.engine_v1.basicAttack
-import playground.engine_v1.combatEventsToJson
-import playground.engine_v1.doubleStrike
-import playground.engine_v1.fireball
-import playground.engine_v1.groupHeal
-import playground.engine_v1.poisonStrike
-import playground.engine_v1.printBattleEvents
-import playground.engine_v1.snapshotActors
-import playground.engine_v1.whirlwind
+import playground.engine_v1.*
 
 class GameEngineTest : StringSpec({
     "snapshotActors correctly snapshots a single actor" {
@@ -92,7 +78,7 @@ class GameEngineTest : StringSpec({
         )
         val teamA = Team(mutableListOf(actorA))
         val teamB = Team(mutableListOf(actorB))
-        val events = BattleSimulation(teamA, teamB).run()
+        val events = simulate_battle(teamA, teamB)
 
         printBattleEvents(events)
 
