@@ -76,46 +76,48 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
     }
 
     fun applySkill(actor: Actor, skill: Skill, allies: List<Actor>, enemies: List<Actor>, log: MutableList<CombatEvent>)
-    {
-        for (effect in skill.effects) {
-            val targets = effect.targetRule(actor, allies, enemies)
-            if (targets.isEmpty()) continue // Skip if no valid targets
-            when (effect.type) {
-                SkillEffectType.Damage -> {
-                    for (target in targets) {
-                        val rawDmg = max(1, effect.power + (actor.stats["atk"] ?: 0))
-                        val amplifiedDmg = (rawDmg * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt()
-                        val protection = target.stats["protection"]?.coerceIn(0, 100) ?: 0
-                        // Protection is a percentage: 10 = 10% reduced damage
-                        val finalDmg = max(1, (amplifiedDmg * (1 - protection / 100.0)).toInt())
-                        target.setHp(max(0, target.getHp() - finalDmg))
-                        log.add(CombatEvent.DamageDealt(actor.name, target.name, finalDmg, target.getHp(), snapshotActors(listOf(teamA, teamB))))
+        {
+            var previousTargets: List<Actor> = emptyList()
+            for (effect in skill.effects) {
+                val targets = effect.targetRule(actor, allies, enemies, previousTargets)
+                previousTargets = targets
+                if (targets.isEmpty()) continue // Skip if no valid targets
+                when (effect.type) {
+                    SkillEffectType.Damage -> {
+                        for (target in targets) {
+                            val rawDmg = max(1, effect.power + (actor.stats["atk"] ?: 0))
+                            val amplifiedDmg = (rawDmg * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt()
+                            val protection = target.stats["protection"]?.coerceIn(0, 100) ?: 0
+                            // Protection is a percentage: 10 = 10% reduced damage
+                            val finalDmg = max(1, (amplifiedDmg * (1 - protection / 100.0)).toInt())
+                            target.setHp(max(0, target.getHp() - finalDmg))
+                            log.add(CombatEvent.DamageDealt(actor.name, target.name, finalDmg, target.getHp(), snapshotActors(listOf(teamA, teamB))))
+                        }
                     }
-                }
-                SkillEffectType.Heal -> {
-                    for (target in targets) {
-                        val heal = max(1, effect.power + (actor.stats["matk"] ?: 0))
-                        target.setHp(min(target.maxHp, target.getHp() + heal))
-                        log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), snapshotActors(listOf(teamA, teamB))))
+                    SkillEffectType.Heal -> {
+                        for (target in targets) {
+                            val heal = max(1, effect.power + (actor.stats["matk"] ?: 0))
+                            target.setHp(min(target.maxHp, target.getHp() + heal))
+                            log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), snapshotActors(listOf(teamA, teamB))))
+                        }
                     }
-                }
-                SkillEffectType.StatBuff -> {
-                    for (target in targets) {
-                        effect.statBuff?.let { target.buffs.add(it.copy()) }
-                        effect.statBuff?.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
+                    SkillEffectType.StatBuff -> {
+                        for (target in targets) {
+                            effect.statBuff?.let { target.buffs.add(it.copy()) }
+                            effect.statBuff?.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
+                        }
                     }
-                }
-                SkillEffectType.ResourceTick -> {
-                    for (target in targets) {
-                        effect.resourceTick?.let { target.buffs.add(it.copy()) }
-                        effect.resourceTick?.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
+                    SkillEffectType.ResourceTick -> {
+                        for (target in targets) {
+                            effect.resourceTick?.let { target.buffs.add(it.copy()) }
+                            effect.resourceTick?.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
+                        }
                     }
                 }
             }
+            // Apply cooldown
+            actor.cooldowns[skill] = skill.cooldown
         }
-        // Apply cooldown
-        actor.cooldowns[skill] = skill.cooldown
-    }
 
     fun processBuffs(actor: Actor, log: MutableList<CombatEvent>)
     {
@@ -157,10 +159,9 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
                 for ((resource, amount) in totalResourceChanges) {
                     when (resource) {
                         "hp" -> {
-                            val newHp = if (amount > 0) {
-                                min(actor.maxHp, actor.getHp() + amount)
-                            } else {
-                                max(0, actor.getHp() + amount)
+                            val newHp = when (amount > 0) {
+                                true -> min(actor.maxHp, actor.getHp() + amount)
+                                false -> max(0, actor.getHp() + amount)
                             }
                             actor.setHp(newHp)
                             log.add(CombatEvent.ResourceDrained(actor.name, id, resource, amount, actor.getHp(), snapshotActors(listOf(teamA, teamB))))
@@ -211,7 +212,7 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
             if (skill != null) {
                 // Collect all target names for this skill
                 val targetNames = skill.effects
-                    .flatMap { it.targetRule(actor, allies, enemies) }
+                    .flatMap { it.targetRule(actor, allies, enemies, listOf()) }
                     .map { it.name }
                 log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, snapshotActors(listOf(teamA, teamB))))
                 applySkill(actor, skill, allies, enemies, log)
