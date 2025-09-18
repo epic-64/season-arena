@@ -1,148 +1,10 @@
 package playground.engine_v1
 
-import kotlin.collections.iterator
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.time.measureTime
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlin.math.max
+import kotlin.math.min
 
-// --- Buff (Unified) ---
-sealed class Buff {
-    abstract val id: String
-    abstract val duration: Int
-
-    data class StatBuff(
-        override val id: String,
-        override val duration: Int,
-        val statChanges: Map<String, Int> = emptyMap()
-    ) : Buff()
-
-    data class ResourceTick(
-        override val id: String,
-        override val duration: Int,
-        val resourceChanges: Map<String, Int> = emptyMap()
-    ) : Buff()
-}
-
-// --- Skill Effects ---
-sealed class SkillEffectType {
-    object Damage : SkillEffectType()
-    object Heal : SkillEffectType()
-    object StatBuff : SkillEffectType()
-    object ResourceTick : SkillEffectType()
-    // Add more types as needed
-}
-
-data class SkillEffect(
-    val type: SkillEffectType,
-    val power: Int = 0,
-    val targetRule: (Actor, List<Actor>, List<Actor>) -> List<Actor>,
-    val statBuff: Buff.StatBuff? = null, // For stat buff effects
-    val resourceTick: Buff.ResourceTick? = null // For resource tick effects
-)
-
-// --- Skills ---
-data class Skill(
-    val name: String,
-    val effects: List<SkillEffect>,
-    val activationRule: (Actor, List<Actor>, List<Actor>) -> Boolean = { _, _, _ -> true }, // Should use this skill?
-    val cooldown: Int // cooldown in turns
-)
-
-enum class ActorClass {
-    Fighter,
-    Mage,
-    Cleric,
-    Rogue,
-    Hunter,
-    Paladin,
-    AbyssalDragon,
-    Bard,
-    Fishman,
-}
-
-// --- Actor ---
-data class Actor(
-    val actorClass: ActorClass,
-    val name: String,
-    private var hp: Int,
-    val maxHp: Int,
-    val skills: List<Skill>,
-    val team: Int, // 0 or 1
-    val stats: MutableMap<String, Int> = mutableMapOf(),
-    val buffs: MutableList<Buff> = mutableListOf(),
-    val cooldowns: MutableMap<Skill, Int> = mutableMapOf() // skill -> turns left
-) {
-    val isAlive: Boolean get() = hp > 0
-
-    fun getHp(): Int = hp
-
-    fun setHp(value: Int) {
-        hp = value.coerceIn(0, maxHp)
-
-        if (!isAlive) {
-            buffs.clear()
-            cooldowns.clear()
-        }
-    }
-
-    fun deepCopy(): Actor {
-        return Actor(
-            actorClass = actorClass,
-            name = name,
-            hp = hp,
-            maxHp = maxHp,
-            skills = skills, // Skills are immutable
-            team = team,
-            stats = stats.toMutableMap(),
-            buffs = buffs.toMutableList(),
-            cooldowns = cooldowns.toMutableMap()
-        )
-    }
-}
-
-// --- Team ---
-data class Team(val actors: MutableList<Actor>) {
-    fun aliveActors() = actors.filter { it.isAlive }
-    fun deepCopy(): Team {
-        return Team(actors.map { it.deepCopy() }.toMutableList())
-    }
-}
-
-// --- Actor Snapshot Data Structure ---
-@Serializable
-data class ActorSnapshot(
-    val actorClass: ActorClass,
-    val name: String,
-    val hp: Int,
-    val maxHp: Int,
-    val team: Int,
-    val stats: Map<String, Int>,
-    val statBuffs: List<StatBuffSnapshot>,
-    val resourceTicks: List<ResourceTickSnapshot>,
-    val cooldowns: Map<String, Int>
-)
-
-@Serializable
-data class StatBuffSnapshot(
-    val id: String,
-    val duration: Int,
-    val statChanges: Map<String, Int>
-)
-
-@Serializable
-data class ResourceTickSnapshot(
-    val id: String,
-    val duration: Int,
-    val resourceChanges: Map<String, Int>
-)
-
-@Serializable
-data class BattleSnapshot(
-    val actors: List<ActorSnapshot>
-)
 
 fun snapshotActors(teams: List<Team>): BattleSnapshot {
     return BattleSnapshot(
@@ -194,118 +56,25 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
     )
 }
 
-// --- Combat Event Data Structure ---
-@Serializable
-sealed class CombatEvent {
-    @Serializable
-    data class TurnStart(val turn: Int, val snapshot: BattleSnapshot) : CombatEvent()
-
-    @Serializable
-    data class SkillUsed(
-        val actor: String,
-        val skill: String,
-        val targets: List<String>,
-        val snapshot: BattleSnapshot
-    ) : CombatEvent()
-
-    @Serializable
-    data class DamageDealt(
-        val source: String,
-        val target: String,
-        val amount: Int,
-        val targetHp: Int,
-        val snapshot: BattleSnapshot
-    ) : CombatEvent()
-
-    @Serializable
-    data class Healed(
-        val source: String,
-        val target: String,
-        val amount: Int,
-        val targetHp: Int,
-        val snapshot: BattleSnapshot
-    ) : CombatEvent()
-
-    @Serializable
-    data class BuffApplied(
-        val source: String,
-        val target: String,
-        val buffId: String,
-        val snapshot: BattleSnapshot
-    ) : CombatEvent()
-
-    @Serializable
-    data class BuffExpired(val target: String, val buffId: String, val snapshot: BattleSnapshot) : CombatEvent()
-
-    @Serializable
-    data class ResourceDrained(
-        val target: String,
-        val buffId: String,
-        val resource: String,
-        val amount: Int,
-        val targetResourceValue: Int,
-        val snapshot: BattleSnapshot
-    ) : CombatEvent()
-
-    @Serializable
-    data class BattleEnd(val winner: String, val snapshot: BattleSnapshot) : CombatEvent()
-}
-
 fun combatEventsToJson(events: List<CombatEvent>): String {
     return Json.encodeToString(events)
 }
 
 // --- BattleSimulation ---
-class BattleSimulation(
-    val teamA: Team,
-    val teamB: Team
-) {
-    private var turn: Int = 0
+fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
+    val teamA = teamA.deepCopy()
+    val teamB = teamB.deepCopy()
 
-    fun run(): List<CombatEvent> {
-        val maxTurns = 100
-        val log = mutableListOf<CombatEvent>()
-        log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
+    var turn: Int = 0
+    val maxTurns = 100
 
-        while (teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isNotEmpty() && turn < maxTurns) {
-            turn++
-            log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
-            val allActors = teamA.aliveActors() + teamB.aliveActors()
-
-            for (actor in allActors) {
-                val allies = if (actor.team == 0) teamA.aliveActors() else teamB.aliveActors()
-                val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
-                val skill = pickSkill(actor, allies, enemies)
-                if (skill != null) {
-                    // Collect all target names for this skill
-                    val targetNames = skill.effects
-                        .flatMap { it.targetRule(actor, allies, enemies) }
-                        .map { it.name }
-                    log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, snapshotActors(listOf(teamA, teamB))))
-                    applySkill(actor, skill, allies, enemies, log)
-                }
-                // else: actor skips turn
-            }
-
-            processBuffs(teamA, log)
-            processBuffs(teamB, log)
-        }
-        val winner = when {
-            teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isEmpty() -> "Team A"
-            teamB.aliveActors().isNotEmpty() && teamA.aliveActors().isEmpty() -> "Team B"
-            else -> "Draw (turn limit reached)"
-        }
-        log.add(CombatEvent.BattleEnd(winner, snapshotActors(listOf(teamA, teamB))))
-        return log
-    }
-
-    private fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill? {
+    fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill? {
         // Only pick skills that are not on cooldown
         val availableSkills = actor.skills.filter { (actor.cooldowns[it] ?: 0) <= 0 }
         return availableSkills.firstOrNull { it.activationRule(actor, allies, enemies) } ?: availableSkills.firstOrNull()
     }
 
-    private fun applySkill(actor: Actor, skill: Skill, allies: List<Actor>, enemies: List<Actor>, log: MutableList<CombatEvent>) {
+    fun applySkill(actor: Actor, skill: Skill, allies: List<Actor>, enemies: List<Actor>, log: MutableList<CombatEvent>) {
         for (effect in skill.effects) {
             val targets = effect.targetRule(actor, allies, enemies)
             if (targets.isEmpty()) continue // Skip if no valid targets
@@ -346,7 +115,7 @@ class BattleSimulation(
         actor.cooldowns[skill] = skill.cooldown
     }
 
-    private fun processBuffs(team: Team, log: MutableList<CombatEvent>) {
+    fun processBuffs(team: Team, log: MutableList<CombatEvent>) {
         for (actor in team.actors) {
             val expiredStatBuffs = mutableListOf<Buff.StatBuff>()
             val expiredResourceTicks = mutableListOf<Buff.ResourceTick>()
@@ -417,6 +186,41 @@ class BattleSimulation(
             actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
         }
     }
+
+    val log = mutableListOf<CombatEvent>()
+    log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
+
+    while (teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isNotEmpty() && turn < maxTurns) {
+        turn++
+        log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
+        val allActors = teamA.aliveActors() + teamB.aliveActors()
+
+        // process buffs at start of turn
+        processBuffs(teamA, log)
+        processBuffs(teamB, log)
+
+        for (actor in allActors) {
+            val allies = if (actor.team == 0) teamA.aliveActors() else teamB.aliveActors()
+            val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
+            val skill = pickSkill(actor, allies, enemies)
+            if (skill != null) {
+                // Collect all target names for this skill
+                val targetNames = skill.effects
+                    .flatMap { it.targetRule(actor, allies, enemies) }
+                    .map { it.name }
+                log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, snapshotActors(listOf(teamA, teamB))))
+                applySkill(actor, skill, allies, enemies, log)
+            }
+            // else: actor skips turn
+        }
+    }
+    val winner = when {
+        teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isEmpty() -> "Team A"
+        teamB.aliveActors().isNotEmpty() && teamA.aliveActors().isEmpty() -> "Team B"
+        else -> "Draw (turn limit reached)"
+    }
+    log.add(CombatEvent.BattleEnd(winner, snapshotActors(listOf(teamA, teamB))))
+    return log
 }
 
 fun printBattleEvents(events: List<CombatEvent>) {
@@ -449,373 +253,5 @@ fun printBattleEvent(event: CombatEvent) {
     println("Actors:")
     for (actor in snapshot.actors) {
         println("  ${actor.name} (Team ${actor.team}): HP=${actor.hp}/${actor.maxHp}, Stats=${actor.stats}, Buffs=[${actor.statBuffs.joinToString { b -> "${b.id}(dur=${b.duration})" }}], Ticks=[${actor.resourceTicks.joinToString { t -> "${t.id}(dur=${t.duration})" }}]")
-    }
-}
-
-val basicAttack = Skill(
-    name = "Strike",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.Damage,
-            power = 20,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
-            }
-        )
-    ),
-    activationRule = { _, _, enemies -> enemies.isNotEmpty() },
-    cooldown = 1
-)
-
-val takeAim = Skill(
-    name = "Take Aim",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.StatBuff,
-            power = 0,
-            targetRule = { actor, _, _ -> listOf(actor) },
-            statBuff = Buff.StatBuff(id = "Amplify", duration = 1, statChanges = mapOf("amplify" to 200))
-        )
-    ),
-    cooldown = 3
-)
-
-val doubleStrike = Skill(
-    name = "Double Strike",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.Damage,
-            power = 15,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
-            }
-        ),
-        SkillEffect(
-            type = SkillEffectType.Damage,
-            power = 15,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
-            }
-        )
-    ),
-    activationRule = { actor, _, enemies -> enemies.isNotEmpty() },
-    cooldown = 2
-)
-
-val whirlwind = Skill(
-    name = "Whirlwind",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.Damage,
-            power = 15,
-            targetRule = { _, _, enemies -> enemies } // All enemies
-        )
-    ),
-    activationRule = { _, _, enemies -> enemies.isNotEmpty() },
-    cooldown = 2
-)
-
-val fireball = Skill(
-    name = "Fireball",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.Damage,
-            power = 25,
-            targetRule = { _, _, enemies -> enemies }
-        ),
-        SkillEffect(
-            type = SkillEffectType.ResourceTick,
-            targetRule = { _, _, enemies -> enemies },
-            resourceTick = Buff.ResourceTick(id = "Burn", duration = 2, resourceChanges = mapOf("hp" to -10))
-        )
-    ),
-    activationRule = { _, _, enemies -> enemies.isNotEmpty() },
-    cooldown = 4
-)
-
-val spark = Skill(
-    name = "Spark",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.Damage,
-            power = 10,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) enemies.shuffled().take(2) else emptyList()
-            }
-        ),
-        SkillEffect(
-            type = SkillEffectType.StatBuff,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) enemies.shuffled().take(2) else emptyList()
-            },
-            statBuff = Buff.StatBuff(id = "Shock", duration = 2, statChanges = mapOf("def" to -5)),
-        )
-    ),
-    cooldown = 1
-)
-
-val hotBuff = Skill(
-    name = "Regeneration",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.ResourceTick,
-            targetRule = { actor, _, _ -> listOf(actor) },
-            resourceTick = Buff.ResourceTick(id = "Regen", duration = 3, resourceChanges = mapOf("hp" to 10)) // Regeneration should heal
-        ),
-        SkillEffect(
-            type = SkillEffectType.StatBuff,
-            power = 0,
-            targetRule = { actor, _, _ -> listOf(actor) },
-            statBuff = Buff.StatBuff(id = "Protection", duration = 3, statChanges = mapOf("protection" to 10))
-        ),
-    ),
-    activationRule = { actor, _, _ -> actor.buffs.none { it.id == "Regen" } },
-    cooldown = 3
-)
-
-val flashHeal = Skill(
-    name = "Flash Heal",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.Heal,
-            power = 25,
-            targetRule = { _, allies, _ ->
-                val target = allies.minByOrNull { it.getHp() }
-                if (target != null) listOf(target) else emptyList()
-            }
-        )
-    ),
-    activationRule = { _, allies, _ ->
-        val target = allies.minByOrNull { it.getHp() }
-        target != null && target.getHp() < target.maxHp / 2
-    },
-    cooldown = 2
-)
-
-val iceShot = Skill(
-    name = "Ice Shot",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.Damage,
-            power = 25,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
-            }
-        ),
-        SkillEffect(
-            type = SkillEffectType.StatBuff,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
-            },
-            statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -10))
-        )
-    ),
-    cooldown = 2
-)
-
-val groupHeal = Skill(
-    name = "Group Heal",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.Heal,
-            power = 20,
-            targetRule = { _, allies, _ -> allies }
-        ),
-        SkillEffect(
-            type = SkillEffectType.ResourceTick,
-            targetRule = { _, allies, _ -> allies },
-            resourceTick = Buff.ResourceTick(id = "Regen", duration = 2, resourceChanges = mapOf("hp" to 5)) // Should heal, not damage
-        )
-    ),
-    activationRule = { _, allies, _ ->
-        allies.count { it.getHp() < it.maxHp * 0.7 } >= 2
-    },
-    cooldown = 6
-)
-
-val poisonStrike = Skill(
-    name = "Poison Strike",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.Damage,
-            power = 15,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
-            }
-        ),
-        SkillEffect(
-            type = SkillEffectType.ResourceTick,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
-            },
-            resourceTick = Buff.ResourceTick(id = "Poison", duration = 4, resourceChanges = mapOf("hp" to -5)) // Poison should damage
-        )
-    ),
-    cooldown = 2
-)
-
-val blackHole = Skill(
-    name = "Black Hole",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.Damage,
-            power = 40,
-            targetRule = { _, _, enemies -> enemies }
-        ),
-    ),
-    cooldown = 5
-)
-
-val iceLance = Skill(
-    name = "Ice Lance",
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.Damage,
-            power = 30,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
-            }
-        ),
-        SkillEffect(
-            type = SkillEffectType.StatBuff,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
-            },
-            statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("atk" to -5))
-        ),
-        SkillEffect(
-            type = SkillEffectType.StatBuff,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
-            },
-            statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("atk" to -5))
-        ),
-        SkillEffect(
-            type = SkillEffectType.StatBuff,
-            targetRule = { _, _, enemies ->
-                if (enemies.isNotEmpty()) listOf(enemies.first()) else emptyList()
-            },
-            statBuff = Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("atk" to -5))
-        ),
-    ),
-    cooldown = 3
-)
-
-// --- Example Usage ---
-fun main() {
-    val actorA1 = Actor(
-        actorClass = ActorClass.Hunter,
-        name = "Alice",
-        hp = 100,
-        maxHp = 100,
-        skills = listOf(takeAim, iceShot, basicAttack),
-        team = 0
-    )
-    val actorA2 = Actor(
-        actorClass = ActorClass.Mage,
-        name = "Jane",
-        hp = 100,
-        maxHp = 100,
-        skills = listOf(fireball, spark, basicAttack),
-        team = 0
-    )
-    val actorA3 = Actor(
-        actorClass = ActorClass.Cleric,
-        name = "Aidan",
-        hp = 100,
-        maxHp = 100,
-        skills = listOf(groupHeal, flashHeal, iceLance, basicAttack),
-        team = 0
-    )
-    val actorA4 = Actor(
-        actorClass = ActorClass.Paladin,
-        name = "Bob",
-        hp = 100,
-        maxHp = 100,
-        skills = listOf(blackHole, hotBuff, basicAttack),
-        team = 0
-    )
-    val actorA5 = Actor(
-        actorClass = ActorClass.Bard,
-        name = "Charlie",
-        hp = 100,
-        maxHp = 100,
-        skills = listOf(spark, spark, basicAttack),
-        team = 0
-    )
-    val actorB1 = Actor(
-        actorClass = ActorClass.AbyssalDragon,
-        name = "Abyssal Dragon",
-        hp = 400,
-        maxHp = 400,
-        skills = listOf(fireball, spark, iceLance, poisonStrike, basicAttack),
-        team = 1
-    )
-    val actorB2 = Actor(
-        actorClass = ActorClass.Fishman,
-        name = "Fishman Shaman",
-        hp = 120,
-        maxHp = 120,
-        skills = listOf(groupHeal, flashHeal, hotBuff, spark, basicAttack),
-        team = 1
-    )
-    val actorB3 = Actor(
-        actorClass = ActorClass.Fishman,
-        name = "Fishman Archer",
-        hp = 120,
-        maxHp = 120,
-        skills = listOf(takeAim, iceShot, basicAttack),
-        team = 1
-    )
-    val actorB4 = Actor(
-        actorClass = ActorClass.Fishman,
-        name = "Fishman Warrior",
-        hp = 120,
-        maxHp = 120,
-        skills = listOf(whirlwind, doubleStrike, basicAttack),
-        team = 1
-    )
-
-    val teamA = Team(mutableListOf(actorA1, actorA2, actorA3, actorA4, actorA5))
-    val teamB = Team(mutableListOf(
-        actorB1,
-        actorB2,
-        actorB3,
-        actorB4,
-    ))
-
-    val events = BattleSimulation(teamA.deepCopy(), teamB.deepCopy()).run().filterNot {
-        it is CombatEvent.BuffExpired // currently not used in UI
-    }
-    val json = combatEventsToJson(events)
-
-    java.io.File("output/battle_log.json").apply {
-        writeText(json)
-        println("Battle log written to $path, size: ${length()} bytes")
-    }
-}
-
-fun benchmark(inputTeamA: Team, inputTeamB: Team) {
-    repeat(100) { i ->
-        val teamA = inputTeamA.deepCopy()
-        val teamB = inputTeamB.deepCopy()
-        val log: List<CombatEvent>
-        val milliSecondsSimulation = measureTime {
-            log = BattleSimulation(teamA, teamB).run().filterNot {
-                it is CombatEvent.BuffExpired // currently not used in UI
-            }
-        }
-
-        val json: String
-        val milliSecondsJsonEncode = measureTime {
-            json = combatEventsToJson(log)
-        }
-
-        val turns = log.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
-        println("Run #$i: Simulation took $milliSecondsSimulation," +
-                "JSON encoding took $milliSecondsJsonEncode," +
-                "Turns: $turns," +
-                "Events: ${log.size}," +
-                "JSON size: ${json.length} chars")
     }
 }
