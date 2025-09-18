@@ -78,10 +78,15 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
     fun applySkill(actor: Actor, skill: Skill, allies: List<Actor>, enemies: List<Actor>, log: MutableList<CombatEvent>)
         {
             var previousTargets: List<Actor> = emptyList()
+
             for (effect in skill.effects) {
                 val targets = effect.targetRule(actor, allies, enemies, previousTargets)
+
                 previousTargets = targets
-                if (targets.isEmpty()) continue // Skip if no valid targets
+                if (targets.isEmpty()) {
+                    continue
+                }
+
                 when (effect.type) {
                     SkillEffectType.Damage -> {
                         for (target in targets) {
