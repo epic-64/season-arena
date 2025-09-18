@@ -121,19 +121,20 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
     {
         val expiredStatBuffs = mutableListOf<Buff.StatBuff>()
         val expiredResourceTicks = mutableListOf<Buff.ResourceTick>()
-        // --- StatBuffs: Only apply statChanges on buff application, remove on expiration ---
-        val previousStatBuffs = actor.stats.toMap()
         val activeStatBuffs = actor.buffs.filterIsInstance<Buff.StatBuff>()
         val statBuffTotals = mutableMapOf<String, Int>()
+
         for (buff in activeStatBuffs) {
             for ((stat, change) in buff.statChanges) {
                 statBuffTotals[stat] = (statBuffTotals[stat] ?: 0) + change
             }
         }
+
         // Set stats to base + total from active buffs
         for ((stat, value) in statBuffTotals) {
             actor.stats[stat] = value
         }
+
         // Remove stats for buffs that have expired
         val expiredBuffs = actor.buffs.filterIsInstance<Buff.StatBuff>().filter { it.duration <= 0 }
         for (buff in expiredBuffs) {
@@ -144,6 +145,7 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
                 }
             }
         }
+
         // --- ResourceTicks: aggregate by id ---
         val resourceTickGroups = actor.buffs.filterIsInstance<Buff.ResourceTick>().groupBy { it.id }
         for ((id, ticks) in resourceTickGroups) {
