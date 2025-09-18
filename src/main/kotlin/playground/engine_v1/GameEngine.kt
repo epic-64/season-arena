@@ -198,6 +198,11 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
 
         for (actor in allActors) {
             processBuffs(actor, log)
+
+            if (!actor.isAlive) {
+                continue
+            }
+
             val allies = if (actor.team == 0) teamA.aliveActors() else teamB.aliveActors()
             val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
             val skill = pickSkill(actor, allies, enemies)
