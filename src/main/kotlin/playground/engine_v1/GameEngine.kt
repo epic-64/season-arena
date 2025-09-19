@@ -75,9 +75,16 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
         return availableSkills.firstOrNull { it.activationRule(actor, allies, enemies) } ?: availableSkills.firstOrNull()
     }
 
-    fun applySkill(actor: Actor, skill: Skill, allies: List<Actor>, enemies: List<Actor>, log: MutableList<CombatEvent>)
-        {
-            var previousTargets: List<Actor> = emptyList()
+    fun applySkill(
+        actor: Actor,
+        skill: Skill,
+        allies: List<Actor>,
+        enemies: List<Actor>,
+        initialTargets: List<Actor>,
+        log: MutableList<CombatEvent>
+    )
+    {
+            var previousTargets: List<Actor> = initialTargets
 
             for (effect in skill.effects) {
                 val targets = effect.targetRule(actor, allies, enemies, previousTargets)
@@ -216,7 +223,8 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
             val skill = pickSkill(actor, allies, enemies)
             if (skill != null) {
                 log.add(CombatEvent.SkillUsed(actor.name, skill.name, snapshotActors(listOf(teamA, teamB))))
-                applySkill(actor, skill, allies, enemies, log)
+                val initialTargets = skill.initialTargets(actor, allies, enemies)
+                applySkill(actor, skill, allies, enemies, initialTargets, log)
             }
             // else: actor skips turn
         }
