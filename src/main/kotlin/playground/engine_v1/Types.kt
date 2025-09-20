@@ -275,7 +275,7 @@ fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta 
                 statOverrides = if (currActor.statOverrides != prevActor.statOverrides) currActor.statOverrides else null,
                 cooldowns = if (currActor.cooldowns != prevActor.cooldowns) currActor.cooldowns else null
             )
-            
+
             if (delta.hasAnyChange()) {
                 deltas.add(delta)
             }
