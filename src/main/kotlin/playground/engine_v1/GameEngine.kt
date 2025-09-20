@@ -95,9 +95,9 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
                 }
 
                 when (effect.type) {
-                    SkillEffectType.Damage -> {
+                    is SkillEffectType.Damage -> {
                         for (target in targets) {
-                            val rawDmg = max(1, effect.power + (actor.stats["atk"] ?: 0))
+                            val rawDmg = max(1, effect.type.power + (actor.stats["atk"] ?: 0))
                             val amplifiedDmg = (rawDmg * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt()
                             val protection = target.stats["protection"]?.coerceIn(0, 100) ?: 0
                             // Protection is a percentage: 10 = 10% reduced damage
@@ -106,23 +106,23 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
                             log.add(CombatEvent.DamageDealt(actor.name, target.name, finalDmg, target.getHp(), snapshotActors(listOf(teamA, teamB))))
                         }
                     }
-                    SkillEffectType.Heal -> {
+                    is SkillEffectType.Heal -> {
                         for (target in targets) {
-                            val heal = max(1, effect.power + (actor.stats["matk"] ?: 0))
+                            val heal = max(1, effect.type.power + (actor.stats["matk"] ?: 0))
                             target.setHp(min(target.maxHp, target.getHp() + heal))
                             log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), snapshotActors(listOf(teamA, teamB))))
                         }
                     }
-                    SkillEffectType.StatBuff -> {
+                    is SkillEffectType.StatBuff -> {
                         for (target in targets) {
-                            effect.statBuff?.let { target.buffs.add(it.copy()) }
-                            effect.statBuff?.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
+                            effect.type.buff.let { target.buffs.add(it.copy()) }
+                            effect.type.buff.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
                         }
                     }
-                    SkillEffectType.ResourceTick -> {
+                    is SkillEffectType.ResourceTick -> {
                         for (target in targets) {
-                            effect.resourceTick?.let { target.buffs.add(it.copy()) }
-                            effect.resourceTick?.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
+                            effect.type.resourceTick.let { target.buffs.add(it.copy()) }
+                            effect.type.resourceTick.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
                         }
                     }
                 }
