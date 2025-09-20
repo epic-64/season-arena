@@ -222,8 +222,9 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
             val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
             val skill = pickSkill(actor, allies, enemies)
             if (skill != null) {
-                log.add(CombatEvent.SkillUsed(actor.name, skill.name, snapshotActors(listOf(teamA, teamB))))
                 val initialTargets = skill.initialTargets(actor, allies, enemies)
+                val targetNames = initialTargets.map { it.name }
+                log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, snapshotActors(listOf(teamA, teamB))))
                 applySkill(actor, skill, allies, enemies, initialTargets, log)
             }
             // else: actor skips turn

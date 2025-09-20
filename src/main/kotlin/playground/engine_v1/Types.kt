@@ -149,6 +149,7 @@ sealed class CombatEvent {
     data class SkillUsed(
         val actor: String,
         val skill: String,
+        val targets: List<String>,
         val snapshot: BattleSnapshot
     ) : CombatEvent()
 
@@ -282,7 +283,8 @@ sealed class CompactCombatEvent {
     data class SkillUsed(
         val actor: String,
         val skill: String,
-        val delta: BattleDelta
+        val targets: List<String>,
+        val delta: BattleDelta,
     ) : CompactCombatEvent()
 
     @Serializable
@@ -345,7 +347,7 @@ fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
             }
             is CombatEvent.SkillUsed -> {
                 val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
-                compactEvents.add(CompactCombatEvent.SkillUsed(event.actor, event.skill, delta))
+                compactEvents.add(CompactCombatEvent.SkillUsed(event.actor, event.skill, event.targets, delta))
                 prevSnapshot = event.snapshot
             }
             is CombatEvent.DamageDealt -> {
