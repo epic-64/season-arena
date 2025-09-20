@@ -120,6 +120,7 @@ data class ActorSnapshot(
     val stats: Map<String, Int>,
     val statBuffs: List<StatBuffSnapshot>,
     val resourceTicks: List<ResourceTickSnapshot>,
+    val statOverrides: List<StatOverrideSnapshot>,
     val cooldowns: Map<String, Int> // skill name -> cooldown
 )
 
@@ -135,6 +136,13 @@ data class ResourceTickSnapshot(
     val id: String,
     val duration: Int,
     val resourceChanges: Map<String, Int>
+)
+
+@Serializable
+data class StatOverrideSnapshot(
+    val id: String,
+    val duration: Int,
+    val statOverrides: Map<String, Int>
 )
 
 @Serializable
@@ -223,6 +231,7 @@ data class ActorDelta(
     val stats: Map<String, Int>? = null,
     val statBuffs: List<StatBuffSnapshot>? = null,
     val resourceTicks: List<ResourceTickSnapshot>? = null,
+    val statOverrides: List<StatOverrideSnapshot>? = null,
     val cooldowns: Map<String, Int>? = null
 )
 
@@ -247,6 +256,7 @@ fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta 
                     stats = currActor.stats,
                     statBuffs = currActor.statBuffs,
                     resourceTicks = currActor.resourceTicks,
+                    statOverrides = currActor.statOverrides,
                     cooldowns = currActor.cooldowns
                 )
             )
@@ -258,6 +268,7 @@ fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta 
                 stats = if (currActor.stats != prevActor.stats) currActor.stats else null,
                 statBuffs = if (currActor.statBuffs != prevActor.statBuffs) currActor.statBuffs else null,
                 resourceTicks = if (currActor.resourceTicks != prevActor.resourceTicks) currActor.resourceTicks else null,
+                statOverrides = if (currActor.statOverrides != prevActor.statOverrides) currActor.statOverrides else null,
                 cooldowns = if (currActor.cooldowns != prevActor.cooldowns) currActor.cooldowns else null
             )
             // Only add if any field changed

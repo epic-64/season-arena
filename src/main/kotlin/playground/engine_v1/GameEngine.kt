@@ -50,6 +50,22 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
                                 resourceChanges = mergedResourceChanges
                             )
                         },
+                    statOverrides = actor.buffs.filterIsInstance<DurationEffect.StatOverride>()
+                        .groupBy { it.id }
+                        .map { (id, overrides) ->
+                            // Summarize statOverrides by taking the latest value for each stat
+                            val mergedStatOverrides = mutableMapOf<String, Int>()
+                            overrides.forEach { override ->
+                                override.statOverrides.forEach { (stat, value) ->
+                                    mergedStatOverrides[stat] = value // latest value
+                                }
+                            }
+                            StatOverrideSnapshot(
+                                id = id,
+                                duration = overrides.maxOf { it.duration }, // longest duration
+                                statOverrides = mergedStatOverrides
+                            )
+                        },
                     cooldowns = actor.skills.associate { it.name to (actor.cooldowns[it] ?: 0) }
                 )
             }
