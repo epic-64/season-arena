@@ -226,13 +226,13 @@ sealed class CombatEvent {
 @Serializable
 data class ActorDelta(
     val name: String,
-    val hp: Int?,
-    val maxHp: Int?,
-    val stats: Map<String, Int>?,
-    val statBuffs: List<StatBuffSnapshot>?,
-    val resourceTicks: List<ResourceTickSnapshot>?,
-    val statOverrides: List<StatOverrideSnapshot>?,
-    val cooldowns: Map<String, Int>?,
+    val hp: Int? = null,
+    val maxHp: Int? = null,
+    val stats: Map<String, Int>? = null,
+    val statBuffs: List<StatBuffSnapshot>? = null,
+    val resourceTicks: List<ResourceTickSnapshot>? = null,
+    val statOverrides: List<StatOverrideSnapshot>? = null,
+    val cooldowns: Map<String, Int>? = null,
 )
 
 @Serializable
