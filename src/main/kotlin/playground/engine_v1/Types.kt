@@ -268,7 +268,14 @@ fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta 
                 cooldowns = if (currActor.cooldowns != prevActor.cooldowns) currActor.cooldowns else null
             )
             // Only add if any field changed
-            if (delta.hp != null || delta.maxHp != null || delta.stats != null || delta.statBuffs != null || delta.resourceTicks != null || delta.cooldowns != null) {
+            if (delta.hp != null
+                || delta.maxHp != null
+                || delta.stats != null
+                || delta.statBuffs != null
+                || delta.resourceTicks != null
+                || delta.cooldowns != null
+                || delta.statOverrides != null
+            ) {
                 deltas.add(delta)
             }
         }
