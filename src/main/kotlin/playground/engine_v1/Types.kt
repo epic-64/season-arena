@@ -20,21 +20,18 @@ sealed class Buff {
 }
 
 sealed class SkillEffectType {
-    object Damage : SkillEffectType()
-    object Heal : SkillEffectType()
-    object StatBuff : SkillEffectType()
-    object ResourceTick : SkillEffectType()
-    // Add more types as needed
+    data class Damage(val power: Int) : SkillEffectType()
+    data class Heal(val power: Int) : SkillEffectType()
+    data class StatBuff(val buff: Buff.StatBuff) : SkillEffectType()
+    data class ResourceTick(val resourceTick: Buff.ResourceTick) : SkillEffectType()
+    // Add more as needed
 }
 
 data class SkillEffect(
     val type: SkillEffectType,
-    val power: Int = 0,
     val targetRule: (Actor, List<Actor>, List<Actor>, List<Actor>) -> List<Actor> = {
-        actor, allies, enemies, previous -> previous // passed in from previous effect or initial targets
-    },
-    val statBuff: Buff.StatBuff? = null, // For stat buff effects
-    val resourceTick: Buff.ResourceTick? = null // For resource tick effects
+        actor, allies, enemies, previous -> previous
+    }
 )
 
 data class Skill(
