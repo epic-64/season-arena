@@ -18,12 +18,15 @@ fun leastHpAlly(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<A
 fun leastHpEnemy(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Actor> =
     enemies.minByOrNull { it.getHp() }?.let { listOf(it) } ?: emptyList()
 
+fun atLeastOneEnemyAlive(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Boolean =
+    enemies.isNotEmpty()
+
 
 val basicAttack = Skill(
     name = "Strike",
     initialTargets = ::firstEnemy,
     effects = listOf(SkillEffect(type = SkillEffectType.Damage(20))),
-    activationRule = { _, _, enemies -> enemies.isNotEmpty() },
+    activationRule = ::atLeastOneEnemyAlive,
     cooldown = 1
 )
 
@@ -35,6 +38,7 @@ val takeAim = Skill(
             DurationEffect.StatBuff(id = "Amplify", duration = 1, statChanges = mapOf("amplify" to 200))
         ))
     ),
+    activationRule = ::atLeastOneEnemyAlive,
     cooldown = 3
 )
 
@@ -67,6 +71,7 @@ val doubleStrike = Skill(
         SkillEffect(type = SkillEffectType.Damage(15)),
         SkillEffect(type = SkillEffectType.Damage(15))
     ),
+    activationRule = ::atLeastOneEnemyAlive,
     cooldown = 2
 )
 
@@ -74,6 +79,7 @@ val whirlwind = Skill(
     name = "Whirlwind",
     initialTargets = ::allEnemies,
     effects = listOf(SkillEffect(type = SkillEffectType.Damage(15))),
+    activationRule = ::atLeastOneEnemyAlive,
     cooldown = 2
 )
 
@@ -86,6 +92,7 @@ val fireball = Skill(
             DurationEffect.ResourceTick(id = "Burn", duration = 2, resourceChanges = mapOf("hp" to -10))
         ))
     ),
+    activationRule = ::atLeastOneEnemyAlive,
     cooldown = 4
 )
 
@@ -98,6 +105,7 @@ val spark = Skill(
             DurationEffect.StatBuff(id = "Shock", duration = 2, statChanges = mapOf("def" to -5))
         ))
     ),
+    activationRule = ::atLeastOneEnemyAlive,
     cooldown = 1
 )
 
@@ -136,6 +144,7 @@ val iceShot = Skill(
             DurationEffect.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -10))
         ))
     ),
+    activationRule = ::atLeastOneEnemyAlive,
     cooldown = 2
 )
 
@@ -163,6 +172,7 @@ val poisonStrike = Skill(
             DurationEffect.ResourceTick(id = "Poison", duration = 4, resourceChanges = mapOf("hp" to -5))
         ))
     ),
+    activationRule = ::atLeastOneEnemyAlive,
     cooldown = 2
 )
 
@@ -170,6 +180,7 @@ val blackHole = Skill(
     name = "Black Hole",
     initialTargets = ::allEnemies,
     effects = listOf(SkillEffect(type = SkillEffectType.Damage(40))),
+    activationRule = ::atLeastOneEnemyAlive,
     cooldown = 5
 )
 
@@ -182,5 +193,6 @@ val iceLance = Skill(
             DurationEffect.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -5))
         )),
     ),
+    activationRule = ::atLeastOneEnemyAlive,
     cooldown = 3
 )
