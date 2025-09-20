@@ -3,7 +3,7 @@ package playground.engine_v1
 // ---- Skill Targeting Functions ----
 @Suppress("UNUSED_PARAMETER")
 fun firstEnemy(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Actor> =
-    enemies.firstOrNull()?.let { listOf(it) } ?: emptyList()
+    enemies.take(1)
 
 @Suppress("UNUSED_PARAMETER")
 fun actorSelf(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Actor> =
@@ -19,16 +19,16 @@ fun allAllies(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Act
 
 @Suppress("UNUSED_PARAMETER")
 fun leastHpAlly(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Actor> =
-    allies.minByOrNull { it.getHp() }?.let { listOf(it) } ?: emptyList()
+    listOfNotNull(allies.minByOrNull { it.getHp() })
 
 @Suppress("UNUSED_PARAMETER")
 fun leastHpEnemy(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Actor> =
-    enemies.minByOrNull { it.getHp() }?.let { listOf(it) } ?: emptyList()
+    listOfNotNull(enemies.minByOrNull { it.getHp() })
 
 // ---- Skill Activation Rules ----
 @Suppress("UNUSED_PARAMETER")
 fun atLeastOneEnemyAlive(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Boolean =
-    enemies.isNotEmpty()
+    enemies.any{ it.isAlive }
 
 
 val basicAttack = Skill(
