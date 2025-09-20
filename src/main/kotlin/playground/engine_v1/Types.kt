@@ -2,6 +2,8 @@ package playground.engine_v1
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.reflect.full.memberProperties
+import kotlin.text.get
 
 sealed class DurationEffect {
     abstract val id: String
@@ -236,6 +238,12 @@ data class BattleDelta(
     val actors: List<ActorDelta>
 )
 
+fun ActorDelta.hasAnyChange(): Boolean {
+    return ActorDelta::class.memberProperties
+        .filter { it.name != "name" }
+        .any { it.get(this) != null }
+}
+
 fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta {
     val prevActors = prev.actors.associateBy { it.name }
     val currActors = curr.actors.associateBy { it.name }
@@ -267,15 +275,8 @@ fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta 
                 statOverrides = if (currActor.statOverrides != prevActor.statOverrides) currActor.statOverrides else null,
                 cooldowns = if (currActor.cooldowns != prevActor.cooldowns) currActor.cooldowns else null
             )
-            // Only add if any field changed
-            if (delta.hp != null
-                || delta.maxHp != null
-                || delta.stats != null
-                || delta.statBuffs != null
-                || delta.resourceTicks != null
-                || delta.cooldowns != null
-                || delta.statOverrides != null
-            ) {
+            
+            if (delta.hasAnyChange()) {
                 deltas.add(delta)
             }
         }
