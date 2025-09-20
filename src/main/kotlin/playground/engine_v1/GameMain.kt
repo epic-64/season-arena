@@ -8,7 +8,7 @@ fun main() {
     val teamA = exampleTeam1()
     val teamB = exampleTeam2()
 
-    val events = simulate_battle(teamA, teamB).filter { it !is CombatEvent.BuffExpired }
+    val events = simulate_battle(teamA, teamB)
     println("Battle log has ${events.size} events")
     println("Battle finished in ${events.count { it is CombatEvent.TurnStart } - 1} turns")
 
@@ -118,9 +118,7 @@ fun benchmark(inputTeamA: Team, inputTeamB: Team) {
         val teamB = inputTeamB.deepCopy()
         val log: List<CombatEvent>
         val milliSecondsSimulation = measureTime {
-            log = simulate_battle(teamA, teamB).filterNot {
-                it is CombatEvent.BuffExpired // currently not used in UI
-            }
+            log = simulate_battle(teamA, teamB)
         }
 
         val json: String

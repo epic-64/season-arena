@@ -202,10 +202,6 @@ sealed class CombatEvent {
     ) : CombatEvent()
 
     @Serializable
-    @SerialName("BuffExpired")
-    data class BuffExpired(val target: String, val buffId: String, val snapshot: BattleSnapshot) : CombatEvent()
-
-    @Serializable
     @SerialName("ResourceDrained")
     data class ResourceDrained(
         val target: String,
@@ -386,11 +382,6 @@ fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
             is CombatEvent.BuffApplied -> {
                 val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
                 compactEvents.add(CompactCombatEvent.BuffApplied(event.source, event.target, event.buffId, delta))
-                prevSnapshot = event.snapshot
-            }
-            is CombatEvent.BuffExpired -> {
-                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
-                compactEvents.add(CompactCombatEvent.BuffExpired(event.target, event.buffId, delta))
                 prevSnapshot = event.snapshot
             }
             is CombatEvent.ResourceDrained -> {
