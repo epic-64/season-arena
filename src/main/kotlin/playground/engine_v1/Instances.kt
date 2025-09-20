@@ -32,7 +32,6 @@ val takeAim = Skill(
     effects = listOf(
         SkillEffect(
             type = SkillEffectType.StatBuff,
-            power = 0,
             statBuff = Buff.StatBuff(id = "Amplify", duration = 1, statChanges = mapOf("amplify" to 200))
         )
     ),

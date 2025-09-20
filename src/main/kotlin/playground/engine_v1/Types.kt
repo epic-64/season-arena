@@ -31,7 +31,7 @@ data class SkillEffect(
     val type: SkillEffectType,
     val power: Int = 0,
     val targetRule: (Actor, List<Actor>, List<Actor>, List<Actor>) -> List<Actor> = {
-        actor, allies, enemies, previous -> previous
+        actor, allies, enemies, previous -> previous // passed in from previous effect or initial targets
     },
     val statBuff: Buff.StatBuff? = null, // For stat buff effects
     val resourceTick: Buff.ResourceTick? = null // For resource tick effects
