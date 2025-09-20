@@ -1,5 +1,6 @@
 package playground.engine_v1
 
+// ---- Skill Targeting Functions ----
 @Suppress("UNUSED_PARAMETER")
 fun firstEnemy(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Actor> =
     enemies.firstOrNull()?.let { listOf(it) } ?: emptyList()
@@ -24,6 +25,7 @@ fun leastHpAlly(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<A
 fun leastHpEnemy(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Actor> =
     enemies.minByOrNull { it.getHp() }?.let { listOf(it) } ?: emptyList()
 
+// ---- Skill Activation Rules ----
 @Suppress("UNUSED_PARAMETER")
 fun atLeastOneEnemyAlive(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Boolean =
     enemies.isNotEmpty()
