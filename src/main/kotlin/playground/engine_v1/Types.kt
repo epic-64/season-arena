@@ -45,7 +45,7 @@ data class Skill(
     val name: String,
     val effects: List<SkillEffect>,
     val initialTargets: (Actor, List<Actor>, List<Actor>) -> List<Actor>,
-    val activationRule: (Actor, List<Actor>, List<Actor>) -> Boolean = { _, _, _ -> true }, // Should use this skill?
+    val activationRule: (Actor, List<Actor>, List<Actor>) -> Boolean,
     val cooldown: Int // cooldown in turns
 )
 
