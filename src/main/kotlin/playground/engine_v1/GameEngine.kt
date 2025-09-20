@@ -101,72 +101,72 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
         log: MutableList<CombatEvent>
     )
     {
-            var previousTargets: List<Actor> = initialTargets
+        var previousTargets: List<Actor> = initialTargets
 
-            for (effect in skill.effects) {
-                val targets = effect.targetRule(actor, allies, enemies, previousTargets)
+        for (effect in skill.effects) {
+            val targets = effect.targetRule(actor, allies, enemies, previousTargets)
 
-                previousTargets = targets
-                if (targets.isEmpty()) {
-                    continue
+            previousTargets = targets
+            if (targets.isEmpty()) {
+                continue
+            }
+
+            when (effect.type) {
+                is SkillEffectType.Damage -> {
+                    for (target in targets) {
+                        val rawDmg = max(1, effect.type.power + (actor.stats["atk"] ?: 0))
+                        val isCriticalHit = (actor.stats["critChance"] ?: 0) > Random.nextInt(100)
+                        val criticalDamage = if (isCriticalHit) rawDmg * 2 else rawDmg
+                        val amplifiedDmg = (criticalDamage * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt()
+                        val protection = target.stats["protection"]?.coerceIn(0, 100) ?: 0
+                        // Protection is a percentage: 10 = 10% reduced damage
+                        val finalDmg = max(1, (amplifiedDmg * (1 - protection / 100.0)).toInt())
+                        target.setHp(max(0, target.getHp() - finalDmg))
+
+                        val modifiers = mutableListOf<DamageModifier>()
+                        if (isCriticalHit) {
+                            modifiers.add(DamageModifier.Critical)
+                        }
+
+                        log.add(CombatEvent.DamageDealt(
+                            actor.name,
+                            target.name,
+                            finalDmg,
+                            target.getHp(),
+                            snapshotActors(listOf(teamA, teamB)),
+                            modifiers,
+                        ))
+                    }
                 }
-
-                when (effect.type) {
-                    is SkillEffectType.Damage -> {
-                        for (target in targets) {
-                            val rawDmg = max(1, effect.type.power + (actor.stats["atk"] ?: 0))
-                            val isCriticalHit = (actor.stats["critChance"] ?: 0) > Random.nextInt(100)
-                            val criticalDamage = if (isCriticalHit) rawDmg * 2 else rawDmg
-                            val amplifiedDmg = (criticalDamage * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt()
-                            val protection = target.stats["protection"]?.coerceIn(0, 100) ?: 0
-                            // Protection is a percentage: 10 = 10% reduced damage
-                            val finalDmg = max(1, (amplifiedDmg * (1 - protection / 100.0)).toInt())
-                            target.setHp(max(0, target.getHp() - finalDmg))
-
-                            val modifiers = mutableListOf<DamageModifier>()
-                            if (isCriticalHit) {
-                                modifiers.add(DamageModifier.Critical)
-                            }
-
-                            log.add(CombatEvent.DamageDealt(
-                                actor.name,
-                                target.name,
-                                finalDmg,
-                                target.getHp(),
-                                snapshotActors(listOf(teamA, teamB)),
-                                modifiers,
-                            ))
-                        }
+                is SkillEffectType.Heal -> {
+                    for (target in targets) {
+                        val heal = max(1, effect.type.power + (actor.stats["matk"] ?: 0))
+                        target.setHp(min(target.maxHp, target.getHp() + heal))
+                        log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), snapshotActors(listOf(teamA, teamB))))
                     }
-                    is SkillEffectType.Heal -> {
-                        for (target in targets) {
-                            val heal = max(1, effect.type.power + (actor.stats["matk"] ?: 0))
-                            target.setHp(min(target.maxHp, target.getHp() + heal))
-                            log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), snapshotActors(listOf(teamA, teamB))))
-                        }
+                }
+                is SkillEffectType.StatBuff -> {
+                    for (target in targets) {
+                        effect.type.buff.let { target.buffs.add(it.copy()) }
+                        effect.type.buff.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
                     }
-                    is SkillEffectType.StatBuff -> {
-                        for (target in targets) {
-                            effect.type.buff.let { target.buffs.add(it.copy()) }
-                            effect.type.buff.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
-                        }
+                }
+                is SkillEffectType.ResourceTick -> {
+                    for (target in targets) {
+                        effect.type.resourceTick.let { target.buffs.add(it.copy()) }
+                        effect.type.resourceTick.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
                     }
-                    is SkillEffectType.ResourceTick -> {
-                        for (target in targets) {
-                            effect.type.resourceTick.let { target.buffs.add(it.copy()) }
-                            effect.type.resourceTick.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
-                        }
-                    }
-                    is SkillEffectType.StatOverride -> {
-                        for (target in targets) {
-                            effect.type.statOverride.let { target.buffs.add(it.copy()) }
-                            effect.type.statOverride.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
-                        }
+                }
+                is SkillEffectType.StatOverride -> {
+                    for (target in targets) {
+                        effect.type.statOverride.let { target.buffs.add(it.copy()) }
+                        effect.type.statOverride.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
                     }
                 }
             }
-            // Apply cooldown
-            actor.cooldowns[skill] = skill.cooldown
+        }
+        // Apply cooldown
+        actor.cooldowns[skill] = skill.cooldown
         }
 
     fun processBuffs(actor: Actor, log: MutableList<CombatEvent>)
