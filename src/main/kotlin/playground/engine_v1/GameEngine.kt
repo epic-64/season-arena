@@ -158,6 +158,8 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
         val activeStatBuffs = actor.buffs.filterIsInstance<DurationEffect.StatBuff>()
         val statBuffTotals = mutableMapOf<String, Int>()
 
+        val statOverrides = actor.buffs.filterIsInstance<DurationEffect.StatOverride>()
+
         for (buff in activeStatBuffs) {
             for ((stat, change) in buff.statChanges) {
                 statBuffTotals[stat] = (statBuffTotals[stat] ?: 0) + change
@@ -167,6 +169,13 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
         // Set stats to base + total from active buffs
         for ((stat, value) in statBuffTotals) {
             actor.stats[stat] = value
+        }
+
+        // Apply stat overrides (these take precedence)
+        for (override in statOverrides) {
+            for ((stat, value) in override.statOverrides) {
+                actor.stats[stat] = value
+            }
         }
 
         // Remove stats for buffs that have expired
