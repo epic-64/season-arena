@@ -1,23 +1,30 @@
 package playground.engine_v1
 
+@Suppress("UNUSED_PARAMETER")
 fun firstEnemy(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Actor> =
     enemies.firstOrNull()?.let { listOf(it) } ?: emptyList()
 
+@Suppress("UNUSED_PARAMETER")
 fun actorSelf(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Actor> =
     listOf(actor)
 
+@Suppress("UNUSED_PARAMETER")
 fun allEnemies(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Actor> =
     enemies
 
+@Suppress("UNUSED_PARAMETER")
 fun allAllies(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Actor> =
     allies
 
+@Suppress("UNUSED_PARAMETER")
 fun leastHpAlly(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Actor> =
     allies.minByOrNull { it.getHp() }?.let { listOf(it) } ?: emptyList()
 
+@Suppress("UNUSED_PARAMETER")
 fun leastHpEnemy(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Actor> =
     enemies.minByOrNull { it.getHp() }?.let { listOf(it) } ?: emptyList()
 
+@Suppress("UNUSED_PARAMETER")
 fun atLeastOneEnemyAlive(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Boolean =
     enemies.isNotEmpty()
 
