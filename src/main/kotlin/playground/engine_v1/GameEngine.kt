@@ -155,8 +155,6 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
 
     fun processBuffs(actor: Actor, log: MutableList<CombatEvent>)
     {
-        val expiredStatBuffs = mutableListOf<DurationEffect.StatBuff>()
-        val expiredResourceTicks = mutableListOf<DurationEffect.ResourceTick>()
         val activeStatBuffs = actor.buffs.filterIsInstance<DurationEffect.StatBuff>()
         val statBuffTotals = mutableMapOf<String, Int>()
 
@@ -204,25 +202,14 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
                 }
             }
         }
+
         actor.buffs.replaceAll { when (it) {
             is DurationEffect.StatBuff -> it.copy(duration = it.duration - 1)
             is DurationEffect.ResourceTick -> it.copy(duration = it.duration - 1)
             is DurationEffect.StatOverride -> it.copy(duration = it.duration - 1)
         } }
 
-        expiredStatBuffs.addAll(actor.buffs.filterIsInstance<DurationEffect.StatBuff>().filter { it.duration <= 0 })
-        expiredResourceTicks.addAll(actor.buffs.filterIsInstance<DurationEffect.ResourceTick>().filter { it.duration <= 0 })
-
-        actor.buffs.removeAll { it is DurationEffect.StatBuff && it.duration <= 0 }
-        actor.buffs.removeAll { it is DurationEffect.ResourceTick && it.duration <= 0 }
-
-        for (buff in expiredStatBuffs) {
-            log.add(CombatEvent.BuffExpired(actor.name, buff.id, snapshotActors(listOf(teamA, teamB))))
-        }
-        for (tick in expiredResourceTicks) {
-            log.add(CombatEvent.BuffExpired(actor.name, tick.id, snapshotActors(listOf(teamA, teamB))))
-        }
-        // Decrease cooldowns and clamp to zero
+        actor.buffs.removeAll { it.duration <= 0 }
         actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
     }
 
