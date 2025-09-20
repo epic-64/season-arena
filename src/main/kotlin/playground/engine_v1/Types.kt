@@ -10,19 +10,19 @@ sealed class DurationEffect {
     data class StatBuff(
         override val id: String,
         override val duration: Int,
-        val statChanges: Map<String, Int> = emptyMap()
+        val statChanges: Map<String, Int>
     ) : DurationEffect()
 
     data class StatOverride(
         override val id: String,
         override val duration: Int,
-        val statOverrides: Map<String, Int> = emptyMap()
+        val statOverrides: Map<String, Int>
     ) : DurationEffect()
 
     data class ResourceTick(
         override val id: String,
         override val duration: Int,
-        val resourceChanges: Map<String, Int> = emptyMap()
+        val resourceChanges: Map<String, Int>
     ) : DurationEffect()
 }
 
