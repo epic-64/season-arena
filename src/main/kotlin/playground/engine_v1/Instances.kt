@@ -22,11 +22,7 @@ fun leastHpEnemy(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<
 val basicAttack = Skill(
     name = "Strike",
     initialTargets = ::firstEnemy,
-    effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.Damage(20)
-        )
-    ),
+    effects = listOf(SkillEffect(type = SkillEffectType.Damage(20))),
     activationRule = { _, _, enemies -> enemies.isNotEmpty() },
     cooldown = 1
 )
@@ -35,13 +31,33 @@ val takeAim = Skill(
     name = "Take Aim",
     initialTargets = ::actorSelf,
     effects = listOf(
-        SkillEffect(
-            type = SkillEffectType.StatBuff(
-                Buff.StatBuff(id = "Amplify", duration = 1, statChanges = mapOf("amplify" to 200))
-            )
-        )
+        SkillEffect(type = SkillEffectType.StatBuff(
+            DurationEffect.StatBuff(id = "Amplify", duration = 1, statChanges = mapOf("amplify" to 200))
+        ))
     ),
     cooldown = 3
+)
+
+val snipe = Skill(
+    name = "Snipe",
+    initialTargets = ::leastHpEnemy,
+    effects = listOf(SkillEffect(type = SkillEffectType.Damage(50))),
+    activationRule = { actor, _, enemies -> enemies.isNotEmpty() && actor.buffs.any { it.id == "Amplify" } },
+    cooldown = 4
+)
+
+val cheer = Skill(
+    name = "Cheer",
+    initialTargets = ::allAllies,
+    effects = listOf(
+        SkillEffect(type = SkillEffectType.StatOverride(
+            DurationEffect.StatOverride(id = "Cheer", duration = 1, statOverrides = mapOf("critChance" to 100))
+        ))
+    ),
+    activationRule = { _, allies, _ ->
+        allies.any { it.buffs.any { buff -> buff.id == "Amplify" } }
+    },
+    cooldown = 5
 )
 
 val doubleStrike = Skill(
@@ -67,7 +83,7 @@ val fireball = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(25)),
         SkillEffect(type = SkillEffectType.ResourceTick(
-            Buff.ResourceTick(id = "Burn", duration = 2, resourceChanges = mapOf("hp" to -10))
+            DurationEffect.ResourceTick(id = "Burn", duration = 2, resourceChanges = mapOf("hp" to -10))
         ))
     ),
     cooldown = 4
@@ -79,7 +95,7 @@ val spark = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(10)),
         SkillEffect(type = SkillEffectType.StatBuff(
-            Buff.StatBuff(id = "Shock", duration = 2, statChanges = mapOf("def" to -5))
+            DurationEffect.StatBuff(id = "Shock", duration = 2, statChanges = mapOf("def" to -5))
         ))
     ),
     cooldown = 1
@@ -90,10 +106,10 @@ val hotBuff = Skill(
     initialTargets = ::actorSelf,
     effects = listOf(
         SkillEffect(type = SkillEffectType.ResourceTick(
-            Buff.ResourceTick(id = "Regen", duration = 3, resourceChanges = mapOf("hp" to 10))
+            DurationEffect.ResourceTick(id = "Regen", duration = 3, resourceChanges = mapOf("hp" to 10))
         )),
         SkillEffect(type = SkillEffectType.StatBuff(
-            Buff.StatBuff(id = "Protection", duration = 3, statChanges = mapOf("protection" to 10))
+            DurationEffect.StatBuff(id = "Protection", duration = 3, statChanges = mapOf("protection" to 10))
         )),
     ),
     activationRule = { actor, _, _ -> actor.buffs.none { it.id == "Regen" } },
@@ -117,7 +133,7 @@ val iceShot = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(25),),
         SkillEffect(type = SkillEffectType.StatBuff(
-            Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -10))
+            DurationEffect.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -10))
         ))
     ),
     cooldown = 2
@@ -129,7 +145,7 @@ val groupHeal = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Heal(20)),
         SkillEffect(type = SkillEffectType.ResourceTick(
-            Buff.ResourceTick(id = "Regen", duration = 2, resourceChanges = mapOf("hp" to 5))
+            DurationEffect.ResourceTick(id = "Regen", duration = 2, resourceChanges = mapOf("hp" to 5))
         ))
     ),
     activationRule = { _, allies, _ ->
@@ -144,7 +160,7 @@ val poisonStrike = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(15)),
         SkillEffect(type = SkillEffectType.ResourceTick(
-            Buff.ResourceTick(id = "Poison", duration = 4, resourceChanges = mapOf("hp" to -5))
+            DurationEffect.ResourceTick(id = "Poison", duration = 4, resourceChanges = mapOf("hp" to -5))
         ))
     ),
     cooldown = 2
@@ -163,7 +179,7 @@ val iceLance = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(30)),
         SkillEffect(type = SkillEffectType.StatBuff(
-            Buff.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -5))
+            DurationEffect.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -5))
         )),
     ),
     cooldown = 3

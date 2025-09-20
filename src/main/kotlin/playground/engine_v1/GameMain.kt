@@ -33,7 +33,7 @@ fun exampleTeam1(): Team {
         name = "Alice",
         hp = 100,
         maxHp = 100,
-        skills = listOf(takeAim, iceShot, basicAttack),
+        skills = listOf(snipe, takeAim, iceShot, basicAttack),
         team = 0
     )
     val actorA2 = Actor(
@@ -65,7 +65,7 @@ fun exampleTeam1(): Team {
         name = "Charlie",
         hp = 100,
         maxHp = 100,
-        skills = listOf(spark, spark, basicAttack),
+        skills = listOf(cheer, spark, basicAttack),
         team = 0
     )
     return Team(mutableListOf(actorA1, actorA2, actorA3, actorA4, actorA5))

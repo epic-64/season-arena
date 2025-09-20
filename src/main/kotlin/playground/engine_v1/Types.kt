@@ -3,7 +3,7 @@ package playground.engine_v1
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-sealed class Buff {
+sealed class DurationEffect {
     abstract val id: String
     abstract val duration: Int
 
@@ -11,20 +11,27 @@ sealed class Buff {
         override val id: String,
         override val duration: Int,
         val statChanges: Map<String, Int> = emptyMap()
-    ) : Buff()
+    ) : DurationEffect()
+
+    data class StatOverride(
+        override val id: String,
+        override val duration: Int,
+        val statOverrides: Map<String, Int> = emptyMap()
+    ) : DurationEffect()
+
     data class ResourceTick(
         override val id: String,
         override val duration: Int,
         val resourceChanges: Map<String, Int> = emptyMap()
-    ) : Buff()
+    ) : DurationEffect()
 }
 
 sealed class SkillEffectType {
     data class Damage(val power: Int) : SkillEffectType()
     data class Heal(val power: Int) : SkillEffectType()
-    data class StatBuff(val buff: Buff.StatBuff) : SkillEffectType()
-    data class ResourceTick(val resourceTick: Buff.ResourceTick) : SkillEffectType()
-    // Add more as needed
+    data class StatBuff(val buff: DurationEffect.StatBuff) : SkillEffectType()
+    data class ResourceTick(val resourceTick: DurationEffect.ResourceTick) : SkillEffectType()
+    data class StatOverride(val statOverride: DurationEffect.StatOverride) : SkillEffectType()
 }
 
 data class SkillEffect(
@@ -63,7 +70,7 @@ data class Actor(
     val skills: List<Skill>,
     val team: Int, // 0 or 1
     val stats: MutableMap<String, Int> = mutableMapOf(),
-    val buffs: MutableList<Buff> = mutableListOf(),
+    val buffs: MutableList<DurationEffect> = mutableListOf(),
     val cooldowns: MutableMap<Skill, Int> = mutableMapOf() // skill -> turns left
 ) {
     val isAlive: Boolean get() = hp > 0

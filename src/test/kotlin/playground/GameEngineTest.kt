@@ -38,7 +38,7 @@ class GameEngineTest : StringSpec({
             skills = emptyList(),
             team = 1,
             stats = mutableMapOf("strength" to 10),
-            buffs = mutableListOf(Buff.StatBuff("strength", 5)),
+            buffs = mutableListOf(DurationEffect.StatBuff("strength", 5)),
             cooldowns = mutableMapOf()
         )
         val team = Team(mutableListOf(actor))
