@@ -142,6 +142,12 @@ data class BattleSnapshot(
     val actors: List<ActorSnapshot>
 )
 
+enum class DamageModifier {
+    Critical,
+    Blocked,
+    Resisted
+}
+
 @Serializable
 sealed class CombatEvent {
     @Serializable
@@ -164,7 +170,8 @@ sealed class CombatEvent {
         val target: String,
         val amount: Int,
         val targetHp: Int,
-        val snapshot: BattleSnapshot
+        val snapshot: BattleSnapshot,
+        val modifiers: List<DamageModifier>
     ) : CombatEvent()
 
     @Serializable

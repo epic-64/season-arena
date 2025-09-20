@@ -4,6 +4,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.random.Random
 
 
 fun snapshotActors(teams: List<Team>): BattleSnapshot {
@@ -98,12 +99,27 @@ fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
                     is SkillEffectType.Damage -> {
                         for (target in targets) {
                             val rawDmg = max(1, effect.type.power + (actor.stats["atk"] ?: 0))
-                            val amplifiedDmg = (rawDmg * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt()
+                            val isCriticalHit = (actor.stats["critChance"] ?: 0) > Random.nextInt(100)
+                            val criticalDamage = if (isCriticalHit) rawDmg * 2 else rawDmg
+                            val amplifiedDmg = (criticalDamage * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt()
                             val protection = target.stats["protection"]?.coerceIn(0, 100) ?: 0
                             // Protection is a percentage: 10 = 10% reduced damage
                             val finalDmg = max(1, (amplifiedDmg * (1 - protection / 100.0)).toInt())
                             target.setHp(max(0, target.getHp() - finalDmg))
-                            log.add(CombatEvent.DamageDealt(actor.name, target.name, finalDmg, target.getHp(), snapshotActors(listOf(teamA, teamB))))
+
+                            val modifiers = mutableListOf<DamageModifier>()
+                            if (isCriticalHit) {
+                                modifiers.add(DamageModifier.Critical)
+                            }
+
+                            log.add(CombatEvent.DamageDealt(
+                                actor.name,
+                                target.name,
+                                finalDmg,
+                                target.getHp(),
+                                snapshotActors(listOf(teamA, teamB)),
+                                modifiers,
+                            ))
                         }
                     }
                     is SkillEffectType.Heal -> {
