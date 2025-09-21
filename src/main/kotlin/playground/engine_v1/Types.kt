@@ -69,6 +69,25 @@ enum class ActorClass {
     Fishman,
 }
 
+data class Amplifiers(
+    val physicalDamageAdded: Double = 0.0,
+    val physicalDamageMultiplier: Double = 1.0,
+
+    val magicalDamageAdded: Double = 0.0,
+    val magicalDamageMultiplier: Double = 1.0,
+
+    val absoluteDamageAdded: Double = 0.0,
+    val absoluteDamageMultiplier: Double = 1.0,
+) {
+    fun getAmplifiedDamage(damageType: DamageType, baseDamage: Int): Int {
+        return when (damageType) {
+            DamageType.Physical -> ((baseDamage + physicalDamageAdded) * physicalDamageMultiplier).toInt()
+            DamageType.Magical -> ((baseDamage + magicalDamageAdded) * magicalDamageMultiplier).toInt()
+            DamageType.Absolute -> ((baseDamage + absoluteDamageAdded) * absoluteDamageMultiplier).toInt()
+        }
+    }
+}
+
 // --- Actor ---
 data class Actor(
     val actorClass: ActorClass,
@@ -77,6 +96,7 @@ data class Actor(
     val maxHp: Int,
     val skills: List<Skill>,
     val team: Int, // 0 or 1
+    val amplifiers: Amplifiers = Amplifiers(),
     val stats: MutableMap<String, Int> = mutableMapOf(),
     val buffs: MutableList<DurationEffect> = mutableListOf(),
     val cooldowns: MutableMap<Skill, Int> = mutableMapOf() // skill -> turns left

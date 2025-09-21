@@ -78,7 +78,8 @@ fun exampleTeam2(): Team {
         hp = 400,
         maxHp = 400,
         skills = listOf(fireball, spark, iceLance, poisonStrike, basicAttack),
-        team = 1
+        team = 1,
+        amplifiers = Amplifiers(magicalDamageAdded = 20.0)
     )
     val actorB2 = Actor(
         actorClass = ActorClass.Fishman,
