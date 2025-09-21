@@ -131,7 +131,7 @@ fun battleTick(state: BattleState, actor: Actor): BattleState {
         val initialTargets = skill.initialTargets(actor, allies, enemies)
         val targetNames = initialTargets.map { it.name }
         log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, snapshotActors(listOf(teamA, teamB))))
-        applySkill(teamA, teamB, actor, skill, allies, enemies, initialTargets, log)
+        applySkill(state, actor, skill, allies, enemies, initialTargets)
     }
 
     // remove buffs after skill application to ensure they last the full turn
@@ -165,16 +165,18 @@ fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill?
 }
 
 fun applySkill(
-    teamA: Team,
-    teamB: Team,
+    state: BattleState,
     actor: Actor,
     skill: Skill,
     allies: List<Actor>,
     enemies: List<Actor>,
     initialTargets: List<Actor>,
-    log: MutableList<CombatEvent>
-)
+): BattleState
 {
+    val teamA = state.teamA
+    val teamB = state.teamB
+    val log = state.log
+
     var previousTargets: List<Actor> = initialTargets
 
     for (effect in skill.effects) {
@@ -241,6 +243,8 @@ fun applySkill(
     }
     // Apply cooldown
     actor.cooldowns[skill] = skill.cooldown
+
+    return state
 }
 
 fun processBuffs(state: BattleState, actor: Actor): BattleState
