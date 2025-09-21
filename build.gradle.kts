@@ -45,6 +45,14 @@ tasks.test {
         showStandardStreams = true
     }
 }
+
+tasks.register<JavaExec>("simulateBattle") {
+    group = "application"
+    description = "Runs the GameMain main function"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("playground.engine_v1.GameMainKt")
+}
+
 kotlin {
     jvmToolchain(21)
 }
