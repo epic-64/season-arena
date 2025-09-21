@@ -28,8 +28,14 @@ sealed class DurationEffect {
     ) : DurationEffect()
 }
 
+enum class DamageType {
+    Physical,
+    Magical,
+    Absolute,
+}
+
 sealed class SkillEffectType {
-    data class Damage(val power: Int) : SkillEffectType()
+    data class Damage(val type: DamageType, val power: Int) : SkillEffectType()
     data class Heal(val power: Int) : SkillEffectType()
     data class StatBuff(val buff: DurationEffect.StatBuff) : SkillEffectType()
     data class ResourceTick(val resourceTick: DurationEffect.ResourceTick) : SkillEffectType()
