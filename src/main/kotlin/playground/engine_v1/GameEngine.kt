@@ -77,8 +77,7 @@ fun combatEventsToJson(events: List<CombatEvent>): String {
     return Json.encodeToString(events)
 }
 
-// --- BattleSimulation ---
-fun simulateBattle(teamA: Team, teamB: Team): List<CombatEvent> {
+fun simulateBattle(teamA: Team, teamB: Team): BattleState {
     val teamA = teamA.deepCopy()
     val teamB = teamB.deepCopy()
 
@@ -88,9 +87,11 @@ fun simulateBattle(teamA: Team, teamB: Team): List<CombatEvent> {
     val log = mutableListOf<CombatEvent>()
     log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
 
+    var state = BattleState(teamA, teamB, turn, log)
+
     while (teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isNotEmpty() && turn < maxTurns) {
         turn++
-        battleRound(BattleState(teamA, teamB, turn, log))
+        state = battleRound(state)
     }
 
     val winner = when {
@@ -99,7 +100,8 @@ fun simulateBattle(teamA: Team, teamB: Team): List<CombatEvent> {
         else -> "Draw (turn limit reached)"
     }
     log.add(CombatEvent.BattleEnd(winner, snapshotActors(listOf(teamA, teamB))))
-    return log
+
+    return state
 }
 
 data class BattleState(
