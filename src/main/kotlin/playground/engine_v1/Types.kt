@@ -123,7 +123,8 @@ data class Actor(
             team = team,
             stats = stats.toMutableMap(),
             buffs = buffs.toMutableList(),
-            cooldowns = cooldowns.toMutableMap()
+            cooldowns = cooldowns.toMutableMap(),
+            amplifiers = amplifiers,
         )
     }
 }
