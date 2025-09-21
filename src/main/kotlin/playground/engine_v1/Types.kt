@@ -3,7 +3,6 @@ package playground.engine_v1
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.reflect.full.memberProperties
-import kotlin.text.get
 
 sealed class DurationEffect {
     abstract val id: String
@@ -35,7 +34,7 @@ enum class DamageType {
 }
 
 sealed class SkillEffectType {
-    data class Damage(val type: DamageType, val power: Int) : SkillEffectType()
+    data class Damage(val damageType: DamageType, val power: Int) : SkillEffectType()
     data class Heal(val power: Int) : SkillEffectType()
     data class StatBuff(val buff: DurationEffect.StatBuff) : SkillEffectType()
     data class ResourceTick(val resourceTick: DurationEffect.ResourceTick) : SkillEffectType()
