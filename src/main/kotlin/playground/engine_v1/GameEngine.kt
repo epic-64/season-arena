@@ -78,7 +78,7 @@ fun combatEventsToJson(events: List<CombatEvent>): String {
 }
 
 // --- BattleSimulation ---
-fun simulate_battle(teamA: Team, teamB: Team): List<CombatEvent> {
+fun simulateBattle(teamA: Team, teamB: Team): List<CombatEvent> {
     val teamA = teamA.deepCopy()
     val teamB = teamB.deepCopy()
 
