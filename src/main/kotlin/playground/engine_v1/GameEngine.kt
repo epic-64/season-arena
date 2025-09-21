@@ -192,7 +192,7 @@ fun applySkill(
                 for (target in targets) {
                     var isCriticalHit = false
 
-                    val finalDamage = effect.type.power
+                    val finalDamage: Int = effect.type.power
                         .let { // get amplifiers from actor
                             actor.amplifiers.getAmplifiedDamage(effect.type.damageType, it)
                         }
