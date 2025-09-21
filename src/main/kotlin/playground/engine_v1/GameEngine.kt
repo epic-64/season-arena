@@ -194,7 +194,7 @@ fun applySkill(
 
                     val finalDamage = effect.type.power
                         .let { // get amplifiers from actor
-                            actor.amplifiers.getAmplifiedDamage(effect.type.type, it)
+                            actor.amplifiers.getAmplifiedDamage(effect.type.damageType, it)
                         }
                         .let { // apply critical damage if applicable
                             isCriticalHit = (actor.stats["critChance"] ?: 0) > Random.nextInt(100)
