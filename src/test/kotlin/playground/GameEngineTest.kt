@@ -3,6 +3,8 @@ package playground
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import playground.engine_v1.*
 
 class GameEngineTest : StringSpec({
@@ -94,5 +96,70 @@ class GameEngineTest : StringSpec({
 
         val turnCount = events.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
         turnCount shouldBe 2
+    }
+
+    "battleTick applies basic attack and reduces enemy HP" {
+        val attacker = Actor(
+            actorClass = ActorClass.Hunter,
+            name = "Attacker",
+            hp = 30,
+            maxHp = 30,
+            skills = listOf(basicAttack),
+            team = 0
+        )
+        val defender = Actor(
+            actorClass = ActorClass.Mage,
+            name = "Defender",
+            hp = 25,
+            maxHp = 25,
+            skills = listOf(basicAttack),
+            team = 1
+        )
+        val teamA = Team(mutableListOf(attacker))
+        val teamB = Team(mutableListOf(defender))
+        val log = mutableListOf<CombatEvent>()
+        val state = BattleState(teamA, teamB, turn = 1, log)
+        val newState = battleTick(state, attacker)
+
+        val compactLog = toCompactCombatEvents(newState.log)
+
+        val log1 = compactLog[0] as CompactCombatEvent.SkillUsed
+
+        log1.actor shouldBe attacker.name
+        log1.skill shouldBe "Strike"
+        log1.targets shouldBe listOf(defender.name)
+        log1.delta.actors[0] shouldBe ActorDelta(
+            name = attacker.name,
+            hp = 30,
+            maxHp = 30,
+            stats = emptyMap(),
+            statBuffs = emptyList(),
+            resourceTicks = emptyList(),
+            cooldowns = mapOf("Strike" to 0),
+            statOverrides = emptyList(),
+        )
+        log1.delta.actors[1] shouldBe ActorDelta(
+            name = defender.name,
+            hp = 25,
+            maxHp = 25,
+            stats = emptyMap(),
+            statBuffs = emptyList(),
+            resourceTicks = emptyList(),
+            cooldowns = mapOf("Strike" to 0),
+            statOverrides = emptyList(),
+        )
+
+        val log2 = compactLog[1] as CompactCombatEvent.DamageDealt
+
+        log2.source shouldBe attacker.name
+        log2.target shouldBe defender.name
+        log2.amount shouldBe 20
+        log2.targetHp shouldBe 5
+        log2.delta.actors.size shouldBe 1 // nothing changed about attacker, only defender
+        log2.delta.actors[0] shouldBe ActorDelta(
+            name = defender.name,
+            hp = 5,
+            // rest is missing (implicitly null). Using null to indicate no change.
+        )
     }
 })
