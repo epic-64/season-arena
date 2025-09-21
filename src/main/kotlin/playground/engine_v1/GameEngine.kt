@@ -116,7 +116,7 @@ fun battleTick(state: BattleState, actor: Actor): BattleState {
     val teamB = state.teamB
     val log = state.log
 
-    processBuffs(teamA, teamB, actor, log)
+    processBuffs(state, actor)
 
     if (!actor.isAlive) {
         return state // dead actors skip their turn
@@ -243,7 +243,7 @@ fun applySkill(
     actor.cooldowns[skill] = skill.cooldown
 }
 
-fun processBuffs(teamA: Team, teamB: Team, actor: Actor, log: MutableList<CombatEvent>)
+fun processBuffs(state: BattleState, actor: Actor): BattleState
 {
     val activeStatBuffs = actor.buffs.filterIsInstance<DurationEffect.StatBuff>()
     val statBuffTotals = mutableMapOf<String, Int>()
@@ -295,7 +295,7 @@ fun processBuffs(teamA: Team, teamB: Team, actor: Actor, log: MutableList<Combat
                             false -> max(0, actor.getHp() + amount)
                         }
                         actor.setHp(newHp)
-                        log.add(CombatEvent.ResourceDrained(actor.name, id, resource, amount, actor.getHp(), snapshotActors(listOf(teamA, teamB))))
+                        state.log.add(CombatEvent.ResourceDrained(actor.name, id, resource, amount, actor.getHp(), snapshotActors(listOf(state.teamA, state.teamB))))
                     }
                 }
             }
@@ -309,4 +309,7 @@ fun processBuffs(teamA: Team, teamB: Team, actor: Actor, log: MutableList<Combat
     } }
 
     actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
+
+    return state
 }
+
