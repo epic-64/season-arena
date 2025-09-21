@@ -190,14 +190,28 @@ fun applySkill(
         when (effect.type) {
             is SkillEffectType.Damage -> {
                 for (target in targets) {
-                    val rawDmg = max(1, effect.type.power + (actor.stats["atk"] ?: 0))
-                    val isCriticalHit = (actor.stats["critChance"] ?: 0) > Random.nextInt(100)
-                    val criticalDamage = if (isCriticalHit) rawDmg * 2 else rawDmg
-                    val amplifiedDmg = (criticalDamage * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt()
-                    val protection = target.stats["protection"]?.coerceIn(0, 100) ?: 0
-                    // Protection is a percentage: 10 = 10% reduced damage
-                    val finalDmg = max(1, (amplifiedDmg * (1 - protection / 100.0)).toInt())
-                    target.setHp(max(0, target.getHp() - finalDmg))
+                    var isCriticalHit = false
+
+                    val finalDamage = effect.type.power
+                        .let { // get amplifiers from actor
+                            actor.amplifiers.getAmplifiedDamage(effect.type.type, it)
+                        }
+                        .let { // apply critical damage if applicable
+                            isCriticalHit = (actor.stats["critChance"] ?: 0) > Random.nextInt(100)
+                            if (isCriticalHit) it * 2 else it
+                        }
+                        .let { // apply amplify buffs from actor
+                            (it * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt()
+                        }
+                        .let { // apply protection from target (0-100%)
+                            val protection = target.stats["protection"]?.coerceIn(0, 100) ?: 0
+                            max(1, (it * (1 - protection / 100.0)).toInt())
+                        }
+                        .let { // clamp to at least 1 damage
+                            max(1, it)
+                        }
+
+                    target.setHp(max(0, target.getHp() - finalDamage))
 
                     val modifiers = mutableListOf<DamageModifier>()
                     if (isCriticalHit) {
@@ -207,7 +221,7 @@ fun applySkill(
                     log.add(CombatEvent.DamageDealt(
                         actor.name,
                         target.name,
-                        finalDmg,
+                        finalDamage,
                         target.getHp(),
                         snapshotActors(listOf(teamA, teamB)),
                         modifiers,
