@@ -55,7 +55,7 @@ val snipe = Skill(
     name = "Snipe",
     initialTargets = ::leastHpEnemy,
     effects = listOf(SkillEffect(type = SkillEffectType.Damage(DamageType.Physical, 50))),
-    activationRule = { actor, _, enemies -> enemies.isNotEmpty() && actor.buffs.any { it.id == "Amplify" } },
+    activationRule = { actor, _, enemies -> enemies.isNotEmpty() && actor.temporalEffects.any { it.id == "Amplify" } },
     cooldown = 4
 )
 
@@ -68,7 +68,7 @@ val cheer = Skill(
         ))
     ),
     activationRule = { _, allies, _ ->
-        allies.any { it.buffs.any { buff -> buff.id == "Amplify" } }
+        allies.any { it.temporalEffects.any { buff -> buff.id == "Amplify" } }
     },
     cooldown = 5
 )
@@ -129,7 +129,7 @@ val hotBuff = Skill(
             DurationEffect.StatBuff(id = "Protection", duration = 3, statChanges = mapOf("protection" to 10))
         )),
     ),
-    activationRule = { actor, _, _ -> actor.buffs.none { it.id == "Regen" } },
+    activationRule = { actor, _, _ -> actor.temporalEffects.none { it.id == "Regen" } },
     cooldown = 3
 )
 

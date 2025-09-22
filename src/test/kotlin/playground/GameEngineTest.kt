@@ -3,8 +3,6 @@ package playground
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import playground.engine_v1.*
 
 class GameEngineTest : StringSpec({
@@ -40,7 +38,7 @@ class GameEngineTest : StringSpec({
             skills = emptyList(),
             team = 1,
             stats = mutableMapOf("strength" to 10),
-            buffs = mutableListOf(DurationEffect.StatBuff("empower", 5, mapOf("strength" to 5))),
+            temporalEffects = mutableListOf(DurationEffect.StatBuff("empower", 5, mapOf("strength" to 5))),
             cooldowns = mutableMapOf()
         )
         val team = Team(mutableListOf(actor))
@@ -50,13 +48,13 @@ class GameEngineTest : StringSpec({
 
         // Mutate original
         actor.stats["strength"] = 20
-        actor.buffs.clear()
+        actor.temporalEffects.clear()
         team.actors.clear()
 
         // Assert deep copy is unaffected
         actorCopy.stats["strength"] shouldBe 10
-        actorCopy.buffs.size shouldBe 1
-        actorCopy.buffs.first() shouldBe DurationEffect.StatBuff("empower", 5, mapOf("strength" to 5))
+        actorCopy.temporalEffects.size shouldBe 1
+        actorCopy.temporalEffects.first() shouldBe DurationEffect.StatBuff("empower", 5, mapOf("strength" to 5))
 
         teamCopy.actors.size shouldBe 1
         teamCopy.actors.first().name shouldBe "DeepHero"
