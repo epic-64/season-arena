@@ -5,8 +5,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 fun main() {
-    val teamA = exampleTeam1()
-    val teamB = exampleTeam2()
+    val teamA = exampleTeam3(0)
+    val teamB = exampleTeam4(1)
 
     val events = simulateBattle(teamA, teamB).log
     println("Battle log has ${events.size} events")
@@ -111,6 +111,32 @@ fun exampleTeam2(): Team {
         actorB3,
         actorB4,
     ))
+}
+
+fun exampleTeam3(team: Int): Team {
+    val actor = Actor(
+        actorClass = ActorClass.Bard,
+        name = "Charlie the Bard",
+        hp = 450,
+        maxHp = 450,
+        skills = listOf(solo),
+        team = team,
+        amplifiers = Amplifiers(magicalDamageAdded = 30.0, physicalDamageAdded = 10.0)
+    )
+    return Team(mutableListOf(actor))
+}
+
+fun exampleTeam4(team: Int): Team {
+    val actor = Actor(
+        actorClass = ActorClass.AbyssalDragon,
+        name = "Abyssal Dragon",
+        hp = 500,
+        maxHp = 500,
+        skills = listOf(fireball, spark, iceLance, poisonStrike, basicAttack),
+        team = team,
+        amplifiers = Amplifiers(magicalDamageAdded = 20.0)
+    )
+    return Team(mutableListOf(actor))
 }
 
 fun benchmark(inputTeamA: Team, inputTeamB: Team) {
