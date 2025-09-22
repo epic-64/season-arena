@@ -205,3 +205,16 @@ val iceLance = Skill(
     activationRule = ::atLeastOneEnemyAlive,
     cooldown = 3
 )
+
+// BARD skills
+val solo = Skill(
+    name = "Solo",
+    initialTargets = ::firstEnemy,
+    effects = listOf(
+        SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 5)),
+        SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 10)),
+        SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 15)),
+    ),
+    activationRule = ::atLeastOneEnemyAlive,
+    cooldown = 1
+)
