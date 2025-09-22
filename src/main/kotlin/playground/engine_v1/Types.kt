@@ -34,7 +34,8 @@ enum class DamageType {
 }
 
 sealed class SkillEffectType {
-    data class Damage(val damageType: DamageType, val power: Int) : SkillEffectType()
+    data class Damage(val damageType: DamageType, val amount: Int) : SkillEffectType()
+    data class DamageOverTime(val damageType: DamageType, val amount: Int, val duration: Int) : SkillEffectType()
     data class Heal(val power: Int) : SkillEffectType()
     data class StatBuff(val buff: DurationEffect.StatBuff) : SkillEffectType()
     data class ResourceTick(val resourceTick: DurationEffect.ResourceTick) : SkillEffectType()
