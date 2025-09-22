@@ -25,6 +25,13 @@ sealed class DurationEffect {
         override val duration: Int,
         val resourceChanges: Map<String, Int>
     ) : DurationEffect()
+
+    data class DamageOverTime(
+        override val id: String,
+        override val duration: Int,
+        val damageType: DamageType,
+        val amount: Int
+    ) : DurationEffect()
 }
 
 enum class DamageType {
@@ -35,11 +42,11 @@ enum class DamageType {
 
 sealed class SkillEffectType {
     data class Damage(val damageType: DamageType, val amount: Int) : SkillEffectType()
-    data class DamageOverTime(val damageType: DamageType, val amount: Int, val duration: Int) : SkillEffectType()
     data class Heal(val power: Int) : SkillEffectType()
     data class StatBuff(val buff: DurationEffect.StatBuff) : SkillEffectType()
     data class ResourceTick(val resourceTick: DurationEffect.ResourceTick) : SkillEffectType()
     data class StatOverride(val statOverride: DurationEffect.StatOverride) : SkillEffectType()
+    data class DamageOverTime(val dot: DurationEffect.DamageOverTime) : SkillEffectType()
 }
 
 data class SkillEffect(
@@ -98,7 +105,7 @@ data class Actor(
     val team: Int, // 0 or 1
     val amplifiers: Amplifiers = Amplifiers(),
     val stats: MutableMap<String, Int> = mutableMapOf(),
-    val buffs: MutableList<DurationEffect> = mutableListOf(),
+    val temporalEffects: MutableList<DurationEffect> = mutableListOf(),
     val cooldowns: MutableMap<Skill, Int> = mutableMapOf() // skill -> turns left
 ) {
     val isAlive: Boolean get() = hp > 0
@@ -109,7 +116,7 @@ data class Actor(
         hp = value.coerceIn(0, maxHp)
 
         if (!isAlive) {
-            buffs.clear()
+            temporalEffects.clear()
             cooldowns.clear()
         }
     }
@@ -123,7 +130,7 @@ data class Actor(
             skills = skills, // Skills are immutable
             team = team,
             stats = stats.toMutableMap(),
-            buffs = buffs.toMutableList(),
+            temporalEffects = temporalEffects.toMutableList(),
             cooldowns = cooldowns.toMutableMap(),
             amplifiers = amplifiers,
         )
