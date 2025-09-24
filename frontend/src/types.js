@@ -13,16 +13,54 @@
  */
 
 /**
- * @typedef {('Damage'|'Heal'|'StatBuff'|'ResourceTick')} SkillEffectType
+ * @typedef {Object} StatOverrideSnapshot
+ * @property {string} id
+ * @property {number} duration
+ * @property {Object.<string, number>} statOverrides
  */
+
+/**
+ * @typedef {Object} DamageOverTimeSnapshot
+ * @property {string} id
+ * @property {number} duration
+ * @property {DamageType} damageType
+ * @property {number} amount
+ */
+
+/**
+ * @readonly
+ * @enum {string}
+ */
+export const DamageType = {
+    Physical: 'Physical',
+    Magical: 'Magical',
+    Absolute: 'Absolute',
+};
+
+/**
+ * @readonly
+ * @enum {string}
+ */
+export const SkillEffectType = {
+    Damage: 'Damage',
+    Heal: 'Heal',
+    StatBuff: 'StatBuff',
+    ResourceTick: 'ResourceTick',
+    StatOverride: 'StatOverride',
+    DamageOverTime: 'DamageOverTime',
+};
 
 /**
  * @typedef {Object} SkillEffect
  * @property {SkillEffectType} type
- * @property {number} [power]
- * @property {function(Actor, Actor[], Actor[]): Actor[]} targetRule
+ * @property {DamageType} [damageType]
+ * @property {number} [amount] // for Damage / DamageOverTime base amount
+ * @property {number} [power] // for Heal
+ * @property {function(Actor, Actor[], Actor[], Actor[]): Actor[]} [targetRule]
  * @property {StatBuff} [statBuff]
  * @property {ResourceTick} [resourceTick]
+ * @property {StatOverrideSnapshot} [statOverride]
+ * @property {DamageOverTimeSnapshot} [dot]
  */
 
 /**
@@ -103,10 +141,13 @@ export const CombatEventType = {
  * @property {string} name
  * @property {number} hp
  * @property {number} maxHp
+ * @property {number} mana
+ * @property {number} maxMana
  * @property {number} team
  * @property {Object.<string, number>} stats
  * @property {StatBuffSnapshot[]} statBuffs
  * @property {ResourceTickSnapshot[]} resourceTicks
+ * @property {StatOverrideSnapshot[]} statOverrides
  * @property {Object.<string, number>} cooldowns
  */
 
@@ -115,73 +156,77 @@ export const CombatEventType = {
  * @property {ActorSnapshot[]} actors
  */
 
+
+
+
 /**
- * @typedef {Object} CombatEvent_TurnStart
+ * @typedef {Object} CompactCombatEvent_TurnStart
  * @property {string} type
  * @property {number} turn
  * @property {BattleSnapshot} snapshot
  */
 
 /**
- * @typedef {Object} CombatEvent_SkillUsed
+ * @typedef {Object} CompactCombatEvent_SkillUsed
  * @property {string} type
  * @property {string} actor
  * @property {string} skill
  * @property {string[]} targets
- * @property {BattleSnapshot} snapshot
+ * @property {BattleDelta} delta
  */
 
 /**
- * @typedef {Object} CombatEvent_DamageDealt
+ * @typedef {Object} CompactCombatEvent_DamageDealt
  * @property {string} type
  * @property {string} source
  * @property {string} target
  * @property {number} amount
  * @property {number} targetHp
- * @property {BattleSnapshot} snapshot
+ * @property {BattleDelta} delta
+ * @property {DamageModifier[]} [modifiers]
  */
 
 /**
- * @typedef {Object} CombatEvent_Healed
+ * @typedef {Object} CompactCombatEvent_Healed
  * @property {string} type
  * @property {string} source
  * @property {string} target
  * @property {number} amount
  * @property {number} targetHp
- * @property {BattleSnapshot} snapshot
+ * @property {BattleDelta} delta
  */
 
 /**
- * @typedef {Object} CombatEvent_BuffApplied
+ * @typedef {Object} CompactCombatEvent_BuffApplied
  * @property {string} type
  * @property {string} source
  * @property {string} target
  * @property {string} buffId
- * @property {BattleSnapshot} snapshot
+ * @property {BattleDelta} delta
  */
 
 /**
- * @typedef {Object} CombatEvent_BuffExpired
+ * @typedef {Object} CompactCombatEvent_BuffExpired
  * @property {string} type
  * @property {string} target
  * @property {string} buffId
- * @property {BattleSnapshot} snapshot
+ * @property {BattleDelta} delta
  */
 
 /**
- * @typedef {Object} CombatEvent_ResourceDrained
+ * @typedef {Object} CompactCombatEvent_ResourceDrained
  * @property {string} type
  * @property {string} target
  * @property {string} buffId
  * @property {string} resource
  * @property {number} amount
  * @property {number} targetResourceValue
- * @property {BattleSnapshot} snapshot
+ * @property {BattleDelta} delta
  */
 
 /**
- * @typedef {Object} CombatEvent_BattleEnd
+ * @typedef {Object} CompactCombatEvent_BattleEnd
  * @property {string} type
  * @property {string} winner
- * @property {BattleSnapshot} snapshot
+ * @property {BattleDelta} delta
  */
