@@ -5,7 +5,7 @@ import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 
 class GameEngineTest : StringSpec({
-    "snapshotActors correctly snapshots a single actor" {
+    "fullBattleDelta correctly deltas a single actor" {
         val actor = Actor(
             actorClass = ActorClass.Mage,
             name = "TestHero",
@@ -17,17 +17,19 @@ class GameEngineTest : StringSpec({
             team = 0
         )
         val team = Team(mutableListOf(actor))
-        val snapshot = snapshotActors(listOf(team))
-        snapshot.actors.size shouldBe 1
-        val snap = snapshot.actors.first()
-        snap.name shouldBe "TestHero"
-        snap.hp shouldBe 50
-        snap.maxHp shouldBe 100
-        snap.team shouldBe 0
-        snap.stats shouldBe emptyMap()
-        snap.statBuffs shouldBe emptyList()
-        snap.resourceTicks shouldBe emptyList()
-        snap.cooldowns shouldBe emptyMap()
+        val delta = fullBattleDelta(listOf(team))
+        delta.actors.size shouldBe 1
+        val act = delta.actors.first()
+        act.name shouldBe "TestHero"
+        act.hp shouldBe 50
+        act.maxHp shouldBe 100
+        act.mana shouldBe 100
+        act.maxMana shouldBe 100
+        act.stats shouldBe emptyMap()
+        act.statBuffs shouldBe emptyList()
+        act.resourceTicks shouldBe emptyList()
+        act.cooldowns shouldBe emptyMap()
+        act.statOverrides shouldBe emptyList()
     }
 
     "deepCopy creates a true deep copy of Actor and Team" {
@@ -91,13 +93,13 @@ class GameEngineTest : StringSpec({
 
         val endEvent = events.last() as CombatEvent.BattleEnd
         val winner = endEvent.winner
-        val snapshot = endEvent.snapshot
-        val hero = snapshot.actors.find { it.name == "Hero" }!!
-        val villain = snapshot.actors.find { it.name == "Villain" }!!
+        val battleDelta = endEvent.delta
+        val hero = battleDelta.actors.find { it.name == "Hero" }!!
+        val villain = battleDelta.actors.find { it.name == "Villain" }!!
 
         winner shouldBe "Team A"
         villain.hp shouldBe 0
-        hero.hp shouldBeGreaterThan 0
+        hero.hp!! shouldBeGreaterThan 0
 
         val turnCount = events.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
         turnCount shouldBe 2
