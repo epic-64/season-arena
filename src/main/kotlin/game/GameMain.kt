@@ -34,6 +34,8 @@ fun exampleTeam1(): Team {
         name = "Alice",
         hp = 100,
         maxHp = 100,
+        mana = 100,
+        maxMana = 100,
         skills = listOf(snipe, takeAim, iceShot, basicAttack),
         team = 0
     )
@@ -42,6 +44,8 @@ fun exampleTeam1(): Team {
         name = "Jane",
         hp = 100,
         maxHp = 100,
+        mana = 100,
+        maxMana = 100,
         skills = listOf(fireball, spark, basicAttack),
         team = 0
     )
@@ -50,6 +54,8 @@ fun exampleTeam1(): Team {
         name = "Aidan",
         hp = 100,
         maxHp = 100,
+        mana = 100,
+        maxMana = 100,
         skills = listOf(groupHeal, flashHeal, iceLance, basicAttack),
         team = 0
     )
@@ -58,6 +64,8 @@ fun exampleTeam1(): Team {
         name = "Bob",
         hp = 100,
         maxHp = 100,
+        mana = 100,
+        maxMana = 100,
         skills = listOf(blackHole, hotBuff, basicAttack),
         team = 0
     )
@@ -66,6 +74,8 @@ fun exampleTeam1(): Team {
         name = "Charlie",
         hp = 100,
         maxHp = 100,
+        mana = 100,
+        maxMana = 100,
         skills = listOf(cheer, spark, basicAttack),
         team = 0
     )
@@ -78,6 +88,8 @@ fun exampleTeam2(): Team {
         name = "Abyssal Dragon",
         hp = 400,
         maxHp = 400,
+        mana = 100,
+        maxMana = 100,
         skills = listOf(fireball, spark, iceLance, poisonStrike, basicAttack),
         team = 1,
         amplifiers = Amplifiers(magicalDamageAdded = 20.0)
@@ -87,6 +99,8 @@ fun exampleTeam2(): Team {
         name = "Fishman Shaman",
         hp = 120,
         maxHp = 120,
+        mana = 100,
+        maxMana = 100,
         skills = listOf(groupHeal, flashHeal, hotBuff, spark, basicAttack),
         team = 1
     )
@@ -95,6 +109,8 @@ fun exampleTeam2(): Team {
         name = "Fishman Archer",
         hp = 120,
         maxHp = 120,
+        mana = 100,
+        maxMana = 100,
         skills = listOf(takeAim, iceShot, basicAttack),
         team = 1
     )
@@ -103,6 +119,8 @@ fun exampleTeam2(): Team {
         name = "Fishman Warrior",
         hp = 120,
         maxHp = 120,
+        mana = 100,
+        maxMana = 100,
         skills = listOf(whirlwind, doubleStrike, basicAttack),
         team = 1
     )
@@ -120,6 +138,8 @@ fun exampleTeam3(team: Int): Team {
         name = "Charlie the Bard",
         hp = 450,
         maxHp = 450,
+        mana = 100,
+        maxMana = 100,
         skills = listOf(solo),
         team = team,
         amplifiers = Amplifiers(magicalDamageAdded = 30.0, physicalDamageAdded = 10.0)
@@ -133,11 +153,26 @@ fun exampleTeam4(team: Int): Team {
         name = "Abyssal Dragon",
         hp = 500,
         maxHp = 500,
+        mana = 100,
+        maxMana = 100,
         skills = listOf(fireball, spark, iceLance, poisonStrike, basicAttack),
         team = team,
         amplifiers = Amplifiers(magicalDamageAdded = 20.0)
     )
     return Team(mutableListOf(actor))
+}
+
+fun simpleActor(name: String, team: Int): Actor {
+    return Actor(
+        actorClass = ActorClass.Fishman,
+        name = name,
+        hp = 100,
+        maxHp = 100,
+        mana = 100,
+        maxMana = 100,
+        skills = listOf(basicAttack),
+        team = team
+    )
 }
 
 fun benchmark(inputTeamA: Team, inputTeamB: Team) {

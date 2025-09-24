@@ -17,6 +17,8 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
                     name = actor.name,
                     hp = actor.getHp(),
                     maxHp = actor.maxHp,
+                    mana = actor.getMana(),
+                    maxMana = actor.maxMana,
                     team = actor.team,
                     stats = actor.stats.toMap(),
                     statBuffs = actor.temporalEffects.filterIsInstance<DurationEffect.StatBuff>()
@@ -129,6 +131,8 @@ fun battleTick(state: BattleState, actor: Actor): BattleState {
     val skill = pickSkill(actor, allies, enemies)
 
     if (skill != null) {
+        // Deduct mana cost before applying skill
+        actor.setMana(actor.getMana() - skill.manaCost)
         val initialTargets = skill.initialTargets(actor, allies, enemies)
         val targetNames = initialTargets.map { it.name }
         log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, snapshotActors(listOf(teamA, teamB))))
@@ -160,8 +164,8 @@ fun battleRound(state: BattleState): BattleState {
 
 fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill?
 {
-    // Only pick skills that are not on cooldown
-    val availableSkills = actor.skills.filter { (actor.cooldowns[it] ?: 0) <= 0 }
+    // Only pick skills that are not on cooldown and actor has enough mana for
+    val availableSkills = actor.skills.filter { (actor.cooldowns[it] ?: 0) <= 0 && actor.getMana() >= it.manaCost }
     return availableSkills.firstOrNull { it.activationRule(actor, allies, enemies) } ?: availableSkills.firstOrNull()
 }
 
@@ -338,4 +342,3 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
 
     return state
 }
-

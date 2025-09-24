@@ -36,7 +36,8 @@ val basicAttack = Skill(
     initialTargets = ::firstEnemy,
     effects = listOf(SkillEffect(type = SkillEffectType.Damage(DamageType.Physical, 20))),
     activationRule = ::atLeastOneEnemyAlive,
-    cooldown = 1
+    cooldown = 1,
+    manaCost = 0
 )
 
 val takeAim = Skill(
@@ -48,7 +49,8 @@ val takeAim = Skill(
         ))
     ),
     activationRule = ::atLeastOneEnemyAlive,
-    cooldown = 3
+    cooldown = 3,
+    manaCost = 5
 )
 
 val snipe = Skill(
@@ -56,7 +58,8 @@ val snipe = Skill(
     initialTargets = ::leastHpEnemy,
     effects = listOf(SkillEffect(type = SkillEffectType.Damage(DamageType.Physical, 50))),
     activationRule = { actor, _, enemies -> enemies.isNotEmpty() && actor.temporalEffects.any { it.id == "Amplify" } },
-    cooldown = 4
+    cooldown = 4,
+    manaCost = 10
 )
 
 val cheer = Skill(
@@ -70,7 +73,8 @@ val cheer = Skill(
     activationRule = { _, allies, _ ->
         allies.any { it.temporalEffects.any { buff -> buff.id == "Amplify" } }
     },
-    cooldown = 5
+    cooldown = 5,
+    manaCost = 10
 )
 
 val doubleStrike = Skill(
@@ -81,7 +85,8 @@ val doubleStrike = Skill(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Physical, 15))
     ),
     activationRule = ::atLeastOneEnemyAlive,
-    cooldown = 2
+    cooldown = 2,
+    manaCost = 0
 )
 
 val whirlwind = Skill(
@@ -89,7 +94,8 @@ val whirlwind = Skill(
     initialTargets = ::allEnemies,
     effects = listOf(SkillEffect(type = SkillEffectType.Damage(DamageType.Physical, 15))),
     activationRule = ::atLeastOneEnemyAlive,
-    cooldown = 2
+    cooldown = 2,
+    manaCost = 20
 )
 
 val fireball = Skill(
@@ -102,7 +108,8 @@ val fireball = Skill(
         ))
     ),
     activationRule = ::atLeastOneEnemyAlive,
-    cooldown = 4
+    cooldown = 4,
+    manaCost = 30
 )
 
 val spark = Skill(
@@ -115,7 +122,8 @@ val spark = Skill(
         ))
     ),
     activationRule = ::atLeastOneEnemyAlive,
-    cooldown = 1
+    cooldown = 1,
+    manaCost = 5
 )
 
 val hotBuff = Skill(
@@ -130,7 +138,8 @@ val hotBuff = Skill(
         )),
     ),
     activationRule = { actor, _, _ -> actor.temporalEffects.none { it.id == "Regen" } },
-    cooldown = 3
+    cooldown = 3,
+    manaCost = 10
 )
 
 val flashHeal = Skill(
@@ -141,7 +150,8 @@ val flashHeal = Skill(
         val target = allies.minByOrNull { it.getHp() }
         target != null && target.getHp() < target.maxHp / 2
     },
-    cooldown = 2
+    cooldown = 2,
+    manaCost = 10
 )
 
 val iceShot = Skill(
@@ -154,7 +164,8 @@ val iceShot = Skill(
         ))
     ),
     activationRule = ::atLeastOneEnemyAlive,
-    cooldown = 2
+    cooldown = 2,
+    manaCost = 10
 )
 
 val groupHeal = Skill(
@@ -169,7 +180,8 @@ val groupHeal = Skill(
     activationRule = { _, allies, _ ->
         allies.count { it.getHp() < it.maxHp * 0.7 } >= 2
     },
-    cooldown = 6
+    cooldown = 6,
+    manaCost = 30
 )
 
 val poisonStrike = Skill(
@@ -182,7 +194,8 @@ val poisonStrike = Skill(
         ))
     ),
     activationRule = ::atLeastOneEnemyAlive,
-    cooldown = 2
+    cooldown = 2,
+    manaCost = 5
 )
 
 val blackHole = Skill(
@@ -190,7 +203,8 @@ val blackHole = Skill(
     initialTargets = ::allEnemies,
     effects = listOf(SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 40))),
     activationRule = ::atLeastOneEnemyAlive,
-    cooldown = 5
+    cooldown = 5,
+    manaCost = 40
 )
 
 val iceLance = Skill(
@@ -203,7 +217,8 @@ val iceLance = Skill(
         )),
     ),
     activationRule = ::atLeastOneEnemyAlive,
-    cooldown = 3
+    cooldown = 3,
+    manaCost = 15
 )
 
 // BARD skills
@@ -216,5 +231,6 @@ val solo = Skill(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 15)),
     ),
     activationRule = ::atLeastOneEnemyAlive,
-    cooldown = 1
+    cooldown = 1,
+    manaCost = 35
 )
