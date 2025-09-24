@@ -8,74 +8,6 @@ import kotlin.math.min
 import kotlin.random.Random
 
 
-fun snapshotActors(teams: List<Team>): BattleSnapshot {
-    return BattleSnapshot(
-        actors = teams.flatMap { team ->
-            team.actors.map { actor ->
-                ActorSnapshot(
-                    actorClass = actor.actorClass,
-                    name = actor.name,
-                    hp = actor.getHp(),
-                    maxHp = actor.maxHp,
-                    mana = actor.getMana(),
-                    maxMana = actor.maxMana,
-                    team = actor.team,
-                    stats = actor.stats.toMap(),
-                    statBuffs = actor.temporalEffects.filterIsInstance<DurationEffect.StatBuff>()
-                        .groupBy { it.id }
-                        .map { (id, buffs) ->
-                            // Summarize statChanges by summing values for each stat
-                            val mergedStatChanges = mutableMapOf<String, Int>()
-                            buffs.forEach { buff ->
-                                buff.statChanges.forEach { (stat, value) ->
-                                    mergedStatChanges[stat] = (mergedStatChanges[stat] ?: 0) + value
-                                }
-                            }
-                            StatBuffSnapshot(
-                                id = id,
-                                duration = buffs.maxOf { it.duration }, // longest duration
-                                statChanges = mergedStatChanges
-                            )
-                        },
-                    resourceTicks = actor.temporalEffects.filterIsInstance<DurationEffect.ResourceTick>()
-                        .groupBy { it.id }
-                        .map { (id, ticks) ->
-                            // Summarize resourceChanges by summing values for each resource
-                            val mergedResourceChanges = mutableMapOf<String, Int>()
-                            ticks.forEach { tick ->
-                                tick.resourceChanges.forEach { (resource, value) ->
-                                    mergedResourceChanges[resource] = (mergedResourceChanges[resource] ?: 0) + value
-                                }
-                            }
-                            ResourceTickSnapshot(
-                                id = id,
-                                duration = ticks.maxOf { it.duration }, // longest duration
-                                resourceChanges = mergedResourceChanges
-                            )
-                        },
-                    statOverrides = actor.temporalEffects.filterIsInstance<DurationEffect.StatOverride>()
-                        .groupBy { it.id }
-                        .map { (id, overrides) ->
-                            // Summarize statOverrides by taking the latest value for each stat
-                            val mergedStatOverrides = mutableMapOf<String, Int>()
-                            overrides.forEach { override ->
-                                override.statOverrides.forEach { (stat, value) ->
-                                    mergedStatOverrides[stat] = value // latest value
-                                }
-                            }
-                            StatOverrideSnapshot(
-                                id = id,
-                                duration = overrides.maxOf { it.duration }, // longest duration
-                                statOverrides = mergedStatOverrides
-                            )
-                        },
-                    cooldowns = actor.skills.associate { it.name to (actor.cooldowns[it] ?: 0) }
-                )
-            }
-        }
-    )
-}
-
 fun combatEventsToJson(events: List<CombatEvent>): String {
     return Json.encodeToString(events)
 }
@@ -88,7 +20,7 @@ fun simulateBattle(teamA: Team, teamB: Team): BattleState {
     val maxTurns = 100
 
     val log = mutableListOf<CombatEvent>()
-    log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
+    log.add(CombatEvent.TurnStart(turn, fullBattleDelta(listOf(teamA, teamB))))
 
     var state = BattleState(teamA, teamB, turn, log)
 
@@ -102,7 +34,7 @@ fun simulateBattle(teamA: Team, teamB: Team): BattleState {
         teamB.aliveActors().isNotEmpty() && teamA.aliveActors().isEmpty() -> "Team B"
         else -> "Draw (turn limit reached)"
     }
-    log.add(CombatEvent.BattleEnd(winner, snapshotActors(listOf(teamA, teamB))))
+    log.add(CombatEvent.BattleEnd(winner, fullBattleDelta(listOf(teamA, teamB))))
 
     return state
 }
@@ -135,7 +67,7 @@ fun battleTick(state: BattleState, actor: Actor): BattleState {
         actor.setMana(actor.getMana() - skill.manaCost)
         val initialTargets = skill.initialTargets(actor, allies, enemies)
         val targetNames = initialTargets.map { it.name }
-        log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, snapshotActors(listOf(teamA, teamB))))
+        log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, fullBattleDelta(listOf(teamA, teamB))))
         applySkill(state, actor, skill, allies, enemies, initialTargets)
     }
 
@@ -151,7 +83,7 @@ fun battleRound(state: BattleState): BattleState {
     val teamA = state.teamA
     val teamB = state.teamB
 
-    log.add(CombatEvent.TurnStart(turn, snapshotActors(listOf(teamA, teamB))))
+    log.add(CombatEvent.TurnStart(turn, fullBattleDelta(listOf(teamA, teamB))))
     val allActors = teamA.aliveActors() + teamB.aliveActors()
 
     var newState = state
@@ -228,7 +160,7 @@ fun applySkill(
                         target.name,
                         finalDamage,
                         target.getHp(),
-                        snapshotActors(listOf(teamA, teamB)),
+                        fullBattleDelta(listOf(teamA, teamB)),
                         modifiers,
                     ))
                 }
@@ -237,31 +169,31 @@ fun applySkill(
                 for (target in targets) {
                     val heal = max(1, effect.type.power + (actor.stats["matk"] ?: 0))
                     target.setHp(min(target.maxHp, target.getHp() + heal))
-                    log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), snapshotActors(listOf(teamA, teamB))))
+                    log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), fullBattleDelta(listOf(teamA, teamB))))
                 }
             }
             is SkillEffectType.StatBuff -> {
                 for (target in targets) {
                     effect.type.buff.let { target.temporalEffects.add(it.copy()) }
-                    effect.type.buff.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
+                    effect.type.buff.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, fullBattleDelta(listOf(teamA, teamB)))) }
                 }
             }
             is SkillEffectType.ResourceTick -> {
                 for (target in targets) {
                     effect.type.resourceTick.let { target.temporalEffects.add(it.copy()) }
-                    effect.type.resourceTick.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
+                    effect.type.resourceTick.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, fullBattleDelta(listOf(teamA, teamB)))) }
                 }
             }
             is SkillEffectType.StatOverride -> {
                 for (target in targets) {
                     effect.type.statOverride.let { target.temporalEffects.add(it.copy()) }
-                    effect.type.statOverride.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
+                    effect.type.statOverride.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, fullBattleDelta(listOf(teamA, teamB)))) }
                 }
             }
             is SkillEffectType.DamageOverTime -> {
                 for (target in targets) {
                     effect.type.dot.let { target.temporalEffects.add(it.copy()) }
-                    effect.type.dot.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
+                    effect.type.dot.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, fullBattleDelta(listOf(teamA, teamB)))) }
                 }
             }
         }
@@ -324,7 +256,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
                             false -> max(0, actor.getHp() + amount)
                         }
                         actor.setHp(newHp)
-                        state.log.add(CombatEvent.ResourceDrained(actor.name, id, resource, amount, actor.getHp(), snapshotActors(listOf(state.teamA, state.teamB))))
+                        state.log.add(CombatEvent.ResourceDrained(actor.name, id, resource, amount, actor.getHp(), fullBattleDelta(listOf(state.teamA, state.teamB))))
                     }
                 }
             }
@@ -341,4 +273,29 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
     actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
 
     return state
+}
+
+fun fullBattleDelta(teams: List<Team>): BattleDelta {
+    return BattleDelta(teams.flatMap { team ->
+        team.actors.map { actor ->
+            ActorDelta(
+                name = actor.name,
+                hp = actor.getHp(),
+                maxHp = actor.maxHp,
+                mana = actor.getMana(),
+                maxMana = actor.maxMana,
+                stats = actor.stats.toMap(),
+                statBuffs = actor.temporalEffects.filterIsInstance<DurationEffect.StatBuff>().map {
+                    StatBuffDelta(it.id, it.duration, it.statChanges)
+                },
+                resourceTicks = actor.temporalEffects.filterIsInstance<DurationEffect.ResourceTick>().map {
+                    ResourceTickDelta(it.id, it.duration, it.resourceChanges)
+                },
+                statOverrides = actor.temporalEffects.filterIsInstance<DurationEffect.StatOverride>().map {
+                    StatOverrideDelta(it.id, it.duration, it.statOverrides)
+                },
+                cooldowns = actor.skills.associate { it.name to (actor.cooldowns[it] ?: 0) }
+            )
+        }
+    })
 }
