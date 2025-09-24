@@ -1,9 +1,8 @@
-package playground
+package game
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
-import playground.engine_v1.*
 
 class GameEngineTest : StringSpec({
     "snapshotActors correctly snapshots a single actor" {

@@ -1,7 +1,8 @@
-package playground.engine_v1
+package game
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.collections.iterator
 import kotlin.reflect.full.memberProperties
 
 sealed class DurationEffect {

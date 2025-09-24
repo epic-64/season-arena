@@ -1,6 +1,6 @@
-package io.holonaut.arena
+package server
 
-import io.holonaut.arena.api.installRoutes
+import server.api.installRoutes
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*

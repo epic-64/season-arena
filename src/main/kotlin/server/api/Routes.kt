@@ -1,6 +1,5 @@
-package io.holonaut.arena.api
+package server.api
 
-import io.holonaut.arena.engine.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.http.content.*
@@ -12,7 +11,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.html.*
 
 fun Application.installRoutes() {
-    ApiRegistry.registerKnownRoutes()
 
     routing {
         staticResources("/", "static")
@@ -24,9 +22,6 @@ fun Application.installRoutes() {
                 "version" to "0.1.0"
             ))
         }
-
-        // Routes list for the dropdown
-        get("/_routes") { call.respond(ApiRegistry.routes) }
 
         get("/health") { call.respond(mapOf("ok" to true)) }
 
