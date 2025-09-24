@@ -1,0 +1,31 @@
+/* Health bar related styles extracted from styles.css */
+
+.health-bar-container {
+    width: var(--portrait-size);
+    height: 12px;
+    background: linear-gradient(90deg, #2a231d 0%, #382d25 100%);
+    border-radius: 6px;
+    border: 1px solid #6a5138;
+    position: relative;
+    overflow: hidden;
+}
+
+.health-bar {
+    height: 100%;
+    display: flex;
+    background: linear-gradient(90deg, var(--health-deep-green) 0%, var(--health-bright-green) 90%, #9cffb3 100%);
+    border-radius: 6px;
+    box-shadow: 0 0 8px 0 var(--health-bright-green);
+    transition: width 0.4s, background 0.4s, box-shadow 0.4s;
+}
+
+.health-bar-yellow {
+    background: linear-gradient(90deg, #fbb54e 0%, #ffd700 90%, #ffd454 100%);
+    box-shadow: 0 0 8px 0 #ffd700;
+}
+
+.health-bar-red {
+    background: linear-gradient(90deg, #c50000 0%, #ff2222 90%, #ff4d4d 100%);
+    box-shadow: 0 0 8px 0 #ff2222;
+}
+

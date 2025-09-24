@@ -1,0 +1,41 @@
+// Emoji mappings for skills and statuses
+
+export const skillEmojis = {
+    "Strike": "🗡️",
+    "Double Strike": "⚔️",
+    "Poison Strike": "🗡️🧪",
+    "Whirlwind": "🌪️",
+    "Fireball": "☄️🔥",
+    "Explode": "☀️",
+    "Spark": "✨",
+    "Regeneration": "💞",
+    "Flash Heal": "💊",
+    "Group Heal": "💞",
+    "Ice Lance": "☄️❄️",
+    "Ice Shot": "❄️🏹",
+    "Black Hole": "💫",
+    "Take Aim": "🎯",
+    "Cheer": "🤗",
+    "Solo": "🎵",
+};
+
+export const statusEmojis = {
+    "Poison": "🧪",
+    "Burn": "🔥",
+    "Burning": "🔥",
+    "Shock": "🌩️",
+    "Shocked": "🌩️",
+    "Bleeding": "🩸",
+    "Stunned": "💫",
+    "Chill": "🧊",
+    "Chilled": "🧊",
+    "Frozen": "❄️",
+    "Regen": "💖",
+    "Protection": "🛡️",
+    "Boost": "⏫",
+    "Weaken": "⏬",
+    "Slow": "🐢",
+    "Amplify": "🔺",
+    "Aimed": "🔺",
+    "Cheer": "🎉",
+};
