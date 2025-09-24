@@ -62,7 +62,8 @@ data class Skill(
     val effects: List<SkillEffect>,
     val initialTargets: (Actor, List<Actor>, List<Actor>) -> List<Actor>,
     val activationRule: (Actor, List<Actor>, List<Actor>) -> Boolean,
-    val cooldown: Int // cooldown in turns
+    val cooldown: Int,
+    val manaCost: Int,
 )
 
 enum class ActorClass {
@@ -102,6 +103,8 @@ data class Actor(
     val name: String,
     private var hp: Int,
     val maxHp: Int,
+    private var mana: Int, // current mana
+    val maxMana: Int, // maximum mana
     val skills: List<Skill>,
     val team: Int, // 0 or 1
     val amplifiers: Amplifiers = Amplifiers(),
@@ -122,12 +125,20 @@ data class Actor(
         }
     }
 
+    fun getMana(): Int = mana
+
+    fun setMana(value: Int) {
+        mana = value.coerceIn(0, maxMana)
+    }
+
     fun deepCopy(): Actor {
         return Actor(
             actorClass = actorClass,
             name = name,
             hp = hp,
             maxHp = maxHp,
+            mana = mana,
+            maxMana = maxMana,
             skills = skills, // Skills are immutable
             team = team,
             stats = stats.toMutableMap(),
@@ -153,6 +164,8 @@ data class ActorSnapshot(
     val name: String,
     val hp: Int,
     val maxHp: Int,
+    val mana: Int,
+    val maxMana: Int,
     val team: Int,
     val stats: Map<String, Int>,
     val statBuffs: List<StatBuffSnapshot>,
@@ -261,6 +274,8 @@ data class ActorDelta(
     val name: String,
     val hp: Int? = null,
     val maxHp: Int? = null,
+    val mana: Int? = null,
+    val maxMana: Int? = null,
     val stats: Map<String, Int>? = null,
     val statBuffs: List<StatBuffSnapshot>? = null,
     val resourceTicks: List<ResourceTickSnapshot>? = null,
@@ -292,6 +307,8 @@ fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta 
                     name = currActor.name,
                     hp = currActor.hp,
                     maxHp = currActor.maxHp,
+                    mana = currActor.mana,
+                    maxMana = currActor.maxMana,
                     stats = currActor.stats,
                     statBuffs = currActor.statBuffs,
                     resourceTicks = currActor.resourceTicks,

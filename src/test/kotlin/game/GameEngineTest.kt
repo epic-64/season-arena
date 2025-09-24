@@ -11,6 +11,8 @@ class GameEngineTest : StringSpec({
             name = "TestHero",
             hp = 50,
             maxHp = 100,
+            mana = 100,
+            maxMana = 100,
             skills = emptyList(),
             team = 0
         )
@@ -34,6 +36,8 @@ class GameEngineTest : StringSpec({
             name = "DeepHero",
             hp = 100,
             maxHp = 100,
+            mana = 100,
+            maxMana = 100,
             skills = emptyList(),
             team = 1,
             stats = mutableMapOf("strength" to 10),
@@ -66,6 +70,8 @@ class GameEngineTest : StringSpec({
             name = "Hero",
             hp = 50,
             maxHp = 50,
+            mana = 100,
+            maxMana = 100,
             skills = listOf(basicAttack),
             team = 0
         )
@@ -74,6 +80,8 @@ class GameEngineTest : StringSpec({
             name = "Villain",
             hp = 40,
             maxHp = 40,
+            mana = 100,
+            maxMana = 100,
             skills = listOf(basicAttack),
             team = 1
         )
@@ -101,6 +109,8 @@ class GameEngineTest : StringSpec({
             name = "Attacker",
             hp = 30,
             maxHp = 30,
+            mana = 100,
+            maxMana = 100,
             skills = listOf(basicAttack),
             team = 0
         )
@@ -109,6 +119,8 @@ class GameEngineTest : StringSpec({
             name = "Defender",
             hp = 25,
             maxHp = 25,
+            mana = 100,
+            maxMana = 100,
             skills = listOf(basicAttack),
             team = 1
         )
@@ -129,6 +141,8 @@ class GameEngineTest : StringSpec({
             name = attacker.name,
             hp = 30,
             maxHp = 30,
+            mana = 100,
+            maxMana = 100,
             stats = emptyMap(),
             statBuffs = emptyList(),
             resourceTicks = emptyList(),
@@ -139,6 +153,8 @@ class GameEngineTest : StringSpec({
             name = defender.name,
             hp = 25,
             maxHp = 25,
+            mana = 100,
+            maxMana = 100,
             stats = emptyMap(),
             statBuffs = emptyList(),
             resourceTicks = emptyList(),
