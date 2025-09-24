@@ -117,7 +117,7 @@ object JsDocGenerator {
     }
 }
 
-private fun parseTopLevelTypesFromFile(file: File, blacklist: Set<String>): List<KClass<*>> {
+private fun parseTopLevelTypesFromFile(file: File): List<KClass<*>> {
     if (!file.exists()) return emptyList()
     val text = file.readText()
     val pkg = Regex("^\\s*package\\s+([a-zA-Z0-9_.]+)", RegexOption.MULTILINE)
@@ -125,7 +125,7 @@ private fun parseTopLevelTypesFromFile(file: File, blacklist: Set<String>): List
     val classRegex = Regex("^(?:[a-zA-Z0-9_]+\\s+)*(class|interface|object)\\s+([A-Za-z0-9_]+)", RegexOption.MULTILINE)
     val names = classRegex.findAll(text)
         .map { it.groupValues[2] }
-        .filter { it.isNotBlank() && it !in blacklist }
+        .filter { it.isNotBlank() }
         .toSet()
     return names.mapNotNull { n ->
         try { Class.forName("$pkg.$n").kotlin } catch (_: Throwable) { null }
@@ -136,45 +136,29 @@ fun main(args: Array<String>) {
     val argMap = parseArgs(args)
     val outPath = argMap["out"] ?: argMap["o"] ?: "frontend/src/generated-types.js"
     val sourceFile = argMap["file"] ?: argMap["f"]
-    val blacklist = (argMap["blacklist"] ?: argMap["b"] ?: "")
-        .split(',')
-        .map { it.trim() }
-        .filter { it.isNotEmpty() }
-        .toSet()
 
-    val autoRoots = sourceFile?.let { parseTopLevelTypesFromFile(File(it), blacklist) } ?: emptyList()
+    val blacklist: Set<String> = setOfNotNull(
+        CombatEvent::class.simpleName,
+        ActorSnapshot::class.simpleName,
+    )
 
-    val fallbackRoots: List<KClass<*>> = listOf(
-        DurationEffect::class,
-        DamageType::class,
-        SkillEffectType::class,
-        SkillEffect::class,
-        Skill::class,
-        ActorClass::class,
-        Amplifiers::class,
-        Actor::class,
-        Team::class,
-        ActorSnapshot::class,
-        StatBuffSnapshot::class,
-        ResourceTickSnapshot::class,
-        StatOverrideSnapshot::class,
-        BattleSnapshot::class,
-        DamageModifier::class,
-        CombatEvent::class,
-        ActorDelta::class,
-        BattleDelta::class,
-        CompactCombatEvent::class,
-    ).filter { it.simpleName !in blacklist }
+    val discovered = sourceFile?.let { parseTopLevelTypesFromFile(File(it)) } ?: emptyList()
 
-    val roots = if (autoRoots.isNotEmpty()) autoRoots else fallbackRoots
+    // Filter out blacklisted simple or qualified names
+    val roots = discovered.filter { k ->
+        val sn = k.simpleName
+        val qn = k.qualifiedName
+        (sn == null || sn !in blacklist) && (qn == null || qn !in blacklist)
+    }
 
     val output = JsDocGenerator.generate(roots)
-    val file = File(outPath)
-    file.parentFile?.mkdirs()
-    file.writeText(output)
-    println("[generateJsDoc] Roots: ${roots.mapNotNull { it.simpleName }}")
-    if (blacklist.isNotEmpty()) println("[generateJsDoc] Blacklist: $blacklist")
-    println("[generateJsDoc] Wrote ${file.absolutePath} (${output.length} chars)")
+    File(outPath).apply {
+        parentFile?.mkdirs()
+        writeText(output)
+        println("[generateJsDoc] Roots: ${roots.mapNotNull { it.simpleName }}")
+        if (blacklist.isNotEmpty()) println("[generateJsDoc] Blacklist(simple): $blacklist")
+        println("[generateJsDoc] Wrote $absolutePath (${output.length} chars)")
+    }
 }
 
 private fun parseArgs(args: Array<String>): Map<String, String> {
