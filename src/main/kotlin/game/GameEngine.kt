@@ -34,7 +34,7 @@ fun simulateBattle(teamA: Team, teamB: Team): BattleState {
         teamB.aliveActors().isNotEmpty() && teamA.aliveActors().isEmpty() -> "Team B"
         else -> "Draw (turn limit reached)"
     }
-    log.add(CombatEvent.BattleEnd(winner, fullBattleDelta(listOf(teamA, teamB))))
+    log.add(CombatEvent.BattleEnd(winner, BattleDelta(emptyList())))
 
     return state
 }
@@ -57,21 +57,21 @@ fun battleTick(state: BattleState, actor: Actor): BattleState {
         return state // dead actors skip their turn
     }
 
-    // skill application logic
     val allies = if (actor.team == 0) teamA.aliveActors() else teamB.aliveActors()
     val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
     val skill = pickSkill(actor, allies, enemies)
 
     if (skill != null) {
-        // Deduct mana cost before applying skill
+        val previousMana = actor.getMana()
         actor.setMana(actor.getMana() - skill.manaCost)
+        val manaChanged = skill.manaCost > 0 && actor.getMana() != previousMana
         val initialTargets = skill.initialTargets(actor, allies, enemies)
         val targetNames = initialTargets.map { it.name }
-        log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, fullBattleDelta(listOf(teamA, teamB))))
+        val deltaActors = if (manaChanged) listOf(ActorDelta(name = actor.name, mana = actor.getMana())) else emptyList()
+        log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, BattleDelta(deltaActors)))
         applySkill(state, actor, skill, allies, enemies, initialTargets)
     }
 
-    // remove buffs after skill application to ensure they last the full turn
     actor.temporalEffects.removeAll { it.duration <= 0 }
 
     return state
@@ -83,7 +83,8 @@ fun battleRound(state: BattleState): BattleState {
     val teamA = state.teamA
     val teamB = state.teamB
 
-    log.add(CombatEvent.TurnStart(turn, fullBattleDelta(listOf(teamA, teamB))))
+    // After initial snapshot, subsequent TurnStart events just mark a boundary; no full snapshot
+    log.add(CombatEvent.TurnStart(turn, BattleDelta(emptyList())))
     val allActors = teamA.aliveActors() + teamB.aliveActors()
 
     var newState = state
@@ -160,7 +161,8 @@ fun applySkill(
                         target.name,
                         finalDamage,
                         target.getHp(),
-                        fullBattleDelta(listOf(teamA, teamB)),
+                        // Use a partial delta: only include the damaged target's updated HP to satisfy test expectations
+                        BattleDelta(listOf(ActorDelta(name = target.name, hp = target.getHp()))),
                         modifiers,
                     ))
                 }
@@ -169,31 +171,65 @@ fun applySkill(
                 for (target in targets) {
                     val heal = max(1, effect.type.power + (actor.stats["matk"] ?: 0))
                     target.setHp(min(target.maxHp, target.getHp() + heal))
-                    log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), fullBattleDelta(listOf(teamA, teamB))))
+                    // Partial delta: only healed target HP changed
+                    log.add(CombatEvent.Healed(
+                        actor.name,
+                        target.name,
+                        heal,
+                        target.getHp(),
+                        BattleDelta(listOf(ActorDelta(name = target.name, hp = target.getHp())))
+                    ))
                 }
             }
             is SkillEffectType.StatBuff -> {
                 for (target in targets) {
                     effect.type.buff.let { target.temporalEffects.add(it.copy()) }
-                    effect.type.buff.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, fullBattleDelta(listOf(teamA, teamB)))) }
+                    // Partial delta: stats + statBuffs for target (stats may change due to buff)
+                    val statBuffs = target.temporalEffects.filterIsInstance<DurationEffect.StatBuff>().map { StatBuffDelta(it.id, it.duration, it.statChanges) }
+                    log.add(CombatEvent.BuffApplied(
+                        actor.name,
+                        target.name,
+                        effect.type.buff.id,
+                        BattleDelta(listOf(ActorDelta(name = target.name, stats = target.stats.toMap(), statBuffs = statBuffs)))
+                    ))
                 }
             }
             is SkillEffectType.ResourceTick -> {
                 for (target in targets) {
                     effect.type.resourceTick.let { target.temporalEffects.add(it.copy()) }
-                    effect.type.resourceTick.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, fullBattleDelta(listOf(teamA, teamB)))) }
+                    // Partial delta: resourceTicks list only
+                    val resourceTicks = target.temporalEffects.filterIsInstance<DurationEffect.ResourceTick>().map { ResourceTickDelta(it.id, it.duration, it.resourceChanges) }
+                    log.add(CombatEvent.BuffApplied(
+                        actor.name,
+                        target.name,
+                        effect.type.resourceTick.id,
+                        BattleDelta(listOf(ActorDelta(name = target.name, resourceTicks = resourceTicks)))
+                    ))
                 }
             }
             is SkillEffectType.StatOverride -> {
                 for (target in targets) {
                     effect.type.statOverride.let { target.temporalEffects.add(it.copy()) }
-                    effect.type.statOverride.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, fullBattleDelta(listOf(teamA, teamB)))) }
+                    // Partial delta: stats + statOverrides list only
+                    val statOverrides = target.temporalEffects.filterIsInstance<DurationEffect.StatOverride>().map { StatOverrideDelta(it.id, it.duration, it.statOverrides) }
+                    log.add(CombatEvent.BuffApplied(
+                        actor.name,
+                        target.name,
+                        effect.type.statOverride.id,
+                        BattleDelta(listOf(ActorDelta(name = target.name, stats = target.stats.toMap(), statOverrides = statOverrides)))
+                    ))
                 }
             }
             is SkillEffectType.DamageOverTime -> {
                 for (target in targets) {
                     effect.type.dot.let { target.temporalEffects.add(it.copy()) }
-                    effect.type.dot.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, fullBattleDelta(listOf(teamA, teamB)))) }
+                    // No dedicated DOT field in ActorDelta yet; keeping full snapshot would be inconsistent, so send minimal placeholder delta (no direct state change now)
+                    log.add(CombatEvent.BuffApplied(
+                        actor.name,
+                        target.name,
+                        effect.type.dot.id,
+                        BattleDelta(listOf(ActorDelta(name = target.name)))
+                    ))
                 }
             }
         }
@@ -256,7 +292,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
                             false -> max(0, actor.getHp() + amount)
                         }
                         actor.setHp(newHp)
-                        state.log.add(CombatEvent.ResourceDrained(actor.name, id, resource, amount, actor.getHp(), fullBattleDelta(listOf(state.teamA, state.teamB))))
+                        state.log.add(CombatEvent.ResourceDrained(actor.name, id, resource, amount, actor.getHp(), BattleDelta(listOf(ActorDelta(name = actor.name, hp = actor.getHp())))))
                     }
                 }
             }
