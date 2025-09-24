@@ -108,8 +108,7 @@ fun battleRound(state: BattleState, config: EngineConfig = EngineConfig()): Batt
     return state
 }
 
-fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill?
-{
+fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill? {
     // Only pick skills that are not on cooldown and actor has enough mana for
     val availableSkills = actor.skills.filter { (actor.cooldowns[it] ?: 0) <= 0 && actor.getMana() >= it.manaCost }
     return availableSkills.firstOrNull { it.activationRule(actor, allies, enemies) } ?: availableSkills.firstOrNull()
@@ -152,16 +151,19 @@ fun applySkill(
                     val modifiers = mutableListOf<DamageModifier>()
                     if (isCriticalHit) modifiers.add(DamageModifier.Critical)
                     val delta = buildBattleDelta(config, listOf(teamA, teamB), state)
-                    log.add(CombatEvent.DamageDealt(
-                        actor.name,
-                        target.name,
-                        finalDamage,
-                        target.getHp(),
-                        delta,
-                        modifiers,
-                    ))
+                    log.add(
+                        CombatEvent.DamageDealt(
+                            actor.name,
+                            target.name,
+                            finalDamage,
+                            target.getHp(),
+                            delta,
+                            modifiers,
+                        )
+                    )
                 }
             }
+
             is SkillEffectType.Heal -> {
                 for (target in targets) {
                     val heal = max(1, effect.type.power + (actor.stats["matk"] ?: 0))
@@ -170,6 +172,7 @@ fun applySkill(
                     log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), delta))
                 }
             }
+
             is SkillEffectType.StatBuff -> {
                 for (target in targets) {
                     effect.type.buff.let { target.temporalEffects.add(it.copy()) }
@@ -177,6 +180,7 @@ fun applySkill(
                     log.add(CombatEvent.BuffApplied(actor.name, target.name, effect.type.buff.id, delta))
                 }
             }
+
             is SkillEffectType.ResourceTick -> {
                 for (target in targets) {
                     effect.type.resourceTick.let { target.temporalEffects.add(it.copy()) }
@@ -184,6 +188,7 @@ fun applySkill(
                     log.add(CombatEvent.BuffApplied(actor.name, target.name, effect.type.resourceTick.id, delta))
                 }
             }
+
             is SkillEffectType.StatOverride -> {
                 for (target in targets) {
                     effect.type.statOverride.let { target.temporalEffects.add(it.copy()) }
@@ -191,6 +196,7 @@ fun applySkill(
                     log.add(CombatEvent.BuffApplied(actor.name, target.name, effect.type.statOverride.id, delta))
                 }
             }
+
             is SkillEffectType.DamageOverTime -> {
                 for (target in targets) {
                     effect.type.dot.let { target.temporalEffects.add(it.copy()) }
@@ -212,9 +218,13 @@ fun processBuffs(state: BattleState, actor: Actor, config: EngineConfig = Engine
             statBuffTotals[stat] = (statBuffTotals[stat] ?: 0) + change
         }
     }
-    for ((stat, value) in statBuffTotals) { actor.stats[stat] = value }
+    for ((stat, value) in statBuffTotals) {
+        actor.stats[stat] = value
+    }
     for (override in statOverrides) {
-        for ((stat, value) in override.statOverrides) { actor.stats[stat] = value }
+        for ((stat, value) in override.statOverrides) {
+            actor.stats[stat] = value
+        }
     }
     val expiredBuffs = actor.temporalEffects.filterIsInstance<DurationEffect.StatBuff>().filter { it.duration <= 0 }
     for (buff in expiredBuffs) {
@@ -231,21 +241,33 @@ fun processBuffs(state: BattleState, actor: Actor, config: EngineConfig = Engine
             for ((resource, amount) in totalResourceChanges) {
                 when (resource) {
                     "hp" -> {
-                        val newHp = if (amount > 0) min(actor.maxHp, actor.getHp() + amount) else max(0, actor.getHp() + amount)
+                        val newHp =
+                            if (amount > 0) min(actor.maxHp, actor.getHp() + amount) else max(0, actor.getHp() + amount)
                         actor.setHp(newHp)
                         val delta = buildBattleDelta(config, listOf(state.teamA, state.teamB), state)
-                        state.log.add(CombatEvent.ResourceDrained(actor.name, id, resource, amount, actor.getHp(), delta))
+                        state.log.add(
+                            CombatEvent.ResourceDrained(
+                                actor.name,
+                                id,
+                                resource,
+                                amount,
+                                actor.getHp(),
+                                delta
+                            )
+                        )
                     }
                 }
             }
         }
     }
-    actor.temporalEffects.replaceAll { when (it) {
-        is DurationEffect.StatBuff -> it.copy(duration = it.duration - 1)
-        is DurationEffect.ResourceTick -> it.copy(duration = it.duration - 1)
-        is DurationEffect.StatOverride -> it.copy(duration = it.duration - 1)
-        is DurationEffect.DamageOverTime -> it.copy(duration = it.duration - 1)
-    } }
+    actor.temporalEffects.replaceAll {
+        when (it) {
+            is DurationEffect.StatBuff -> it.copy(duration = it.duration - 1)
+            is DurationEffect.ResourceTick -> it.copy(duration = it.duration - 1)
+            is DurationEffect.StatOverride -> it.copy(duration = it.duration - 1)
+            is DurationEffect.DamageOverTime -> it.copy(duration = it.duration - 1)
+        }
+    }
     actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
     return state
 }
@@ -290,6 +312,7 @@ private fun buildBattleDelta(
             teams.flatMap { it.actors }.forEach { ctx.snapshots[it.name] = captureSnapshot(it) }
             full
         }
+
         DeltaMode.INITIAL_FULL_ONLY -> {
             if (isTerminal) return BattleDelta(emptyList())
             val patches = mutableListOf<ActorDelta>()
@@ -304,6 +327,7 @@ private fun buildBattleDelta(
             }
             BattleDelta(patches)
         }
+
         DeltaMode.KEYFRAMES -> {
             val eventIndex = state.log.size // before adding current event
             val isKeyframe = (eventIndex % config.keyframeInterval == 0) || isTerminal
@@ -318,7 +342,9 @@ private fun buildBattleDelta(
                     if (snap == null) {
                         ctx.snapshots[actor.name] = captureSnapshot(actor)
                     } else {
-                        diffActor(actor, snap)?.let { patches.add(it); ctx.snapshots[actor.name] = captureSnapshot(actor) }
+                        diffActor(actor, snap)?.let {
+                            patches.add(it); ctx.snapshots[actor.name] = captureSnapshot(actor)
+                        }
                     }
                 }
                 BattleDelta(patches)
@@ -333,9 +359,12 @@ private fun captureSnapshot(actor: Actor): ActorSnapshot = ActorSnapshot(
     mana = actor.getMana(),
     maxMana = actor.maxMana,
     stats = actor.stats.toMap(),
-    statBuffs = actor.temporalEffects.filterIsInstance<DurationEffect.StatBuff>().map { StatBuffDelta(it.id, it.duration, it.statChanges) },
-    resourceTicks = actor.temporalEffects.filterIsInstance<DurationEffect.ResourceTick>().map { ResourceTickDelta(it.id, it.duration, it.resourceChanges) },
-    statOverrides = actor.temporalEffects.filterIsInstance<DurationEffect.StatOverride>().map { StatOverrideDelta(it.id, it.duration, it.statOverrides) },
+    statBuffs = actor.temporalEffects.filterIsInstance<DurationEffect.StatBuff>()
+        .map { StatBuffDelta(it.id, it.duration, it.statChanges) },
+    resourceTicks = actor.temporalEffects.filterIsInstance<DurationEffect.ResourceTick>()
+        .map { ResourceTickDelta(it.id, it.duration, it.resourceChanges) },
+    statOverrides = actor.temporalEffects.filterIsInstance<DurationEffect.StatOverride>()
+        .map { StatOverrideDelta(it.id, it.duration, it.statOverrides) },
     cooldowns = actor.skills.associate { it.name to (actor.cooldowns[it] ?: 0) },
 )
 
@@ -349,20 +378,37 @@ private fun diffActor(actor: Actor, snap: ActorSnapshot): ActorDelta? {
     var statOverrides: List<StatOverrideDelta>? = null
     var cooldowns: Map<String, Int>? = null
     val currentHp = actor.getHp()
-    if (currentHp != snap.hp) { hp = currentHp; changed = true }
+    if (currentHp != snap.hp) {
+        hp = currentHp; changed = true
+    }
     val currentMana = actor.getMana()
-    if (currentMana != snap.mana) { mana = currentMana; changed = true }
+    if (currentMana != snap.mana) {
+        mana = currentMana; changed = true
+    }
     val currentStats = actor.stats.toMap()
-    if (currentStats != snap.stats) { stats = currentStats; changed = true }
-    val currentStatBuffs = actor.temporalEffects.filterIsInstance<DurationEffect.StatBuff>().map { StatBuffDelta(it.id, it.duration, it.statChanges) }
-    if (currentStatBuffs != snap.statBuffs) { statBuffs = currentStatBuffs; changed = true }
-    val currentResourceTicks = actor.temporalEffects.filterIsInstance<DurationEffect.ResourceTick>().map { ResourceTickDelta(it.id, it.duration, it.resourceChanges) }
-    if (currentResourceTicks != snap.resourceTicks) { resourceTicks = currentResourceTicks; changed = true }
-    val currentStatOverrides = actor.temporalEffects.filterIsInstance<DurationEffect.StatOverride>().map { StatOverrideDelta(it.id, it.duration, it.statOverrides) }
-    if (currentStatOverrides != snap.statOverrides) { statOverrides = currentStatOverrides; changed = true }
+    if (currentStats != snap.stats) {
+        stats = currentStats; changed = true
+    }
+    val currentStatBuffs = actor.temporalEffects.filterIsInstance<DurationEffect.StatBuff>()
+        .map { StatBuffDelta(it.id, it.duration, it.statChanges) }
+    if (currentStatBuffs != snap.statBuffs) {
+        statBuffs = currentStatBuffs; changed = true
+    }
+    val currentResourceTicks = actor.temporalEffects.filterIsInstance<DurationEffect.ResourceTick>()
+        .map { ResourceTickDelta(it.id, it.duration, it.resourceChanges) }
+    if (currentResourceTicks != snap.resourceTicks) {
+        resourceTicks = currentResourceTicks; changed = true
+    }
+    val currentStatOverrides = actor.temporalEffects.filterIsInstance<DurationEffect.StatOverride>()
+        .map { StatOverrideDelta(it.id, it.duration, it.statOverrides) }
+    if (currentStatOverrides != snap.statOverrides) {
+        statOverrides = currentStatOverrides; changed = true
+    }
     val currentCooldowns = actor.skills.associate { it.name to (actor.cooldowns[it] ?: 0) }
     val changedCooldownEntries = currentCooldowns.filter { (k, v) -> snap.cooldowns[k] != v }
-    if (changedCooldownEntries.isNotEmpty()) { cooldowns = changedCooldownEntries; changed = true }
+    if (changedCooldownEntries.isNotEmpty()) {
+        cooldowns = changedCooldownEntries; changed = true
+    }
     if (!changed) return null
     return ActorDelta(
         name = actor.name,
