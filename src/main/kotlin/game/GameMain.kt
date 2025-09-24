@@ -1,8 +1,9 @@
-package playground.engine_v1
+package game
 
 import kotlin.time.measureTime
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.File
 
 fun main() {
     val teamA = exampleTeam3(0)
@@ -20,7 +21,7 @@ fun main() {
 
     val json = Json.encodeToString(compactEvents)
 
-    java.io.File("output/battle_log.json").apply {
+    File("output/battle_log.json").apply {
         parentFile.mkdirs()
         writeText(json)
         println("Battle log written to $path, size: ${length()} bytes")
