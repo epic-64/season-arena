@@ -41,6 +41,12 @@ enum class DamageType {
     Absolute,
 }
 
+enum class DamageModifier {
+    Critical,
+    Blocked,
+    Resisted
+}
+
 sealed class SkillEffectType {
     data class Damage(val damageType: DamageType, val amount: Int) : SkillEffectType()
     data class Heal(val power: Int) : SkillEffectType()
@@ -157,60 +163,39 @@ data class Team(val actors: MutableList<Actor>) {
     }
 }
 
-// --- Actor Snapshot Data Structure ---
+// --- Actor Delta Data Structure ---
 @Serializable
-data class ActorSnapshot(
-    val actorClass: ActorClass,
+data class StatBuffDelta(val id: String, val duration: Int, val statChanges: Map<String, Int>)
+@Serializable
+data class ResourceTickDelta(val id: String, val duration: Int, val resourceChanges: Map<String, Int>)
+@Serializable
+data class StatOverrideDelta(val id: String, val duration: Int, val statOverrides: Map<String, Int>)
+
+@Serializable
+data class ActorDelta(
     val name: String,
-    val hp: Int,
-    val maxHp: Int,
-    val mana: Int,
-    val maxMana: Int,
-    val team: Int,
-    val stats: Map<String, Int>,
-    val statBuffs: List<StatBuffSnapshot>,
-    val resourceTicks: List<ResourceTickSnapshot>,
-    val statOverrides: List<StatOverrideSnapshot>,
-    val cooldowns: Map<String, Int> // skill name -> cooldown
+    val hp: Int? = null,
+    val maxHp: Int? = null,
+    val mana: Int? = null,
+    val maxMana: Int? = null,
+    val stats: Map<String, Int>? = null,
+    val statBuffs: List<StatBuffDelta>? = null,
+    val resourceTicks: List<ResourceTickDelta>? = null,
+    val statOverrides: List<StatOverrideDelta>? = null,
+    val cooldowns: Map<String, Int>? = null,
 )
 
 @Serializable
-data class StatBuffSnapshot(
-    val id: String,
-    val duration: Int,
-    val statChanges: Map<String, Int>
+data class BattleDelta(
+    val actors: List<ActorDelta>
 )
 
-@Serializable
-data class ResourceTickSnapshot(
-    val id: String,
-    val duration: Int,
-    val resourceChanges: Map<String, Int>
-)
-
-@Serializable
-data class StatOverrideSnapshot(
-    val id: String,
-    val duration: Int,
-    val statOverrides: Map<String, Int>
-)
-
-@Serializable
-data class BattleSnapshot(
-    val actors: List<ActorSnapshot>
-)
-
-enum class DamageModifier {
-    Critical,
-    Blocked,
-    Resisted
-}
-
+// --- Combat Events ---
 @Serializable
 sealed class CombatEvent {
     @Serializable
     @SerialName("TurnStart")
-    data class TurnStart(val turn: Int, val snapshot: BattleSnapshot) : CombatEvent()
+    data class TurnStart(val turn: Int, val delta: BattleDelta) : CombatEvent()
 
     @Serializable
     @SerialName("SkillUsed")
@@ -218,7 +203,7 @@ sealed class CombatEvent {
         val actor: String,
         val skill: String,
         val targets: List<String>,
-        val snapshot: BattleSnapshot
+        val delta: BattleDelta
     ) : CombatEvent()
 
     @Serializable
@@ -228,7 +213,7 @@ sealed class CombatEvent {
         val target: String,
         val amount: Int,
         val targetHp: Int,
-        val snapshot: BattleSnapshot,
+        val delta: BattleDelta,
         val modifiers: List<DamageModifier>
     ) : CombatEvent()
 
@@ -239,7 +224,7 @@ sealed class CombatEvent {
         val target: String,
         val amount: Int,
         val targetHp: Int,
-        val snapshot: BattleSnapshot
+        val delta: BattleDelta
     ) : CombatEvent()
 
     @Serializable
@@ -248,7 +233,7 @@ sealed class CombatEvent {
         val source: String,
         val target: String,
         val buffId: String,
-        val snapshot: BattleSnapshot
+        val delta: BattleDelta
     ) : CombatEvent()
 
     @Serializable
@@ -259,107 +244,20 @@ sealed class CombatEvent {
         val resource: String,
         val amount: Int,
         val targetResourceValue: Int,
-        val snapshot: BattleSnapshot
+        val delta: BattleDelta
     ) : CombatEvent()
 
     @Serializable
     @SerialName("BattleEnd")
-    data class BattleEnd(val winner: String, val snapshot: BattleSnapshot) : CombatEvent()
+    data class BattleEnd(val winner: String, val delta: BattleDelta) : CombatEvent()
 }
 
 // --- Delta and Compact Event Types ---
-
-@Serializable
-data class ActorDelta(
-    val name: String,
-    val hp: Int? = null,
-    val maxHp: Int? = null,
-    val mana: Int? = null,
-    val maxMana: Int? = null,
-    val stats: Map<String, Int>? = null,
-    val statBuffs: List<StatBuffSnapshot>? = null,
-    val resourceTicks: List<ResourceTickSnapshot>? = null,
-    val statOverrides: List<StatOverrideSnapshot>? = null,
-    val cooldowns: Map<String, Int>? = null,
-)
-
-@Serializable
-data class BattleDelta(
-    val actors: List<ActorDelta>
-)
-
-fun ActorDelta.hasAnyChange(): Boolean {
-    return ActorDelta::class.memberProperties
-        .filter { it.name != "name" }
-        .any { it.get(this) != null }
-}
-
-fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta {
-    val prevActors = prev.actors.associateBy { it.name }
-    val currActors = curr.actors.associateBy { it.name }
-    val deltas = mutableListOf<ActorDelta>()
-    for ((name, currActor) in currActors) {
-        val prevActor = prevActors[name]
-        if (prevActor == null) {
-            // New actor, include full
-            deltas.add(
-                ActorDelta(
-                    name = currActor.name,
-                    hp = currActor.hp,
-                    maxHp = currActor.maxHp,
-                    mana = currActor.mana,
-                    maxMana = currActor.maxMana,
-                    stats = currActor.stats,
-                    statBuffs = currActor.statBuffs,
-                    resourceTicks = currActor.resourceTicks,
-                    statOverrides = currActor.statOverrides,
-                    cooldowns = currActor.cooldowns
-                )
-            )
-        } else {
-            val delta = ActorDelta(
-                name = currActor.name,
-                hp = if (currActor.hp != prevActor.hp) currActor.hp else null,
-                maxHp = if (currActor.maxHp != prevActor.maxHp) currActor.maxHp else null,
-                mana = if (currActor.mana != prevActor.mana) currActor.mana else null,
-                maxMana = if (currActor.maxMana != prevActor.maxMana) currActor.maxMana else null,
-                stats = if (currActor.stats != prevActor.stats) currActor.stats else null,
-                statBuffs = if (currActor.statBuffs != prevActor.statBuffs) currActor.statBuffs else null,
-                resourceTicks = if (currActor.resourceTicks != prevActor.resourceTicks) currActor.resourceTicks else null,
-                statOverrides = if (currActor.statOverrides != prevActor.statOverrides) currActor.statOverrides else null,
-                cooldowns = if (currActor.cooldowns != prevActor.cooldowns) currActor.cooldowns else null
-            )
-
-            if (delta.hasAnyChange()) {
-                deltas.add(delta)
-            }
-        }
-    }
-    return BattleDelta(deltas)
-}
-
-fun BattleDelta.Companion.fromFullSnapshot(snapshot: BattleSnapshot): BattleDelta {
-    return BattleDelta(snapshot.actors.map {
-        ActorDelta(
-            name = it.name,
-            hp = it.hp,
-            maxHp = it.maxHp,
-            mana = it.mana,
-            maxMana = it.maxMana,
-            stats = it.stats,
-            statBuffs = it.statBuffs,
-            resourceTicks = it.resourceTicks,
-            statOverrides = it.statOverrides,
-            cooldowns = it.cooldowns
-        )
-    })
-}
-
 @Serializable
 sealed class CompactCombatEvent {
     @Serializable
     @SerialName("TurnStart")
-    data class TurnStart(val turn: Int, val snapshot: BattleSnapshot) : CompactCombatEvent()
+    data class TurnStart(val turn: Int, val delta: BattleDelta) : CompactCombatEvent()
 
     @Serializable
     @SerialName("SkillUsed")
@@ -421,42 +319,28 @@ sealed class CompactCombatEvent {
 
 fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
     val compactEvents = mutableListOf<CompactCombatEvent>()
-    var prevSnapshot: BattleSnapshot? = null
     for (event in events) {
         when (event) {
             is CombatEvent.TurnStart -> {
-                compactEvents.add(CompactCombatEvent.TurnStart(event.turn, event.snapshot))
-                prevSnapshot = event.snapshot
+                compactEvents.add(CompactCombatEvent.TurnStart(event.turn, event.delta))
             }
             is CombatEvent.SkillUsed -> {
-                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
-                compactEvents.add(CompactCombatEvent.SkillUsed(event.actor, event.skill, event.targets, delta))
-                prevSnapshot = event.snapshot
+                compactEvents.add(CompactCombatEvent.SkillUsed(event.actor, event.skill, event.targets, event.delta))
             }
             is CombatEvent.DamageDealt -> {
-                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
-                compactEvents.add(CompactCombatEvent.DamageDealt(event.source, event.target, event.amount, event.targetHp, delta))
-                prevSnapshot = event.snapshot
+                compactEvents.add(CompactCombatEvent.DamageDealt(event.source, event.target, event.amount, event.targetHp, event.delta))
             }
             is CombatEvent.Healed -> {
-                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
-                compactEvents.add(CompactCombatEvent.Healed(event.source, event.target, event.amount, event.targetHp, delta))
-                prevSnapshot = event.snapshot
+                compactEvents.add(CompactCombatEvent.Healed(event.source, event.target, event.amount, event.targetHp, event.delta))
             }
             is CombatEvent.BuffApplied -> {
-                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
-                compactEvents.add(CompactCombatEvent.BuffApplied(event.source, event.target, event.buffId, delta))
-                prevSnapshot = event.snapshot
+                compactEvents.add(CompactCombatEvent.BuffApplied(event.source, event.target, event.buffId, event.delta))
             }
             is CombatEvent.ResourceDrained -> {
-                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
-                compactEvents.add(CompactCombatEvent.ResourceDrained(event.target, event.buffId, event.resource, event.amount, event.targetResourceValue, delta))
-                prevSnapshot = event.snapshot
+                compactEvents.add(CompactCombatEvent.ResourceDrained(event.target, event.buffId, event.resource, event.amount, event.targetResourceValue, event.delta))
             }
             is CombatEvent.BattleEnd -> {
-                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
-                compactEvents.add(CompactCombatEvent.BattleEnd(event.winner, delta))
-                prevSnapshot = event.snapshot
+                compactEvents.add(CompactCombatEvent.BattleEnd(event.winner, event.delta))
             }
         }
     }
