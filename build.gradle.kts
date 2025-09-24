@@ -27,6 +27,8 @@ dependencies {
     // JWT parsing and validation
     implementation("com.auth0:java-jwt:4.4.0")
 
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.2.20")
+
     testImplementation(kotlin("test"))
     testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
     testImplementation("io.kotest:kotest-assertions-core:5.8.0")
@@ -51,6 +53,14 @@ tasks.register<JavaExec>("simulateBattle") {
     description = "Runs the GameMain main function"
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("playground.engine_v1.GameMainKt")
+}
+
+tasks.register<JavaExec>("generateJsDoc") {
+    group = "documentation"
+    description = "Generates JSDoc typedef file from Kotlin types"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("tools.GenerateJsDocKt")
+    args("--out", "frontend/src/generated-types.js")
 }
 
 kotlin {
