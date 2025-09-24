@@ -1,4 +1,9 @@
-/**\n * AUTO-GENERATED FILE. DO NOT EDIT DIRECTLY.\n * Regenerate with: ./gradlew generateJsDoc\n */\n\n/**
+/**
+ * AUTO-GENERATED FILE. DO NOT EDIT DIRECTLY.
+ * Regenerate with: ./gradlew generateJsDoc
+ */
+
+/**
  * @readonly
  * @enum {string}
  */

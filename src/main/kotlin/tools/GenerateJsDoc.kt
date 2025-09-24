@@ -34,7 +34,13 @@ object JsDocGenerator {
             }
         }
         return buildString {
-            append("""/**\n * AUTO-GENERATED FILE. DO NOT EDIT DIRECTLY.\n * Regenerate with: ./gradlew generateJsDoc\n */\n\n""")
+            append("""
+                |/**
+                | * AUTO-GENERATED FILE. DO NOT EDIT DIRECTLY.
+                | * Regenerate with: ./gradlew generateJsDoc
+                | */""".trimMargin())
+            append("\n\n")
+
             ctx.enumBuffer.forEach { append(it).append('\n') }
             ctx.typedefBuffer.forEach { append(it).append('\n') }
             ctx.unionBuffer.forEach { append(it).append('\n') }
