@@ -140,22 +140,6 @@ export const DamageModifier = {
  */
 
 /**
- * @typedef {Object} ActorSnapshot
- * @property {ActorClass} actorClass
- * @property {Object.<string, number>} cooldowns
- * @property {number} hp
- * @property {number} mana
- * @property {number} maxHp
- * @property {number} maxMana
- * @property {string} name
- * @property {ResourceTickSnapshot[]} resourceTicks
- * @property {StatBuffSnapshot[]} statBuffs
- * @property {StatOverrideSnapshot[]} statOverrides
- * @property {Object.<string, number>} stats
- * @property {number} team
- */
-
-/**
  * @typedef {Object} StatBuffSnapshot
  * @property {number} duration
  * @property {string} id
@@ -179,63 +163,6 @@ export const DamageModifier = {
 /**
  * @typedef {Object} BattleSnapshot
  * @property {ActorSnapshot[]} actors
- */
-
-/**
- * @typedef {Object} CombatEvent_BattleEnd
- * @property {BattleSnapshot} snapshot
- * @property {string} winner
- */
-
-/**
- * @typedef {Object} CombatEvent_BuffApplied
- * @property {string} buffId
- * @property {BattleSnapshot} snapshot
- * @property {string} source
- * @property {string} target
- */
-
-/**
- * @typedef {Object} CombatEvent_DamageDealt
- * @property {number} amount
- * @property {DamageModifier[]} modifiers
- * @property {BattleSnapshot} snapshot
- * @property {string} source
- * @property {string} target
- * @property {number} targetHp
- */
-
-/**
- * @typedef {Object} CombatEvent_Healed
- * @property {number} amount
- * @property {BattleSnapshot} snapshot
- * @property {string} source
- * @property {string} target
- * @property {number} targetHp
- */
-
-/**
- * @typedef {Object} CombatEvent_ResourceDrained
- * @property {number} amount
- * @property {string} buffId
- * @property {string} resource
- * @property {BattleSnapshot} snapshot
- * @property {string} target
- * @property {number} targetResourceValue
- */
-
-/**
- * @typedef {Object} CombatEvent_SkillUsed
- * @property {string} actor
- * @property {string} skill
- * @property {BattleSnapshot} snapshot
- * @property {string[]} targets
- */
-
-/**
- * @typedef {Object} CombatEvent_TurnStart
- * @property {BattleSnapshot} snapshot
- * @property {number} turn
  */
 
 /**
@@ -350,15 +277,27 @@ export const DamageModifier = {
  */
 
 /**
+ * @typedef {Object} ActorSnapshot
+ * @property {ActorClass} actorClass
+ * @property {Object.<string, number>} cooldowns
+ * @property {number} hp
+ * @property {number} mana
+ * @property {number} maxHp
+ * @property {number} maxMana
+ * @property {string} name
+ * @property {ResourceTickSnapshot[]} resourceTicks
+ * @property {StatBuffSnapshot[]} statBuffs
+ * @property {StatOverrideSnapshot[]} statOverrides
+ * @property {Object.<string, number>} stats
+ * @property {number} team
+ */
+
+/**
  * @typedef {(DurationEffect_DamageOverTime|DurationEffect_ResourceTick|DurationEffect_StatBuff|DurationEffect_StatOverride)} DurationEffect
  */
 
 /**
  * @typedef {(SkillEffectType_Damage|SkillEffectType_DamageOverTime|SkillEffectType_Heal|SkillEffectType_ResourceTick|SkillEffectType_StatBuff|SkillEffectType_StatOverride)} SkillEffectType
- */
-
-/**
- * @typedef {(CombatEvent_BattleEnd|CombatEvent_BuffApplied|CombatEvent_DamageDealt|CombatEvent_Healed|CombatEvent_ResourceDrained|CombatEvent_SkillUsed|CombatEvent_TurnStart)} CombatEvent
  */
 
 /**
