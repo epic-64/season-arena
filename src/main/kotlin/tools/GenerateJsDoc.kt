@@ -132,15 +132,15 @@ private fun parseTopLevelTypesFromFile(file: File): List<KClass<*>> {
 
 fun main(args: Array<String>) {
     val argMap = parseArgs(args)
-    val outPath = argMap["out"] ?: argMap["o"] ?: "frontend/src/generated-types.js"
-    val sourceFile = argMap["file"] ?: argMap["f"]
+    val outPath = argMap["out"] ?: argMap["o"] ?: throw IllegalArgumentException("Missing --out <path> argument")
+    val sourceFile = argMap["file"] ?: argMap["f"] ?: throw IllegalArgumentException("Missing --file <path> argument")
 
     val blacklist: Set<String> = setOfNotNull(
         CombatEvent::class.simpleName,
         ActorSnapshot::class.simpleName,
     )
 
-    val discovered = sourceFile?.let { parseTopLevelTypesFromFile(File(it)) } ?: emptyList()
+    val discovered = parseTopLevelTypesFromFile(File(sourceFile))
 
     // Filter out blacklisted simple or qualified names
     val roots = discovered.filter { k ->
@@ -153,6 +153,7 @@ fun main(args: Array<String>) {
     File(outPath).apply {
         parentFile?.mkdirs()
         writeText(output)
+
         println("[generateJsDoc] Roots: ${roots.mapNotNull { it.simpleName }}")
         if (blacklist.isNotEmpty()) println("[generateJsDoc] Blacklist(simple): $blacklist")
         println("[generateJsDoc] Wrote $absolutePath (${output.length} chars)")
