@@ -142,8 +142,12 @@ class GameEngineTest : StringSpec({
         log1.actor shouldBe attacker.name
         log1.skill shouldBe "Strike"
         log1.targets shouldBe listOf(defender.name)
-        // Mana cost is 0, so no changes => empty delta
-        log1.delta.actors.size shouldBe 0
+        // Cooldown changed from implicit 0 to 1 (skill cooldown), so delta contains one actor with cooldown update
+        log1.delta.actors.size shouldBe 1
+        log1.delta.actors[0] shouldBe ActorDelta(
+            name = attacker.name,
+            cooldowns = mapOf("Strike" to 1)
+        )
 
         val log2 = compactLog[1] as CompactCombatEvent.DamageDealt
 
