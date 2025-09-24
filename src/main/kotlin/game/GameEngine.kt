@@ -26,6 +26,7 @@ fun simulateBattle(teamA: Team, teamB: Team): BattleState {
 
     while (teamA.aliveActors().isNotEmpty() && teamB.aliveActors().isNotEmpty() && turn < maxTurns) {
         turn++
+        state = state.copy(turn = turn)
         state = battleRound(state)
     }
 
