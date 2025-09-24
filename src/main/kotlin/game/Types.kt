@@ -174,6 +174,7 @@ data class StatOverrideDelta(val id: String, val duration: Int, val statOverride
 @Serializable
 data class ActorDelta(
     val name: String,
+    val actorClass: ActorClass? = null,
     val hp: Int? = null,
     val maxHp: Int? = null,
     val mana: Int? = null,
