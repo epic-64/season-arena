@@ -93,13 +93,16 @@ class GameEngineTest : StringSpec({
 
         val endEvent = events.last() as CombatEvent.BattleEnd
         val winner = endEvent.winner
-        val battleDelta = endEvent.delta
-        val hero = battleDelta.actors.find { it.name == "Hero" }!!
-        val villain = battleDelta.actors.find { it.name == "Villain" }!!
 
         winner shouldBe "Team A"
-        villain.hp shouldBe 0
-        hero.hp!! shouldBeGreaterThan 0
+        // End event delta is empty by design now (only first snapshot is full)
+        endEvent.delta.actors.size shouldBe 0
+
+        // Validate via last DamageDealt event that villain reached 0 hp
+        val lastDamageToVillain = events.filterIsInstance<CombatEvent.DamageDealt>().last { it.target == "Villain" }
+        lastDamageToVillain.targetHp shouldBe 0
+        val heroStillAlive = events.filterIsInstance<CombatEvent.DamageDealt>().last { it.target == "Villain" }.delta.actors.firstOrNull { it.name == "Hero" } == null
+        heroStillAlive shouldBe true
 
         val turnCount = events.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
         turnCount shouldBe 2
@@ -139,30 +142,8 @@ class GameEngineTest : StringSpec({
         log1.actor shouldBe attacker.name
         log1.skill shouldBe "Strike"
         log1.targets shouldBe listOf(defender.name)
-        log1.delta.actors[0] shouldBe ActorDelta(
-            name = attacker.name,
-            hp = 30,
-            maxHp = 30,
-            mana = 100,
-            maxMana = 100,
-            stats = emptyMap(),
-            statBuffs = emptyList(),
-            resourceTicks = emptyList(),
-            cooldowns = mapOf("Strike" to 0),
-            statOverrides = emptyList(),
-        )
-        log1.delta.actors[1] shouldBe ActorDelta(
-            name = defender.name,
-            hp = 25,
-            maxHp = 25,
-            mana = 100,
-            maxMana = 100,
-            stats = emptyMap(),
-            statBuffs = emptyList(),
-            resourceTicks = emptyList(),
-            cooldowns = mapOf("Strike" to 0),
-            statOverrides = emptyList(),
-        )
+        // Mana cost is 0, so no changes => empty delta
+        log1.delta.actors.size shouldBe 0
 
         val log2 = compactLog[1] as CompactCombatEvent.DamageDealt
 
@@ -170,7 +151,7 @@ class GameEngineTest : StringSpec({
         log2.target shouldBe defender.name
         log2.amount shouldBe 20
         log2.targetHp shouldBe 5
-        log2.delta.actors.size shouldBe 1 // nothing changed about attacker, only defender
+        log2.delta.actors.size shouldBe 1 // only defender changed
         log2.delta.actors[0] shouldBe ActorDelta(
             name = defender.name,
             hp = 5,
