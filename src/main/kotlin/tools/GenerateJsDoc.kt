@@ -9,8 +9,6 @@ import kotlin.reflect.full.memberProperties
 
 /**
  * Generates a JSDoc typedef file for Kotlin domain classes / enums / sealed hierarchies.
- * Auto-discovers top-level classes in a specified source file (--file) unless empty, then uses a fallback list.
- * Blacklist with --blacklist Name1,Name2.
  */
 object JsDocGenerator {
     private data class Context(
