@@ -60,7 +60,12 @@ tasks.register<JavaExec>("generateJsDoc") {
     description = "Generates JSDoc typedef file from Kotlin types"
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("tools.GenerateJsDocKt")
+    args("--file", "src/main/kotlin/game/Types.kt")
     args("--out", "frontend/src/generated-types.js")
+    val blacklistProp = project.findProperty("jsdocBlacklist") as String?
+    if (!blacklistProp.isNullOrBlank()) {
+        args("--blacklist", blacklistProp)
+    }
 }
 
 kotlin {
