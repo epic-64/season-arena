@@ -63,11 +63,21 @@ fun battleTick(state: BattleState, actor: Actor): BattleState {
 
     if (skill != null) {
         val previousMana = actor.getMana()
+        val previousCooldown = actor.cooldowns[skill] ?: 0
         actor.setMana(actor.getMana() - skill.manaCost)
+        // Set cooldown BEFORE logging so delta reflects new value
+        actor.cooldowns[skill] = skill.cooldown
         val manaChanged = skill.manaCost > 0 && actor.getMana() != previousMana
+        val cooldownChanged = previousCooldown != skill.cooldown
         val initialTargets = skill.initialTargets(actor, allies, enemies)
         val targetNames = initialTargets.map { it.name }
-        val deltaActors = if (manaChanged) listOf(ActorDelta(name = actor.name, mana = actor.getMana())) else emptyList()
+        val deltaActors = if (manaChanged || cooldownChanged) listOf(
+            ActorDelta(
+                name = actor.name,
+                mana = if (manaChanged) actor.getMana() else null,
+                cooldowns = if (cooldownChanged) mapOf(skill.name to skill.cooldown) else null,
+            )
+        ) else emptyList()
         log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, BattleDelta(deltaActors)))
         applySkill(state, actor, skill, allies, enemies, initialTargets)
     }
@@ -234,8 +244,6 @@ fun applySkill(
             }
         }
     }
-    // Apply cooldown
-    actor.cooldowns[skill] = skill.cooldown
 
     return state
 }
