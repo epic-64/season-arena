@@ -176,10 +176,10 @@ function animateTurnStart(event) {
             text: `Turn ${event.turn}`
         });
         battlefield.appendChild(banner);
-        // Auto-remove after animation ends / timeout fallback
+        // Auto-remove after animation ends / timeout fallback (short ~500ms cycle)
         const cleanup = () => banner && banner.remove();
         banner.addEventListener('animationend', cleanup, { once: true });
-        setTimeout(cleanup, 4000);
+        setTimeout(cleanup, 650); // fallback shorter than event cadence
     } catch (e) {
         console.error('Turn start animation error', e);
     }

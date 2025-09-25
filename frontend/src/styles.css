@@ -642,41 +642,29 @@ body::before {
     }
 }
 
-/* Turn start banner */
+/* Turn start banner (simplified fast version) */
 .turn-banner {
     position: absolute;
-    top: 20px;
+    top: 8px;
     left: 50%;
     transform: translateX(-50%);
-    padding: 14px 38px 16px 38px;
-    font-size: 2.2em;
+    padding: 4px 16px 6px 16px;
+    font-size: 1.35em;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.05em;
     color: var(--ink);
-    text-shadow: 0 0 10px rgba(0,0,0,0.85), 0 0 14px rgba(212,175,55,0.55);
-    background: linear-gradient(145deg,#6a5138 0%, #4a3828 60%, #3a2c20 100%);
-    border: 2px solid #d4af37;
-    border-radius: 12px;
-    box-shadow: 0 4px 28px rgba(0,0,0,0.55), 0 0 0 2px rgba(212,175,55,0.25) inset;
-    animation: turnBannerEntrance 2800ms ease-out forwards;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid var(--accent-color);
+    border-radius: 6px;
+    text-shadow: 0 0 4px rgba(0,0,0,0.75);
+    animation: turnBannerFlash 420ms ease-out forwards;
     z-index: 50;
     pointer-events: none;
-    overflow: hidden;
 }
-.turn-banner::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 35% 45%, rgba(255,255,255,0.12), rgba(0,0,0,0) 70%),
-                radial-gradient(circle at 70% 60%, rgba(255,255,255,0.08), rgba(0,0,0,0) 65%);
-    mix-blend-mode: overlay;
-    opacity: 0.7;
-    pointer-events: none;
-}
-@keyframes turnBannerEntrance {
-    0% { opacity: 0; transform: translate(-50%, -40px) scale(0.85); filter: brightness(0.6); }
-    10% { opacity: 1; transform: translate(-50%, 0) scale(1.05); }
-    18% { transform: translate(-50%, 0) scale(1); }
-    75% { opacity: 1; }
-    100% { opacity: 0; transform: translate(-50%, -20px) scale(0.94); }
+.turn-banner::before { display: none; }
+@keyframes turnBannerFlash {
+    0% { opacity: 0; transform: translate(-50%, -10px) scale(0.9); }
+    40% { opacity: 1; transform: translate(-50%, 0) scale(1.03); }
+    70% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -6px) scale(0.95); }
 }
