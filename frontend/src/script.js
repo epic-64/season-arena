@@ -208,7 +208,7 @@ function updatePlayToggleButton()
 }
 
 /**
- * @param {Object} event
+ * @param {CompactCombatEvent} event
  */
 function animateEvent(event) {
     switch (event.type) {
