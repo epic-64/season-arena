@@ -99,7 +99,7 @@ class GameEngineTest : StringSpec({
         villain.hp shouldBe 0
         hero.hp shouldBeGreaterThan 0
 
-        val turnCount = events.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
+        val turnCount = events.count { it is CombatEvent.TurnStart }
         turnCount shouldBe 2
     }
 
