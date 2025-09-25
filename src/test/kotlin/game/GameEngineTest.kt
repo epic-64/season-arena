@@ -175,4 +175,86 @@ class GameEngineTest : StringSpec({
             // rest is missing (implicitly null). Using null to indicate no change.
         )
     }
+
+    "hp and mana regeneration are applied at start of turn" {
+        val regenerator = Actor(
+            actorClass = ActorClass.Cleric,
+            name = "Regen",
+            hp = 40,
+            maxHp = 50,
+            mana = 80,
+            maxMana = 100,
+            skills = emptyList(),
+            team = 0,
+            hpRegenPerTurn = 5,
+            manaRegenPerTurn = 7,
+        )
+        val dummyOpponent = Actor(
+            actorClass = ActorClass.Fighter,
+            name = "Dummy",
+            hp = 30,
+            maxHp = 30,
+            mana = 0,
+            maxMana = 0,
+            skills = emptyList(),
+            team = 1,
+        )
+        val teamA = Team(mutableListOf(regenerator))
+        val teamB = Team(mutableListOf(dummyOpponent))
+        val state = BattleState(teamA, teamB, turn = 1, log = mutableListOf())
+
+        battleTick(state, regenerator)
+
+        regenerator.getHp() shouldBe 45 // 40 + 5
+        regenerator.getMana() shouldBe 87 // 80 + 7
+
+        val hpRegenEvent = state.log.filterIsInstance<CombatEvent.ResourceRegenerated>().firstOrNull { it.target == "Regen" && it.resource == "hp" }
+        hpRegenEvent?.amount shouldBe 5
+        hpRegenEvent?.targetResourceValue shouldBe 45
+
+        val manaRegenEvent = state.log.filterIsInstance<CombatEvent.ResourceRegenerated>().firstOrNull { it.target == "Regen" && it.resource == "mana" }
+        manaRegenEvent?.amount shouldBe 7
+        manaRegenEvent?.targetResourceValue shouldBe 87
+    }
+
+    "regeneration does not exceed max values" {
+        val regenerator = Actor(
+            actorClass = ActorClass.Cleric,
+            name = "RegenCap",
+            hp = 49,
+            maxHp = 50,
+            mana = 99,
+            maxMana = 100,
+            skills = emptyList(),
+            team = 0,
+            hpRegenPerTurn = 5,
+            manaRegenPerTurn = 5,
+        )
+        val dummyOpponent = Actor(
+            actorClass = ActorClass.Fighter,
+            name = "Dummy2",
+            hp = 30,
+            maxHp = 30,
+            mana = 0,
+            maxMana = 0,
+            skills = emptyList(),
+            team = 1,
+        )
+        val teamA = Team(mutableListOf(regenerator))
+        val teamB = Team(mutableListOf(dummyOpponent))
+        val state = BattleState(teamA, teamB, turn = 1, log = mutableListOf())
+
+        battleTick(state, regenerator)
+
+        regenerator.getHp() shouldBe 50 // capped
+        regenerator.getMana() shouldBe 100 // capped
+
+        val hpRegenEvent = state.log.filterIsInstance<CombatEvent.ResourceRegenerated>().firstOrNull { it.target == "RegenCap" && it.resource == "hp" }
+        hpRegenEvent?.amount shouldBe 1 // only 1 needed to reach cap
+        hpRegenEvent?.targetResourceValue shouldBe 50
+
+        val manaRegenEvent = state.log.filterIsInstance<CombatEvent.ResourceRegenerated>().firstOrNull { it.target == "RegenCap" && it.resource == "mana" }
+        manaRegenEvent?.amount shouldBe 1 // only 1 needed to reach cap
+        manaRegenEvent?.targetResourceValue shouldBe 100
+    }
 })

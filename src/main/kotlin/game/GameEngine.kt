@@ -274,18 +274,43 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
 {
     val activeStatBuffs = actor.temporalEffects.filterIsInstance<DurationEffect.StatBuff>()
     val statBuffTotals = mutableMapOf<String, Int>()
-
     val statOverrides = actor.temporalEffects.filterIsInstance<DurationEffect.StatOverride>()
 
     // Passive regeneration (applied at the start of the actor's turn before other duration effects tick)
     if (actor.isAlive) {
         // HP regen
         if (actor.hpRegenPerTurn > 0 && actor.getHp() < actor.maxHp) {
-            actor.setHp(actor.getHp() + actor.hpRegenPerTurn)
+            val before = actor.getHp()
+            actor.setHp(before + actor.hpRegenPerTurn)
+            val gained = actor.getHp() - before
+            if (gained > 0) {
+                state.log.add(
+                    CombatEvent.ResourceRegenerated(
+                        target = actor.name,
+                        resource = "hp",
+                        amount = gained,
+                        targetResourceValue = actor.getHp(),
+                        snapshot = snapshotActors(listOf(state.teamA, state.teamB))
+                    )
+                )
+            }
         }
         // Mana regen
         if (actor.manaRegenPerTurn > 0 && actor.getMana() < actor.maxMana) {
+            val before = actor.getMana()
             actor.setMana(actor.getMana() + actor.manaRegenPerTurn)
+            val gained = actor.getMana() - before
+            if (gained > 0) {
+                state.log.add(
+                    CombatEvent.ResourceRegenerated(
+                        target = actor.name,
+                        resource = "mana",
+                        amount = gained,
+                        targetResourceValue = actor.getMana(),
+                        snapshot = snapshotActors(listOf(state.teamA, state.teamB))
+                    )
+                )
+            }
         }
     }
 
