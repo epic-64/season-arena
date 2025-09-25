@@ -110,7 +110,9 @@ data class Actor(
     val amplifiers: Amplifiers = Amplifiers(),
     val stats: MutableMap<String, Int> = mutableMapOf(),
     val temporalEffects: MutableList<DurationEffect> = mutableListOf(),
-    val cooldowns: MutableMap<Skill, Int> = mutableMapOf() // skill -> turns left
+    val cooldowns: MutableMap<Skill, Int> = mutableMapOf(), // skill -> turns left
+    val hpRegenPerTurn: Int = 0, // new: passive hp regeneration per turn (applied at start of turn)
+    val manaRegenPerTurn: Int = 0, // new: passive mana regeneration per turn (applied at start of turn)
 ) {
     val isAlive: Boolean get() = hp > 0
 
@@ -145,6 +147,8 @@ data class Actor(
             temporalEffects = temporalEffects.toMutableList(),
             cooldowns = cooldowns.toMutableMap(),
             amplifiers = amplifiers,
+            hpRegenPerTurn = hpRegenPerTurn,
+            manaRegenPerTurn = manaRegenPerTurn,
         )
     }
 }
