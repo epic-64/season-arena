@@ -52,7 +52,7 @@ tasks.register<JavaExec>("simulateBattle") {
     group = "application"
     description = "Runs the GameMain main function"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("playground.engine_v1.GameMainKt")
+    mainClass.set("game.GameMainKt")
 }
 
 tasks.register<JavaExec>("generateJsDoc") {

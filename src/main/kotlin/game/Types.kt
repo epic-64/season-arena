@@ -209,6 +209,10 @@ enum class DamageModifier {
 @Serializable
 sealed class CombatEvent {
     @Serializable
+    @SerialName("BattleStart")
+    data class BattleStart(val snapshot: BattleSnapshot) : CombatEvent()
+
+    @Serializable
     @SerialName("TurnStart")
     data class TurnStart(val turn: Int, val snapshot: BattleSnapshot) : CombatEvent()
 
@@ -358,8 +362,12 @@ fun BattleDelta.Companion.fromFullSnapshot(snapshot: BattleSnapshot): BattleDelt
 @Serializable
 sealed class CompactCombatEvent {
     @Serializable
+    @SerialName("BattleStart")
+    data class BattleStart(val snapshot: BattleSnapshot) : CompactCombatEvent()
+
+    @Serializable
     @SerialName("TurnStart")
-    data class TurnStart(val turn: Int, val snapshot: BattleSnapshot) : CompactCombatEvent()
+    data class TurnStart(val turn: Int, val delta: BattleDelta) : CompactCombatEvent()
 
     @Serializable
     @SerialName("SkillUsed")
@@ -424,8 +432,13 @@ fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
     var prevSnapshot: BattleSnapshot? = null
     for (event in events) {
         when (event) {
+            is CombatEvent.BattleStart -> {
+                compactEvents.add(CompactCombatEvent.BattleStart(event.snapshot))
+                prevSnapshot = event.snapshot
+            }
             is CombatEvent.TurnStart -> {
-                compactEvents.add(CompactCombatEvent.TurnStart(event.turn, event.snapshot))
+                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
+                compactEvents.add(CompactCombatEvent.TurnStart(event.turn, delta))
                 prevSnapshot = event.snapshot
             }
             is CombatEvent.SkillUsed -> {
