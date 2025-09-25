@@ -74,10 +74,10 @@ function initializeActors(snapshot)
             styles: { width: actor.maxMana > 0 ? `${(actor.mana / actor.maxMana) * 100}%` : '0%' }
         });
 
-        const healthBarContainer = createElement('div', { classes: ['health-bar-container'] });
+        const healthBarContainer = createElement('div', { classes: ['resource-bar-container'] });
         healthBarContainer.append(healthBar);
 
-        const manaBarContainer = createElement('div', { classes: ['health-bar-container'] });
+        const manaBarContainer = createElement('div', { classes: ['resource-bar-container'] });
         manaBarContainer.append(manaBar);
 
         const statusEffects = createElement('div', { classes: ['status-effects'] });
