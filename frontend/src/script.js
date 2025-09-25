@@ -68,17 +68,25 @@ function initializeActors(snapshot)
             classes: ['health-bar'],
             styles: { width: `${(actor.hp / actor.maxHp) * 100}%` }
         });
+        const healthBarValue = createElement('span', {
+            classes: ['bar-value'],
+            text: `${actor.hp} / ${actor.maxHp}`
+        });
+        const healthBarContainer = createElement('div', { classes: ['resource-bar-container'] });
+        healthBarContainer.append(healthBar);
+        healthBarContainer.append(healthBarValue);
 
         const manaBar = createElement('div', {
             classes: ['mana-bar'],
             styles: { width: actor.maxMana > 0 ? `${(actor.mana / actor.maxMana) * 100}%` : '0%' }
         });
-
-        const healthBarContainer = createElement('div', { classes: ['resource-bar-container'] });
-        healthBarContainer.append(healthBar);
-
+        const manaBarValue = createElement('span', {
+            classes: ['bar-value'],
+            text: `${actor.mana} / ${actor.maxMana}`
+        });
         const manaBarContainer = createElement('div', { classes: ['resource-bar-container'] });
         manaBarContainer.append(manaBar);
+        manaBarContainer.append(manaBarValue);
 
         const statusEffects = createElement('div', { classes: ['status-effects'] });
 
@@ -163,7 +171,9 @@ function updateActorDisplay(actor)
     }
 
     // Update health bar
-    const healthBar = actorDiv.querySelector('.health-bar');
+    const healthBarContainer = actorDiv.querySelectorAll('.resource-bar-container')[0];
+    const healthBar = healthBarContainer.querySelector('.health-bar');
+    const healthBarValue = healthBarContainer.querySelector('.bar-value');
     if (!healthBar) {
         console.error('Health bar element not found');
         return;
@@ -177,13 +187,23 @@ function updateActorDisplay(actor)
     } else if (percent < 0.66) {
         healthBar.classList.add('health-bar-yellow');
     }
-
-    const manaBar = actorDiv.querySelector('.mana-bar');
+    // Update health value text
+    if (healthBarValue) {
+        healthBarValue.textContent = `${actor.hp} / ${actor.maxHp}`;
+    }
+    // Update mana bar
+    const manaBarContainer = actorDiv.querySelectorAll('.resource-bar-container')[1];
+    const manaBar = manaBarContainer.querySelector('.mana-bar');
+    const manaBarValue = manaBarContainer.querySelector('.bar-value');
     const manaPercent = actor.maxMana > 0 ? (actor.mana / actor.maxMana) : 0;
     manaBar.style.width = `${manaPercent * 100}%`;
     manaBar.classList.remove('mana-bar-low');
     if (manaPercent < 0.33) {
         manaBar.classList.add('mana-bar-low');
+    }
+    // Update mana value text
+    if (manaBarValue) {
+        manaBarValue.textContent = `${actor.mana} / ${actor.maxMana}`;
     }
 
 
