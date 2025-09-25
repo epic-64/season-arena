@@ -140,6 +140,8 @@ fun exampleTeam3(team: Int): Team {
         maxHp = 450,
         mana = 100,
         maxMana = 100,
+        manaRegenPerTurn = 1,
+        hpRegenPerTurn = 1,
         skills = listOf(solo),
         team = team,
         amplifiers = Amplifiers(magicalDamageAdded = 30.0, physicalDamageAdded = 10.0)
