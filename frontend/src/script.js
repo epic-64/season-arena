@@ -84,7 +84,7 @@ function initializeActors(snapshot)
 
 /**
  * @param {HTMLElement} container
- * @param {StatBuffSnapshot[]|ResourceTickSnapshot[]} effects
+ * @param {StatBuffSnapshot[]|ResourceTickSnapshot[]|StatOverrideSnapshot[]} effects
  * @param {(effect: StatBuffSnapshot|ResourceTickSnapshot) => string | undefined } getTitle
  */
 function renderStatusEffects(container, effects, getTitle) {
