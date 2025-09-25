@@ -29,3 +29,16 @@
     box-shadow: 0 0 8px 0 #ff2222;
 }
 
+.mana-bar {
+    height: 6px;
+    margin-top: 2px;
+    background: linear-gradient(90deg, #3a3aff 0%, #6ec6ff 90%, #b3e0ff 100%);
+    border-radius: 6px;
+    box-shadow: 0 0 6px 0 #6ec6ff;
+    transition: width 0.4s, background 0.4s, box-shadow 0.4s;
+}
+
+.mana-bar-low {
+    background: linear-gradient(90deg, #2a2a6a 0%, #3a3aff 90%, #6ec6ff 100%);
+    box-shadow: 0 0 6px 0 #3a3aff;
+}

@@ -53,14 +53,12 @@ function initializeActors(snapshot)
             classes: ['actor']
         });
 
-        // Portrait image
         const portraitImg = createElement('img', {
             classes: ['portrait'],
         });
         portraitImg.src = getPortraitSrc(actor.actorClass);
         portraitImg.alt = actor.actorClass;
 
-        // Name plate (new)
         const namePlate = createElement('div', {
             text: actor.name,
             classes: ['actor-name']
@@ -70,12 +68,24 @@ function initializeActors(snapshot)
             classes: ['health-bar'],
             styles: { width: `${(actor.hp / actor.maxHp) * 100}%` }
         });
-        const statusEffects = createElement('div', { classes: ['status-effects'] });
+
+        const manaBar = createElement('div', {
+            classes: ['mana-bar'],
+            styles: { width: actor.maxMana > 0 ? `${(actor.mana / actor.maxMana) * 100}%` : '0%' }
+        });
+
         const healthBarContainer = createElement('div', { classes: ['health-bar-container'] });
-        healthBarContainer.append(healthBar); // keep only bar inside to avoid hiding effects
+        healthBarContainer.append(healthBar);
+
+        const manaBarContainer = createElement('div', { classes: ['health-bar-container'] });
+        manaBarContainer.append(manaBar);
+
+        const statusEffects = createElement('div', { classes: ['status-effects'] });
+
         actorDiv.appendChild(namePlate);
         actorDiv.appendChild(portraitImg);
         actorDiv.appendChild(healthBarContainer);
+        actorDiv.appendChild(manaBarContainer);
         actorDiv.appendChild(statusEffects); // below bar, visible (container has overflow hidden)
 
         (actor.team === 0 ? heroes : enemies).appendChild(actorDiv);
@@ -161,15 +171,21 @@ function updateActorDisplay(actor)
 
     const percent = actor.maxHp > 0 ? (actor.hp / actor.maxHp) : 0;
     healthBar.style.width = `${percent * 100}%`;
-
-    // Remove previous color classes
     healthBar.classList.remove('health-bar-yellow', 'health-bar-red');
     if (percent < 0.33) {
         healthBar.classList.add('health-bar-red');
     } else if (percent < 0.66) {
         healthBar.classList.add('health-bar-yellow');
     }
-    // else: default green/blue
+
+    const manaBar = actorDiv.querySelector('.mana-bar');
+    const manaPercent = actor.maxMana > 0 ? (actor.mana / actor.maxMana) : 0;
+    manaBar.style.width = `${manaPercent * 100}%`;
+    manaBar.classList.remove('mana-bar-low');
+    if (manaPercent < 0.33) {
+        manaBar.classList.add('mana-bar-low');
+    }
+
 
     // Update status effects
     const statusEffects = actorDiv.querySelector('.status-effects');

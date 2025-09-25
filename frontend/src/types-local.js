@@ -9,4 +9,3 @@ export const CombatEventType = {
     Healed: 'Healed',
     ResourceDrained: 'ResourceDrained'
 };
-
