@@ -271,6 +271,16 @@ sealed class CombatEvent {
     ) : CombatEvent()
 
     @Serializable
+    @SerialName("ResourceRegenerated")
+    data class ResourceRegenerated(
+        val target: String,
+        val resource: String,
+        val amount: Int,
+        val targetResourceValue: Int,
+        val snapshot: BattleSnapshot
+    ) : CombatEvent()
+
+    @Serializable
     @SerialName("BattleEnd")
     data class BattleEnd(val winner: String, val snapshot: BattleSnapshot) : CombatEvent()
 }
@@ -427,6 +437,16 @@ sealed class CompactCombatEvent {
     ) : CompactCombatEvent()
 
     @Serializable
+    @SerialName("ResourceRegenerated")
+    data class ResourceRegenerated(
+        val target: String,
+        val resource: String,
+        val amount: Int,
+        val targetResourceValue: Int,
+        val delta: BattleDelta
+    ) : CompactCombatEvent()
+
+    @Serializable
     @SerialName("BattleEnd")
     data class BattleEnd(val winner: String, val delta: BattleDelta) : CompactCombatEvent()
 }
@@ -468,6 +488,11 @@ fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
             is CombatEvent.ResourceDrained -> {
                 val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
                 compactEvents.add(CompactCombatEvent.ResourceDrained(event.target, event.buffId, event.resource, event.amount, event.targetResourceValue, delta))
+                prevSnapshot = event.snapshot
+            }
+            is CombatEvent.ResourceRegenerated -> {
+                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
+                compactEvents.add(CompactCombatEvent.ResourceRegenerated(event.target, event.resource, event.amount, event.targetResourceValue, delta))
                 prevSnapshot = event.snapshot
             }
             is CombatEvent.BattleEnd -> {
