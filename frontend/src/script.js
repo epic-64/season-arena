@@ -93,8 +93,8 @@ function renderStatusEffects(container, effects, getTitle) {
 
 /**
  * @param {HTMLElement} container
- * @param {StatBuffSnapshot|ResourceTickSnapshot} effect
- * @param {(effect: StatBuffSnapshot|ResourceTickSnapshot) => string | undefined } getTitle
+ * @param {StatBuffSnapshot|ResourceTickSnapshot|StatOverrideSnapshot} effect
+ * @param {(effect: StatBuffSnapshot|ResourceTickSnapshot|StatOverrideSnapshot) => string } getTitle
  */
 function renderStatusEffect(container, effect, getTitle) {
     const symbol = statusEmojis[effect.id] || '✨';
@@ -181,7 +181,7 @@ function updateActorDisplay(actor)
     statusEffects.innerHTML = '';
     renderStatusEffects(statusEffects, actor.statBuffs, buff => buff.statChanges ? `+${JSON.stringify(buff.statChanges)} (${buff.duration || 0}t)` : undefined);
     renderStatusEffects(statusEffects, actor.resourceTicks, tick => tick.resourceChanges ? `${JSON.stringify(tick.resourceChanges)} (${tick.duration || 0}t)` : undefined);
-    renderStatusEffects(statusEffects, actor.statOverrides, override => override.stats ? `=${JSON.stringify(override.stats)}` : undefined);
+    renderStatusEffects(statusEffects, actor.statOverrides, override => override.statOverrides ? `=${JSON.stringify(override.statOverrides)}` : undefined);
 }
 
 const playback = createPlayback();
