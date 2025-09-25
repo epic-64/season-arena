@@ -160,11 +160,37 @@ function showFloatingNumber(actorEl, value, kind) {
     setTimeout(function() { if (num && num.parentNode) num.remove(); }, 1000);
 }
 
+// === New Turn Start Animation ===
+/**
+ * @param {CompactCombatEvent_TurnStart} event - The turn start event (expects event.turn)
+ */
+function animateTurnStart(event) {
+    try {
+        const battlefield = document.querySelector('.battlefield') || document.body;
+        // Remove any existing banner (in case of quick stepping)
+        const existing = battlefield.querySelector('.turn-banner');
+        if (existing) existing.remove();
+
+        const banner = createElement('div', {
+            classes: ['turn-banner'],
+            text: `Turn ${event.turn}`
+        });
+        battlefield.appendChild(banner);
+        // Auto-remove after animation ends / timeout fallback
+        const cleanup = () => banner && banner.remove();
+        banner.addEventListener('animationend', cleanup, { once: true });
+        setTimeout(cleanup, 4000);
+    } catch (e) {
+        console.error('Turn start animation error', e);
+    }
+}
+
 export {
     animateSkillUsed,
     animateDamageDealt,
     animateResourceDrained,
     animateHeal,
     animateBuffApplied,
-    showFloatingNumber
+    showFloatingNumber,
+    animateTurnStart
 };

@@ -3,7 +3,8 @@ import {
     animateDamageDealt,
     animateHeal,
     animateResourceDrained,
-    animateSkillUsed
+    animateSkillUsed,
+    animateTurnStart
 } from './animations.js';
 
 import {statusEmojis} from './emojiMappings.js';
@@ -249,7 +250,7 @@ function updatePlayToggleButton()
 function animateEvent(event) {
     switch (event.type) {
         case CombatEventType.TurnStart:
-            // No special animation for turn start
+            animateTurnStart(event);
             break;
         case CombatEventType.SkillUsed:
             animateSkillUsed(event);
