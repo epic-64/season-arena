@@ -1,6 +1,6 @@
 /* Health bar related styles extracted from styles.css */
 
-.health-bar-container {
+.resource-bar-container {
     width: var(--portrait-size);
     height: 12px;
     background: linear-gradient(90deg, #2a231d 0%, #382d25 100%);
