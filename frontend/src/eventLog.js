@@ -1,7 +1,7 @@
 // Event log formatting and logging utilities
 
 import {createElement} from "./utils.js";
-import {CombatEventType} from "./types.js";
+import {CombatEventType} from './types-local.js';
 
 function updateActionLog(message) {
     const logContainer = document.getElementById('action-log');
@@ -117,4 +117,3 @@ function logEventUnified(event) {
 }
 
 export { formatEventLog, logEventUnified, updateActionLog };
-

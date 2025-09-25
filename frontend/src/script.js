@@ -7,7 +7,8 @@ import {
 } from './animations.js';
 
 import {statusEmojis} from './emojiMappings.js';
-import {ActorClass, CombatEventType} from './types.js';
+import {ActorClass} from '../generated/types.js';
+import {CombatEventType} from './types-local.js';
 import {createElement} from './utils.js';
 import {createPlayback} from './playback.js';
 
