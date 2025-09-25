@@ -277,6 +277,18 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
 
     val statOverrides = actor.temporalEffects.filterIsInstance<DurationEffect.StatOverride>()
 
+    // Passive regeneration (applied at the start of the actor's turn before other duration effects tick)
+    if (actor.isAlive) {
+        // HP regen
+        if (actor.hpRegenPerTurn > 0 && actor.getHp() < actor.maxHp) {
+            actor.setHp(actor.getHp() + actor.hpRegenPerTurn)
+        }
+        // Mana regen
+        if (actor.manaRegenPerTurn > 0 && actor.getMana() < actor.maxMana) {
+            actor.setMana(actor.getMana() + actor.manaRegenPerTurn)
+        }
+    }
+
     for (buff in activeStatBuffs) {
         for ((stat, change) in buff.statChanges) {
             statBuffTotals[stat] = (statBuffTotals[stat] ?: 0) + change
