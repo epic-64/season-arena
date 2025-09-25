@@ -3,7 +3,7 @@
 
 import { initializeActors, updateAllActorDisplays, animateEvent, updatePlayToggleButton } from './script.js';
 import { logEventUnified } from './eventLog.js';
-import {CombatEventType} from "./types.js";
+import {CombatEventType} from './types-local.js';
 
 function createPlayback() {
     return {
