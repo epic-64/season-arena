@@ -277,7 +277,7 @@ function animateEvent(event) {
 async function runBattleApplication() {
     const logData = await loadLog();
 
-    const initialSnapshotEvent = logData.find(e => e.type === CombatEventType.TurnStart);
+    const initialSnapshotEvent = logData.find(e => e.type === CombatEventType.BattleStart);
     if (!initialSnapshotEvent?.snapshot) {
         console.error("Initial snapshot not found in log.");
         return;

@@ -1,6 +1,7 @@
 // Local type definitions for frontend
 
 export const CombatEventType = {
+    BattleStart: 'BattleStart',
     TurnStart: 'TurnStart',
     SkillUsed: 'SkillUsed',
     BuffApplied: 'BuffApplied',
