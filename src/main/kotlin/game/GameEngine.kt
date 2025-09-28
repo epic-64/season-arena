@@ -289,7 +289,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
                         target = actor.name,
                         resource = "hp",
                         amount = gained,
-                        targetResourceValue = actor.getHp(),
+                        newValue = actor.getHp(),
                         snapshot = snapshotActors(listOf(state.teamA, state.teamB))
                     )
                 )
@@ -306,7 +306,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
                         target = actor.name,
                         resource = "mana",
                         amount = gained,
-                        targetResourceValue = actor.getMana(),
+                        newValue = actor.getMana(),
                         snapshot = snapshotActors(listOf(state.teamA, state.teamB))
                     )
                 )
