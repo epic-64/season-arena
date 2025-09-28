@@ -6,8 +6,8 @@ import kotlinx.serialization.json.Json
 import java.io.File
 
 fun main() {
-    val teamA = exampleTeam3(0)
-    val teamB = exampleTeam4(1)
+    val teamA = exampleTeam1()
+    val teamB = exampleTeam2()
 
     val events = simulateBattle(teamA, teamB).log
     println("Battle log has ${events.size} events")
