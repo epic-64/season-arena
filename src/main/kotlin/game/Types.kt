@@ -455,18 +455,17 @@ sealed class CompactCombatEvent {
     data class CBattleEnd(val winner: String, val delta: BattleDelta) : CompactCombatEvent()
 }
 
-fun toCompactCombatEvent(event: CombatEvent, delta: BattleDelta): CompactCombatEvent =
-    when (event) {
-        is BattleStart -> CBattleStart(event.snapshot)
-        is TurnStart -> CTurnStart(event.turn, delta)
-        is SkillUsed -> with(event) { CSkillUsed(actor, skill, targets, delta) }
-        is DamageDealt -> with(event) { CDamageDealt(source, target, amount, targetHp, delta) }
-        is Healed -> with(event) { CHealed(source, target, amount, targetHp, delta) }
-        is BuffApplied -> with(event) { CBuffApplied(source, target, buffId, delta) }
-        is ResourceDrained -> with(event) { CResourceDrained(target, buffId, resource, amount, newValue, delta) }
-        is ResourceRegenerated -> with(event) { CResourceRegenerated(target, resource, amount, newValue, delta) }
-        is BattleEnd -> CBattleEnd(event.winner, delta)
-    }
+fun CombatEvent.toCompactCombatEvent(delta: BattleDelta): CompactCombatEvent = when (this) {
+    is BattleStart -> CBattleStart(snapshot)
+    is TurnStart -> CTurnStart(turn, delta)
+    is SkillUsed -> CSkillUsed(actor, skill, targets, delta)
+    is DamageDealt -> CDamageDealt(source, target, amount, targetHp, delta)
+    is Healed -> CHealed(source, target, amount, targetHp, delta)
+    is BuffApplied -> CBuffApplied(source, target, buffId, delta)
+    is ResourceDrained -> CResourceDrained(target, buffId, resource, amount, newValue, delta)
+    is ResourceRegenerated -> CResourceRegenerated(target, resource, amount, newValue, delta)
+    is BattleEnd -> CBattleEnd(winner, delta)
+}
 
 fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
     val compactEvents = mutableListOf<CompactCombatEvent>()
@@ -476,13 +475,13 @@ fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
     // For the first event, we always include the full snapshot as delta
     var prevSnapshot: BattleSnapshot = firstEvent.snapshot
     val firstDelta = BattleDelta.fullSnapshot(prevSnapshot)
-    val firstCompactEvent = toCompactCombatEvent(firstEvent, firstDelta)
+    val firstCompactEvent = firstEvent.toCompactCombatEvent(firstDelta)
     compactEvents.add(firstCompactEvent)
     prevSnapshot = firstEvent.snapshot
 
     for (event in events.drop(1)) {
         val delta = computeBattleDelta(prevSnapshot, event.snapshot)
-        val compactEvent = toCompactCombatEvent(event, delta)
+        val compactEvent = event.toCompactCombatEvent(delta)
         compactEvents.add(compactEvent)
         prevSnapshot = event.snapshot
     }
