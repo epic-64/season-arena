@@ -7,7 +7,6 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
 
-
 fun snapshotActors(teams: List<Team>): BattleSnapshot {
     return BattleSnapshot(
         actors = teams.flatMap { team ->
@@ -21,7 +20,7 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
                     maxMana = actor.maxMana,
                     team = actor.team,
                     stats = actor.stats.toMap(),
-                    statBuffs = actor.temporalEffects.filterIsInstance<DurationEffect.StatBuff>()
+                    statBuffs = actor.temporalEffects.filterIsInstance<TemporalEffect.StatBuff>()
                         .groupBy { it.id }
                         .map { (id, buffs) ->
                             // Summarize statChanges by summing values for each stat
@@ -37,7 +36,7 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
                                 statChanges = mergedStatChanges
                             )
                         },
-                    resourceTicks = actor.temporalEffects.filterIsInstance<DurationEffect.ResourceTick>()
+                    resourceTicks = actor.temporalEffects.filterIsInstance<TemporalEffect.ResourceTick>()
                         .groupBy { it.id }
                         .map { (id, ticks) ->
                             // Summarize resourceChanges by summing values for each resource
@@ -53,7 +52,7 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
                                 resourceChanges = mergedResourceChanges
                             )
                         },
-                    statOverrides = actor.temporalEffects.filterIsInstance<DurationEffect.StatOverride>()
+                    statOverrides = actor.temporalEffects.filterIsInstance<TemporalEffect.StatOverride>()
                         .groupBy { it.id }
                         .map { (id, overrides) ->
                             // Summarize statOverrides by taking the latest value for each stat
@@ -272,9 +271,9 @@ fun applySkill(
 
 fun processBuffs(state: BattleState, actor: Actor): BattleState
 {
-    val activeStatBuffs = actor.temporalEffects.filterIsInstance<DurationEffect.StatBuff>()
+    val activeStatBuffs = actor.temporalEffects.filterIsInstance<TemporalEffect.StatBuff>()
     val statBuffTotals = mutableMapOf<String, Int>()
-    val statOverrides = actor.temporalEffects.filterIsInstance<DurationEffect.StatOverride>()
+    val statOverrides = actor.temporalEffects.filterIsInstance<TemporalEffect.StatOverride>()
 
     // Passive regeneration (applied at the start of the actor's turn before other duration effects tick)
     if (actor.isAlive) {
@@ -333,7 +332,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
     }
 
     // Remove stats for buffs that have expired
-    val expiredBuffs = actor.temporalEffects.filterIsInstance<DurationEffect.StatBuff>().filter { it.duration <= 0 }
+    val expiredBuffs = actor.temporalEffects.filterIsInstance<TemporalEffect.StatBuff>().filter { it.duration <= 0 }
     for (buff in expiredBuffs) {
         for ((stat, _) in buff.statChanges) {
             // Remove stat if no other active buff provides it
@@ -344,7 +343,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
     }
 
     // --- ResourceTicks: aggregate by id ---
-    val resourceTickGroups = actor.temporalEffects.filterIsInstance<DurationEffect.ResourceTick>().groupBy { it.id }
+    val resourceTickGroups = actor.temporalEffects.filterIsInstance<TemporalEffect.ResourceTick>().groupBy { it.id }
     for ((id, ticks) in resourceTickGroups) {
         if (ticks.isNotEmpty()) {
             // Aggregate resource changes
@@ -366,12 +365,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
         }
     }
 
-    actor.temporalEffects.replaceAll { when (it) {
-        is DurationEffect.StatBuff -> it.copy(duration = it.duration - 1)
-        is DurationEffect.ResourceTick -> it.copy(duration = it.duration - 1)
-        is DurationEffect.StatOverride -> it.copy(duration = it.duration - 1)
-        is DurationEffect.DamageOverTime -> it.copy(duration = it.duration - 1)
-    } }
+    actor.temporalEffects.replaceAll { it.decrement() }
 
     actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
 

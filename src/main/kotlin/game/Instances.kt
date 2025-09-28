@@ -45,7 +45,7 @@ val takeAim = Skill(
     initialTargets = ::actorSelf,
     effects = listOf(
         SkillEffect(type = SkillEffectType.StatBuff(
-            DurationEffect.StatBuff(id = "Amplify", duration = 1, statChanges = mapOf("amplify" to 200))
+            TemporalEffect.StatBuff(id = "Amplify", duration = 1, statChanges = mapOf("amplify" to 200))
         ))
     ),
     activationRule = ::atLeastOneEnemyAlive,
@@ -67,7 +67,7 @@ val cheer = Skill(
     initialTargets = ::allAllies,
     effects = listOf(
         SkillEffect(type = SkillEffectType.StatOverride(
-            DurationEffect.StatOverride(id = "Cheer", duration = 1, statOverrides = mapOf("critChance" to 100))
+            TemporalEffect.StatOverride(id = "Cheer", duration = 1, statOverrides = mapOf("critChance" to 100))
         ))
     ),
     activationRule = { _, allies, _ ->
@@ -104,7 +104,7 @@ val fireball = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 25)),
         SkillEffect(type = SkillEffectType.ResourceTick(
-            DurationEffect.ResourceTick(id = "Burn", duration = 2, resourceChanges = mapOf("hp" to -10))
+            TemporalEffect.ResourceTick(id = "Burn", duration = 2, resourceChanges = mapOf("hp" to -10))
         ))
     ),
     activationRule = ::atLeastOneEnemyAlive,
@@ -118,7 +118,7 @@ val spark = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 10)),
         SkillEffect(type = SkillEffectType.StatBuff(
-            DurationEffect.StatBuff(id = "Shock", duration = 2, statChanges = mapOf("def" to -5))
+            TemporalEffect.StatBuff(id = "Shock", duration = 2, statChanges = mapOf("def" to -5))
         ))
     ),
     activationRule = ::atLeastOneEnemyAlive,
@@ -131,10 +131,10 @@ val hotBuff = Skill(
     initialTargets = ::actorSelf,
     effects = listOf(
         SkillEffect(type = SkillEffectType.ResourceTick(
-            DurationEffect.ResourceTick(id = "Regen", duration = 3, resourceChanges = mapOf("hp" to 10))
+            TemporalEffect.ResourceTick(id = "Regen", duration = 3, resourceChanges = mapOf("hp" to 10))
         )),
         SkillEffect(type = SkillEffectType.StatBuff(
-            DurationEffect.StatBuff(id = "Protection", duration = 3, statChanges = mapOf("protection" to 10))
+            TemporalEffect.StatBuff(id = "Protection", duration = 3, statChanges = mapOf("protection" to 10))
         )),
     ),
     activationRule = { actor, _, _ -> actor.temporalEffects.none { it.id == "Regen" } },
@@ -160,7 +160,7 @@ val iceShot = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 25)),
         SkillEffect(type = SkillEffectType.StatBuff(
-            DurationEffect.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -10))
+            TemporalEffect.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -10))
         ))
     ),
     activationRule = ::atLeastOneEnemyAlive,
@@ -174,7 +174,7 @@ val groupHeal = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Heal(20)),
         SkillEffect(type = SkillEffectType.ResourceTick(
-            DurationEffect.ResourceTick(id = "Regen", duration = 2, resourceChanges = mapOf("hp" to 5))
+            TemporalEffect.ResourceTick(id = "Regen", duration = 2, resourceChanges = mapOf("hp" to 5))
         ))
     ),
     activationRule = { _, allies, _ ->
@@ -190,7 +190,7 @@ val poisonStrike = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Physical, 15)),
         SkillEffect(type = SkillEffectType.ResourceTick(
-            DurationEffect.ResourceTick(id = "Poison", duration = 4, resourceChanges = mapOf("hp" to -5))
+            TemporalEffect.ResourceTick(id = "Poison", duration = 4, resourceChanges = mapOf("hp" to -5))
         ))
     ),
     activationRule = ::atLeastOneEnemyAlive,
@@ -213,7 +213,7 @@ val iceLance = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 30)),
         SkillEffect(type = SkillEffectType.StatBuff(
-            DurationEffect.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -5))
+            TemporalEffect.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -5))
         )),
     ),
     activationRule = ::atLeastOneEnemyAlive,
