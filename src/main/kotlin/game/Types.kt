@@ -358,7 +358,7 @@ fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta 
     return BattleDelta(deltas)
 }
 
-fun BattleDelta.Companion.fromFullSnapshot(snapshot: BattleSnapshot): BattleDelta {
+fun BattleDelta.Companion.fullSnapshot(snapshot: BattleSnapshot): BattleDelta {
     return BattleDelta(snapshot.actors.map {
         ActorDelta(
             name = it.name,
@@ -474,7 +474,7 @@ fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
 
     // For the first event, we always include the full snapshot as delta
     var prevSnapshot: BattleSnapshot = firstEvent.snapshot
-    val firstDelta = BattleDelta.fromFullSnapshot(prevSnapshot)
+    val firstDelta = BattleDelta.fullSnapshot(prevSnapshot)
     val firstCompactEvent = toCompactCombatEvent(firstEvent, firstDelta)
     compactEvents.add(firstCompactEvent)
     prevSnapshot = firstEvent.snapshot
