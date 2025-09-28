@@ -41,7 +41,7 @@ class GameEngineTest : StringSpec({
             skills = emptyList(),
             team = 1,
             stats = mutableMapOf("strength" to 10),
-            temporalEffects = mutableListOf(DurationEffect.StatBuff("empower", 5, mapOf("strength" to 5))),
+            temporalEffects = mutableListOf(TemporalEffect.StatBuff("empower", 5, mapOf("strength" to 5))),
             cooldowns = mutableMapOf()
         )
         val team = Team(mutableListOf(actor))
@@ -57,7 +57,7 @@ class GameEngineTest : StringSpec({
         // Assert deep copy is unaffected
         actorCopy.stats["strength"] shouldBe 10
         actorCopy.temporalEffects.size shouldBe 1
-        actorCopy.temporalEffects.first() shouldBe DurationEffect.StatBuff("empower", 5, mapOf("strength" to 5))
+        actorCopy.temporalEffects.first() shouldBe TemporalEffect.StatBuff("empower", 5, mapOf("strength" to 5))
 
         teamCopy.actors.size shouldBe 1
         teamCopy.actors.first().name shouldBe "DeepHero"

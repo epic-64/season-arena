@@ -7,34 +7,41 @@ import kotlinx.serialization.Serializable
 import kotlin.collections.iterator
 import kotlin.reflect.full.memberProperties
 
-sealed class DurationEffect {
+sealed class TemporalEffect {
     abstract val id: String
     abstract val duration: Int
+
+    fun decrement(): TemporalEffect = when (this) {
+        is StatBuff -> copy(duration = duration - 1)
+        is ResourceTick -> copy(duration = duration - 1)
+        is StatOverride -> copy(duration = duration - 1)
+        is DamageOverTime -> copy(duration = duration - 1)
+    }
 
     data class StatBuff(
         override val id: String,
         override val duration: Int,
         val statChanges: Map<String, Int>
-    ) : DurationEffect()
+    ) : TemporalEffect()
 
     data class StatOverride(
         override val id: String,
         override val duration: Int,
         val statOverrides: Map<String, Int>
-    ) : DurationEffect()
+    ) : TemporalEffect()
 
     data class ResourceTick(
         override val id: String,
         override val duration: Int,
         val resourceChanges: Map<String, Int>
-    ) : DurationEffect()
+    ) : TemporalEffect()
 
     data class DamageOverTime(
         override val id: String,
         override val duration: Int,
         val damageType: DamageType,
         val amount: Int
-    ) : DurationEffect()
+    ) : TemporalEffect()
 }
 
 enum class DamageType {
@@ -46,10 +53,10 @@ enum class DamageType {
 sealed class SkillEffectType {
     data class Damage(val damageType: DamageType, val amount: Int) : SkillEffectType()
     data class Heal(val power: Int) : SkillEffectType()
-    data class StatBuff(val buff: DurationEffect.StatBuff) : SkillEffectType()
-    data class ResourceTick(val resourceTick: DurationEffect.ResourceTick) : SkillEffectType()
-    data class StatOverride(val statOverride: DurationEffect.StatOverride) : SkillEffectType()
-    data class DamageOverTime(val dot: DurationEffect.DamageOverTime) : SkillEffectType()
+    data class StatBuff(val buff: TemporalEffect.StatBuff) : SkillEffectType()
+    data class ResourceTick(val resourceTick: TemporalEffect.ResourceTick) : SkillEffectType()
+    data class StatOverride(val statOverride: TemporalEffect.StatOverride) : SkillEffectType()
+    data class DamageOverTime(val dot: TemporalEffect.DamageOverTime) : SkillEffectType()
 }
 
 data class SkillEffect(
@@ -111,7 +118,7 @@ data class Actor(
     val team: Int, // 0 or 1
     val amplifiers: Amplifiers = Amplifiers(),
     val stats: MutableMap<String, Int> = mutableMapOf(),
-    val temporalEffects: MutableList<DurationEffect> = mutableListOf(),
+    val temporalEffects: MutableList<TemporalEffect> = mutableListOf(),
     val cooldowns: MutableMap<Skill, Int> = mutableMapOf(), // skill -> turns left
     val hpRegenPerTurn: Int = 0, // new: passive hp regeneration per turn (applied at start of turn)
     val manaRegenPerTurn: Int = 0, // new: passive mana regeneration per turn (applied at start of turn)
