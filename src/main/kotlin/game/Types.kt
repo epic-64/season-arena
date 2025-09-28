@@ -453,7 +453,12 @@ sealed class CompactCombatEvent {
 
 fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
     val compactEvents = mutableListOf<CompactCombatEvent>()
-    var prevSnapshot: BattleSnapshot? = null
+
+    var prevSnapshot: BattleSnapshot = events
+        .find { it is CombatEvent.BattleStart }
+        ?.let { (it as CombatEvent.BattleStart).snapshot }
+        ?: return compactEvents
+
     for (event in events) {
         when (event) {
             is CombatEvent.BattleStart -> {
@@ -461,42 +466,42 @@ fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
                 prevSnapshot = event.snapshot
             }
             is CombatEvent.TurnStart -> {
-                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
+                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
                 compactEvents.add(CompactCombatEvent.TurnStart(event.turn, delta))
                 prevSnapshot = event.snapshot
             }
             is CombatEvent.SkillUsed -> {
-                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
+                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
                 compactEvents.add(CompactCombatEvent.SkillUsed(event.actor, event.skill, event.targets, delta))
                 prevSnapshot = event.snapshot
             }
             is CombatEvent.DamageDealt -> {
-                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
+                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
                 compactEvents.add(CompactCombatEvent.DamageDealt(event.source, event.target, event.amount, event.targetHp, delta))
                 prevSnapshot = event.snapshot
             }
             is CombatEvent.Healed -> {
-                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
+                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
                 compactEvents.add(CompactCombatEvent.Healed(event.source, event.target, event.amount, event.targetHp, delta))
                 prevSnapshot = event.snapshot
             }
             is CombatEvent.BuffApplied -> {
-                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
+                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
                 compactEvents.add(CompactCombatEvent.BuffApplied(event.source, event.target, event.buffId, delta))
                 prevSnapshot = event.snapshot
             }
             is CombatEvent.ResourceDrained -> {
-                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
+                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
                 compactEvents.add(CompactCombatEvent.ResourceDrained(event.target, event.buffId, event.resource, event.amount, event.targetResourceValue, delta))
                 prevSnapshot = event.snapshot
             }
             is CombatEvent.ResourceRegenerated -> {
-                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
+                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
                 compactEvents.add(CompactCombatEvent.ResourceRegenerated(event.target, event.resource, event.amount, event.targetResourceValue, delta))
                 prevSnapshot = event.snapshot
             }
             is CombatEvent.BattleEnd -> {
-                val delta = prevSnapshot?.let { computeBattleDelta(it, event.snapshot) } ?: BattleDelta.fromFullSnapshot(event.snapshot)
+                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
                 compactEvents.add(CompactCombatEvent.BattleEnd(event.winner, delta))
                 prevSnapshot = event.snapshot
             }
