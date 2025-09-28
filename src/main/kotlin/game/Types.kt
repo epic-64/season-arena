@@ -1,5 +1,7 @@
 package game
 
+import game.CombatEvent.*
+import game.CompactCombatEvent.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.collections.iterator
@@ -52,8 +54,8 @@ sealed class SkillEffectType {
 
 data class SkillEffect(
     val type: SkillEffectType,
-    val targetRule: (Actor, List<Actor>, List<Actor>, List<Actor>) -> List<Actor> = {
-        actor, allies, enemies, previous -> previous
+    val targetRule: (Actor, List<Actor>, List<Actor>, List<Actor>) -> List<Actor> = { actor, allies, enemies, previous ->
+        previous
     }
 )
 
@@ -268,7 +270,7 @@ sealed class CombatEvent {
         val buffId: String,
         val resource: String,
         val amount: Int,
-        val targetResourceValue: Int,
+        val newValue: Int,
         override val snapshot: BattleSnapshot
     ) : CombatEvent()
 
@@ -278,7 +280,7 @@ sealed class CombatEvent {
         val target: String,
         val resource: String,
         val amount: Int,
-        val targetResourceValue: Int,
+        val newValue: Int,
         override val snapshot: BattleSnapshot
     ) : CombatEvent()
 
@@ -379,15 +381,15 @@ fun BattleDelta.Companion.fullSnapshot(snapshot: BattleSnapshot): BattleDelta {
 sealed class CompactCombatEvent {
     @Serializable
     @SerialName("BattleStart")
-    data class BattleStart(val snapshot: BattleSnapshot) : CompactCombatEvent()
+    data class CBattleStart(val snapshot: BattleSnapshot) : CompactCombatEvent()
 
     @Serializable
     @SerialName("TurnStart")
-    data class TurnStart(val turn: Int, val delta: BattleDelta) : CompactCombatEvent()
+    data class CTurnStart(val turn: Int, val delta: BattleDelta) : CompactCombatEvent()
 
     @Serializable
     @SerialName("SkillUsed")
-    data class SkillUsed(
+    data class CSkillUsed(
         val actor: String,
         val skill: String,
         val targets: List<String>,
@@ -396,7 +398,7 @@ sealed class CompactCombatEvent {
 
     @Serializable
     @SerialName("DamageDealt")
-    data class DamageDealt(
+    data class CDamageDealt(
         val source: String,
         val target: String,
         val amount: Int,
@@ -406,7 +408,7 @@ sealed class CompactCombatEvent {
 
     @Serializable
     @SerialName("Healed")
-    data class Healed(
+    data class CHealed(
         val source: String,
         val target: String,
         val amount: Int,
@@ -416,7 +418,7 @@ sealed class CompactCombatEvent {
 
     @Serializable
     @SerialName("BuffApplied")
-    data class BuffApplied(
+    data class CBuffApplied(
         val source: String,
         val target: String,
         val buffId: String,
@@ -425,11 +427,11 @@ sealed class CompactCombatEvent {
 
     @Serializable
     @SerialName("BuffExpired")
-    data class BuffExpired(val target: String, val buffId: String, val delta: BattleDelta) : CompactCombatEvent()
+    data class CBuffExpired(val target: String, val buffId: String, val delta: BattleDelta) : CompactCombatEvent()
 
     @Serializable
     @SerialName("ResourceDrained")
-    data class ResourceDrained(
+    data class CResourceDrained(
         val target: String,
         val buffId: String,
         val resource: String,
@@ -440,7 +442,7 @@ sealed class CompactCombatEvent {
 
     @Serializable
     @SerialName("ResourceRegenerated")
-    data class ResourceRegenerated(
+    data class CResourceRegenerated(
         val target: String,
         val resource: String,
         val amount: Int,
@@ -450,22 +452,21 @@ sealed class CompactCombatEvent {
 
     @Serializable
     @SerialName("BattleEnd")
-    data class BattleEnd(val winner: String, val delta: BattleDelta) : CompactCombatEvent()
+    data class CBattleEnd(val winner: String, val delta: BattleDelta) : CompactCombatEvent()
 }
 
-fun toCompactCombatEvent(event: CombatEvent, delta: BattleDelta): CompactCombatEvent {
-    return when (event) {
-        is CombatEvent.BattleStart -> CompactCombatEvent.BattleStart(event.snapshot)
-        is CombatEvent.TurnStart -> CompactCombatEvent.TurnStart(event.turn, delta)
-        is CombatEvent.SkillUsed -> CompactCombatEvent.SkillUsed(event.actor, event.skill, event.targets, delta)
-        is CombatEvent.DamageDealt -> CompactCombatEvent.DamageDealt(event.source, event.target, event.amount, event.targetHp, delta)
-        is CombatEvent.Healed -> CompactCombatEvent.Healed(event.source, event.target, event.amount, event.targetHp, delta)
-        is CombatEvent.BuffApplied -> CompactCombatEvent.BuffApplied(event.source, event.target, event.buffId, delta)
-        is CombatEvent.ResourceDrained -> CompactCombatEvent.ResourceDrained(event.target, event.buffId, event.resource, event.amount, event.targetResourceValue, delta)
-        is CombatEvent.ResourceRegenerated -> CompactCombatEvent.ResourceRegenerated(event.target, event.resource, event.amount, event.targetResourceValue, delta)
-        is CombatEvent.BattleEnd -> CompactCombatEvent.BattleEnd(event.winner, delta)
+fun toCompactCombatEvent(event: CombatEvent, delta: BattleDelta): CompactCombatEvent =
+    when (event) {
+        is BattleStart -> CBattleStart(event.snapshot)
+        is TurnStart -> CTurnStart(event.turn, delta)
+        is SkillUsed -> with(event) { CSkillUsed(actor, skill, targets, delta) }
+        is DamageDealt -> with(event) { CDamageDealt(source, target, amount, targetHp, delta) }
+        is Healed -> with(event) { CHealed(source, target, amount, targetHp, delta) }
+        is BuffApplied -> with(event) { CBuffApplied(source, target, buffId, delta) }
+        is ResourceDrained -> with(event) { CResourceDrained(target, buffId, resource, amount, newValue, delta) }
+        is ResourceRegenerated -> with(event) { CResourceRegenerated(target, resource, amount, newValue, delta) }
+        is BattleEnd -> CBattleEnd(event.winner, delta)
     }
-}
 
 fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
     val compactEvents = mutableListOf<CompactCombatEvent>()
