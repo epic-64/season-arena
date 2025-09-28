@@ -455,8 +455,9 @@ fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
     val compactEvents = mutableListOf<CompactCombatEvent>()
 
     var prevSnapshot: BattleSnapshot = events
-        .find { it is CombatEvent.BattleStart }
-        ?.let { (it as CombatEvent.BattleStart).snapshot }
+        .filterIsInstance<CombatEvent.BattleStart>()
+        .firstOrNull()
+        ?.snapshot
         ?: return compactEvents
 
     for (event in events) {
