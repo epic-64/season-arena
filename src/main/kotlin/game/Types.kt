@@ -212,13 +212,15 @@ enum class DamageModifier {
 
 @Serializable
 sealed class CombatEvent {
+    abstract val snapshot: BattleSnapshot
+
     @Serializable
     @SerialName("BattleStart")
-    data class BattleStart(val snapshot: BattleSnapshot) : CombatEvent()
+    data class BattleStart(override val snapshot: BattleSnapshot) : CombatEvent()
 
     @Serializable
     @SerialName("TurnStart")
-    data class TurnStart(val turn: Int, val snapshot: BattleSnapshot) : CombatEvent()
+    data class TurnStart(val turn: Int, override val snapshot: BattleSnapshot) : CombatEvent()
 
     @Serializable
     @SerialName("SkillUsed")
@@ -226,7 +228,7 @@ sealed class CombatEvent {
         val actor: String,
         val skill: String,
         val targets: List<String>,
-        val snapshot: BattleSnapshot
+        override val snapshot: BattleSnapshot
     ) : CombatEvent()
 
     @Serializable
@@ -236,7 +238,7 @@ sealed class CombatEvent {
         val target: String,
         val amount: Int,
         val targetHp: Int,
-        val snapshot: BattleSnapshot,
+        override val snapshot: BattleSnapshot,
         val modifiers: List<DamageModifier>
     ) : CombatEvent()
 
@@ -247,7 +249,7 @@ sealed class CombatEvent {
         val target: String,
         val amount: Int,
         val targetHp: Int,
-        val snapshot: BattleSnapshot
+        override val snapshot: BattleSnapshot
     ) : CombatEvent()
 
     @Serializable
@@ -256,7 +258,7 @@ sealed class CombatEvent {
         val source: String,
         val target: String,
         val buffId: String,
-        val snapshot: BattleSnapshot
+        override val snapshot: BattleSnapshot
     ) : CombatEvent()
 
     @Serializable
@@ -267,7 +269,7 @@ sealed class CombatEvent {
         val resource: String,
         val amount: Int,
         val targetResourceValue: Int,
-        val snapshot: BattleSnapshot
+        override val snapshot: BattleSnapshot
     ) : CombatEvent()
 
     @Serializable
@@ -277,12 +279,12 @@ sealed class CombatEvent {
         val resource: String,
         val amount: Int,
         val targetResourceValue: Int,
-        val snapshot: BattleSnapshot
+        override val snapshot: BattleSnapshot
     ) : CombatEvent()
 
     @Serializable
     @SerialName("BattleEnd")
-    data class BattleEnd(val winner: String, val snapshot: BattleSnapshot) : CombatEvent()
+    data class BattleEnd(val winner: String, override val snapshot: BattleSnapshot) : CombatEvent()
 }
 
 // --- Delta and Compact Event Types ---
@@ -451,62 +453,37 @@ sealed class CompactCombatEvent {
     data class BattleEnd(val winner: String, val delta: BattleDelta) : CompactCombatEvent()
 }
 
+fun toCompactCombatEvent(event: CombatEvent, delta: BattleDelta): CompactCombatEvent {
+    return when (event) {
+        is CombatEvent.BattleStart -> CompactCombatEvent.BattleStart(event.snapshot)
+        is CombatEvent.TurnStart -> CompactCombatEvent.TurnStart(event.turn, delta)
+        is CombatEvent.SkillUsed -> CompactCombatEvent.SkillUsed(event.actor, event.skill, event.targets, delta)
+        is CombatEvent.DamageDealt -> CompactCombatEvent.DamageDealt(event.source, event.target, event.amount, event.targetHp, delta)
+        is CombatEvent.Healed -> CompactCombatEvent.Healed(event.source, event.target, event.amount, event.targetHp, delta)
+        is CombatEvent.BuffApplied -> CompactCombatEvent.BuffApplied(event.source, event.target, event.buffId, delta)
+        is CombatEvent.ResourceDrained -> CompactCombatEvent.ResourceDrained(event.target, event.buffId, event.resource, event.amount, event.targetResourceValue, delta)
+        is CombatEvent.ResourceRegenerated -> CompactCombatEvent.ResourceRegenerated(event.target, event.resource, event.amount, event.targetResourceValue, delta)
+        is CombatEvent.BattleEnd -> CompactCombatEvent.BattleEnd(event.winner, delta)
+    }
+}
+
 fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
     val compactEvents = mutableListOf<CompactCombatEvent>()
 
-    var prevSnapshot: BattleSnapshot = events
-        .filterIsInstance<CombatEvent.BattleStart>()
-        .firstOrNull()
-        ?.snapshot
-        ?: return compactEvents
+    val firstEvent = events.firstOrNull() ?: throw IllegalArgumentException("Event list is empty")
 
-    for (event in events) {
-        when (event) {
-            is CombatEvent.BattleStart -> {
-                compactEvents.add(CompactCombatEvent.BattleStart(event.snapshot))
-                prevSnapshot = event.snapshot
-            }
-            is CombatEvent.TurnStart -> {
-                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
-                compactEvents.add(CompactCombatEvent.TurnStart(event.turn, delta))
-                prevSnapshot = event.snapshot
-            }
-            is CombatEvent.SkillUsed -> {
-                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
-                compactEvents.add(CompactCombatEvent.SkillUsed(event.actor, event.skill, event.targets, delta))
-                prevSnapshot = event.snapshot
-            }
-            is CombatEvent.DamageDealt -> {
-                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
-                compactEvents.add(CompactCombatEvent.DamageDealt(event.source, event.target, event.amount, event.targetHp, delta))
-                prevSnapshot = event.snapshot
-            }
-            is CombatEvent.Healed -> {
-                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
-                compactEvents.add(CompactCombatEvent.Healed(event.source, event.target, event.amount, event.targetHp, delta))
-                prevSnapshot = event.snapshot
-            }
-            is CombatEvent.BuffApplied -> {
-                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
-                compactEvents.add(CompactCombatEvent.BuffApplied(event.source, event.target, event.buffId, delta))
-                prevSnapshot = event.snapshot
-            }
-            is CombatEvent.ResourceDrained -> {
-                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
-                compactEvents.add(CompactCombatEvent.ResourceDrained(event.target, event.buffId, event.resource, event.amount, event.targetResourceValue, delta))
-                prevSnapshot = event.snapshot
-            }
-            is CombatEvent.ResourceRegenerated -> {
-                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
-                compactEvents.add(CompactCombatEvent.ResourceRegenerated(event.target, event.resource, event.amount, event.targetResourceValue, delta))
-                prevSnapshot = event.snapshot
-            }
-            is CombatEvent.BattleEnd -> {
-                val delta = computeBattleDelta(prevSnapshot, event.snapshot)
-                compactEvents.add(CompactCombatEvent.BattleEnd(event.winner, delta))
-                prevSnapshot = event.snapshot
-            }
-        }
+    // For the first event, we always include the full snapshot as delta
+    var prevSnapshot: BattleSnapshot = firstEvent.snapshot
+    val firstDelta = BattleDelta.fromFullSnapshot(prevSnapshot)
+    val firstCompactEvent = toCompactCombatEvent(firstEvent, firstDelta)
+    compactEvents.add(firstCompactEvent)
+    prevSnapshot = firstEvent.snapshot
+
+    for (event in events.drop(1)) {
+        val delta = computeBattleDelta(prevSnapshot, event.snapshot)
+        val compactEvent = toCompactCombatEvent(event, delta)
+        compactEvents.add(compactEvent)
+        prevSnapshot = event.snapshot
     }
     return compactEvents
 }
