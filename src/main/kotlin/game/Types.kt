@@ -65,23 +65,19 @@ sealed class SkillEffectType {
 
 data class SkillEffect(
     val type: SkillEffectType,
-    val targetRule: (Actor, List<Actor>, List<Actor>, List<Actor>) -> List<Actor> = { actor, allies, enemies, previous ->
-        previous
-    }
+    val targetRule: (Actor, List<Actor>, List<Actor>, List<Actor>) -> List<Actor> =
+        { actor, allies, enemies, previous -> previous }
 )
 
 data class Skill(
     val name: String,
     val effects: List<SkillEffect>,
+    val maximumTargets: Int,
     val initialTargets: (Actor, List<Actor>, List<Actor>) -> List<Actor>,
     val condition: (Actor, List<Actor>, List<Actor>) -> Boolean,
     val cooldown: Int,
     val manaCost: Int,
-) {
-    fun withConditions(vararg conditions: ConditionFn): Pair<Skill, List<ConditionFn>> {
-        return this to conditions.toList()
-    }
-}
+)
 
 enum class ActorClass {
     Fighter,
