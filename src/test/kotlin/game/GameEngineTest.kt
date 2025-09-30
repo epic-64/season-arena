@@ -13,7 +13,7 @@ class GameEngineTest : StringSpec({
             maxHp = 100,
             mana = 100,
             maxMana = 100,
-            skills = emptyList(), // No skills
+            tactics = emptyList(), // No skills
             team = 0
         )
         val team = Team(mutableListOf(actor))
@@ -38,7 +38,7 @@ class GameEngineTest : StringSpec({
             maxHp = 100,
             mana = 100,
             maxMana = 100,
-            skills = emptyList(),
+            tactics = emptyList(),
             team = 1,
             stats = mutableMapOf("strength" to 10),
             temporalEffects = mutableListOf(TemporalEffect.StatBuff("empower", 5, mapOf("strength" to 5))),
@@ -72,7 +72,7 @@ class GameEngineTest : StringSpec({
             maxHp = 50,
             mana = 100,
             maxMana = 100,
-            skills = listOf(basicAttack).map { ConditionalSkill(emptyList(), it) },
+            tactics = listOf(basicAttack).map { Tactic(emptyList(), it) },
             team = 0
         )
         val actorB = Actor(
@@ -82,7 +82,7 @@ class GameEngineTest : StringSpec({
             maxHp = 40,
             mana = 100,
             maxMana = 100,
-            skills = listOf(basicAttack).map { ConditionalSkill(emptyList(), it) },
+            tactics = listOf(basicAttack).map { Tactic(emptyList(), it) },
             team = 1
         )
         val teamA = Team(mutableListOf(actorA))
@@ -111,7 +111,7 @@ class GameEngineTest : StringSpec({
             maxHp = 30,
             mana = 100,
             maxMana = 100,
-            skills = listOf(basicAttack).map { ConditionalSkill(emptyList(), it) },
+            tactics = listOf(basicAttack).map { Tactic(emptyList(), it) },
             team = 0
         )
         val defender = Actor(
@@ -121,7 +121,7 @@ class GameEngineTest : StringSpec({
             maxHp = 25,
             mana = 100,
             maxMana = 100,
-            skills = listOf(basicAttack).map { ConditionalSkill(emptyList(), it) },
+            tactics = listOf(basicAttack).map { Tactic(emptyList(), it) },
             team = 1
         )
         val teamA = Team(mutableListOf(attacker))

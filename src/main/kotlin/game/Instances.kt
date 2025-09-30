@@ -27,6 +27,10 @@ fun leastHpEnemy(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<
 
 // ---- Skill Activation Rules ----
 @Suppress("UNUSED_PARAMETER")
+fun selfHasNotBuff(name: String): (Actor, List<Actor>, List<Actor>) -> Boolean =
+    { actor, _, _ -> actor.temporalEffects.none { it.id == name } }
+
+@Suppress("UNUSED_PARAMETER")
 fun atLeastOneEnemyAlive(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Boolean =
     enemies.any{ it.isAlive }
 
@@ -41,6 +45,12 @@ fun selfHasBuff(name: String): (Actor, List<Actor>, List<Actor>) -> Boolean =
 @Suppress("UNUSED_PARAMETER")
 fun enemyWeakTo(damageType: DamageType): (Actor, List<Actor>, List<Actor>) -> Boolean =
     { _, _, enemies -> enemies.any { it.getResistance(damageType) < 0 } }
+
+// ---- Ordering Functions ----
+fun leastHp(actors: List<Actor>): List<Actor> = actors.sortedBy { it.getHp() }
+fun mostHp(actors: List<Actor>): List<Actor> = actors.sortedByDescending { it.getHp() }
+fun leastMana(actors: List<Actor>): List<Actor> = actors.sortedBy { it.getMana() }
+fun mostMana(actors: List<Actor>): List<Actor> = actors.sortedByDescending { it.getMana() }
 
 
 val basicAttack = Skill(
