@@ -78,8 +78,8 @@ data class Skill(
     val cooldown: Int,
     val manaCost: Int,
 ) {
-    fun withConditions(vararg conditions: ConditionFn): ConditionalSkill {
-        return ConditionalSkill(conditions.toList(), this)
+    fun withConditions(vararg conditions: ConditionFn): Pair<Skill, List<ConditionFn>> {
+        return this to conditions.toList()
     }
 }
 
@@ -110,16 +110,21 @@ data class Amplifiers(
             DamageType.Physical -> ((baseDamage + physicalDamageAdded) * physicalDamageMultiplier).toInt()
             DamageType.Magical -> ((baseDamage + magicalDamageAdded) * magicalDamageMultiplier).toInt()
             DamageType.Absolute -> ((baseDamage + absoluteDamageAdded) * absoluteDamageMultiplier).toInt()
+            else -> baseDamage // todo: handle elemental damage amplification
         }
     }
 }
 
 // --- Condition Function and Conditional Skill ---
 typealias ConditionFn = (Actor, List<Actor>, List<Actor>) -> Boolean
+typealias TargetFn = (Actor, List<Actor>, List<Actor>) -> List<Actor>
+typealias PriorityFn = (List<Actor>) -> List<Actor>
 
-data class ConditionalSkill(
+data class Tactic(
     val conditions: List<ConditionFn>,
-    val skill: Skill
+    val skill: Skill,
+    val targetGroup: TargetFn,
+    val ordering: List<PriorityFn>,
 )
 
 // --- Actor ---
@@ -130,7 +135,7 @@ data class Actor(
     val maxHp: Int,
     private var mana: Int, // current mana
     val maxMana: Int, // maximum mana
-    val skills: List<ConditionalSkill>,
+    val tactics: List<Tactic>,
     val team: Int, // 0 or 1
     val amplifiers: Amplifiers = Amplifiers(),
     val resistances: Map<DamageType, Int> = mapOf(),
@@ -167,7 +172,7 @@ data class Actor(
             maxHp = maxHp,
             mana = mana,
             maxMana = maxMana,
-            skills = skills, // Skills are immutable
+            tactics = tactics, // Skills are immutable
             team = team,
             stats = stats.toMutableMap(),
             temporalEffects = temporalEffects.toMutableList(),

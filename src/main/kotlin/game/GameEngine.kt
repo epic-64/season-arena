@@ -7,6 +7,12 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
 
+object TargetGroup {
+    val actor = { actor: Actor, _: List<Actor>, _: List<Actor> -> listOf(actor) }
+    val allies = { _: Actor, allies: List<Actor>, _: List<Actor> -> allies }
+    val enemies = { _: Actor, _: List<Actor>, enemies: List<Actor> -> enemies }
+}
+
 fun snapshotActors(teams: List<Team>): BattleSnapshot {
     return BattleSnapshot(
         actors = teams.flatMap { team ->
@@ -68,7 +74,7 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
                                 statOverrides = mergedStatOverrides
                             )
                         },
-                    cooldowns = actor.skills.associate { it.skill.name to (actor.cooldowns[it.skill] ?: 0) }
+                    cooldowns = actor.tactics.associate { it.skill.name to (actor.cooldowns[it.skill] ?: 0) }
                 )
             }
         }
@@ -161,7 +167,7 @@ fun battleRound(state: BattleState): BattleState {
 
 fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill? {
     // Only pick skills that are not on cooldown and actor has enough mana for
-    val availableSkills = actor.skills.filter { cs ->
+    val availableSkills = actor.tactics.filter { cs ->
         val skill = cs.skill
         (actor.cooldowns[skill] ?: 0) <= 0 && actor.getMana() >= skill.manaCost
     }

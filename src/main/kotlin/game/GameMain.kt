@@ -36,11 +36,31 @@ fun exampleTeam1(): Team {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        skills = listOf(
-            takeAim.withConditions(),
-            snipe.withConditions(selfHasBuff("Amplify")),
-            iceShot.withConditions(enemyWeakTo(DamageType.Ice)),
-            basicAttack.withConditions(),
+        tactics = listOf(
+            Tactic(
+                conditions = listOf(selfHasNotBuff("Amplify")),
+                skill = takeAim,
+                targetGroup = TargetGroup.actor,
+                ordering = emptyList(),
+            ),
+            Tactic(
+                conditions = listOf(enemyWeakTo(DamageType.Ice)),
+                skill = iceShot,
+                targetGroup = TargetGroup.enemies,
+                ordering = listOf(::leastHp),
+            ),
+            Tactic(
+                conditions = listOf(selfHasBuff("Amplify")),
+                skill = snipe,
+                targetGroup = TargetGroup.enemies,
+                ordering = listOf(::mostHp),
+            ),
+            Tactic(
+                conditions = emptyList(),
+                skill = basicAttack,
+                targetGroup = TargetGroup.enemies,
+                ordering = listOf(::leastHp),
+            )
         ),
         team = 0
     )
@@ -51,7 +71,7 @@ fun exampleTeam1(): Team {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        skills = listOf(fireball, spark, basicAttack).map { ConditionalSkill(emptyList(), it) },
+        tactics = listOf(fireball, spark, basicAttack).map { Tactic(emptyList(), it) },
         team = 0
     )
     val actorA3 = Actor(
@@ -61,7 +81,7 @@ fun exampleTeam1(): Team {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        skills = listOf(groupHeal, flashHeal, iceLance, basicAttack).map { ConditionalSkill(emptyList(), it) },
+        tactics = listOf(groupHeal, flashHeal, iceLance, basicAttack).map { Tactic(emptyList(), it) },
         team = 0
     )
     val actorA4 = Actor(
@@ -71,7 +91,7 @@ fun exampleTeam1(): Team {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        skills = listOf(blackHole, hotBuff, basicAttack).map { ConditionalSkill(emptyList(), it) },
+        tactics = listOf(blackHole, hotBuff, basicAttack).map { Tactic(emptyList(), it) },
         team = 0
     )
     val actorA5 = Actor(
@@ -81,7 +101,7 @@ fun exampleTeam1(): Team {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        skills = listOf(cheer, spark, basicAttack).map { ConditionalSkill(emptyList(), it) },
+        tactics = listOf(cheer, spark, basicAttack).map { Tactic(emptyList(), it) },
         team = 0
     )
     return Team(mutableListOf(actorA1, actorA2, actorA3, actorA4, actorA5))
@@ -95,7 +115,7 @@ fun exampleTeam2(): Team {
         maxHp = 400,
         mana = 100,
         maxMana = 100,
-        skills = listOf(fireball, spark, iceLance, poisonStrike, basicAttack).map { ConditionalSkill(emptyList(), it) },
+        tactics = listOf(fireball, spark, iceLance, poisonStrike, basicAttack).map { Tactic(emptyList(), it) },
         team = 1,
         amplifiers = Amplifiers(magicalDamageAdded = 20.0)
     )
@@ -106,7 +126,7 @@ fun exampleTeam2(): Team {
         maxHp = 120,
         mana = 100,
         maxMana = 100,
-        skills = listOf(groupHeal, flashHeal, hotBuff, spark, basicAttack).map { ConditionalSkill(emptyList(), it) },
+        tactics = listOf(groupHeal, flashHeal, hotBuff, spark, basicAttack).map { Tactic(emptyList(), it) },
         team = 1
     )
     val actorB3 = Actor(
@@ -116,7 +136,7 @@ fun exampleTeam2(): Team {
         maxHp = 120,
         mana = 100,
         maxMana = 100,
-        skills = listOf(takeAim, iceShot, basicAttack).map { ConditionalSkill(emptyList(), it) },
+        tactics = listOf(takeAim, iceShot, basicAttack).map { Tactic(emptyList(), it) },
         team = 1
     )
     val actorB4 = Actor(
@@ -126,7 +146,7 @@ fun exampleTeam2(): Team {
         maxHp = 120,
         mana = 100,
         maxMana = 100,
-        skills = listOf(whirlwind, doubleStrike, basicAttack).map { ConditionalSkill(emptyList(), it) },
+        tactics = listOf(whirlwind, doubleStrike, basicAttack).map { Tactic(emptyList(), it) },
         team = 1
     )
     return Team(mutableListOf(
@@ -147,7 +167,7 @@ fun exampleTeam3(team: Int): Team {
         maxMana = 100,
         manaRegenPerTurn = 1,
         hpRegenPerTurn = 1,
-        skills = listOf(solo).map { ConditionalSkill(emptyList(), it) },
+        tactics = listOf(solo).map { Tactic(emptyList(), it) },
         team = team,
         amplifiers = Amplifiers(magicalDamageAdded = 30.0, physicalDamageAdded = 10.0)
     )
@@ -162,7 +182,7 @@ fun exampleTeam4(team: Int): Team {
         maxHp = 500,
         mana = 100,
         maxMana = 100,
-        skills = listOf(fireball, spark, iceLance, poisonStrike, basicAttack).map { ConditionalSkill(emptyList(), it) },
+        tactics = listOf(fireball, spark, iceLance, poisonStrike, basicAttack).map { Tactic(emptyList(), it) },
         team = team,
         amplifiers = Amplifiers(magicalDamageAdded = 20.0)
     )
@@ -177,7 +197,7 @@ fun simpleActor(name: String, team: Int): Actor {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        skills = listOf(basicAttack).map { ConditionalSkill(emptyList(), it) },
+        tactics = listOf(basicAttack).map { Tactic(emptyList(), it) },
         team = team
     )
 }
