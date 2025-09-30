@@ -47,6 +47,10 @@ sealed class TemporalEffect {
 enum class DamageType {
     Physical,
     Magical,
+    Ice,
+    Fire,
+    Lightning,
+    Poison,
     Absolute,
 }
 
@@ -73,7 +77,11 @@ data class Skill(
     val condition: (Actor, List<Actor>, List<Actor>) -> Boolean,
     val cooldown: Int,
     val manaCost: Int,
-)
+) {
+    fun withConditions(vararg conditions: ConditionFn): ConditionalSkill {
+        return ConditionalSkill(conditions.toList(), this)
+    }
+}
 
 enum class ActorClass {
     Fighter,
@@ -125,6 +133,7 @@ data class Actor(
     val skills: List<ConditionalSkill>,
     val team: Int, // 0 or 1
     val amplifiers: Amplifiers = Amplifiers(),
+    val resistances: Map<DamageType, Int> = mapOf(),
     val stats: MutableMap<String, Int> = mutableMapOf(),
     val temporalEffects: MutableList<TemporalEffect> = mutableListOf(),
     val cooldowns: MutableMap<Skill, Int> = mutableMapOf(), // skill -> turns left
@@ -167,6 +176,10 @@ data class Actor(
             hpRegenPerTurn = hpRegenPerTurn,
             manaRegenPerTurn = manaRegenPerTurn,
         )
+    }
+
+    fun getResistance(damageType: DamageType): Int {
+        return resistances.getOrDefault(damageType, 0)
     }
 }
 
