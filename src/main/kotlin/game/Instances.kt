@@ -30,12 +30,16 @@ fun leastHpEnemy(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<
 fun atLeastOneEnemyAlive(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Boolean =
     enemies.any{ it.isAlive }
 
+@Suppress("UNUSED_PARAMETER")
+fun atLeastTwoEnemiesAlive(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Boolean =
+    enemies.count { it.isAlive } >= 2
+
 
 val basicAttack = Skill(
     name = "Strike",
     initialTargets = ::firstEnemy,
     effects = listOf(SkillEffect(type = SkillEffectType.Damage(DamageType.Physical, 20))),
-    activationRule = ::atLeastOneEnemyAlive,
+    condition = ::atLeastOneEnemyAlive,
     cooldown = 1,
     manaCost = 0
 )
@@ -48,7 +52,7 @@ val takeAim = Skill(
             TemporalEffect.StatBuff(id = "Amplify", duration = 1, statChanges = mapOf("amplify" to 200))
         ))
     ),
-    activationRule = ::atLeastOneEnemyAlive,
+    condition = ::atLeastOneEnemyAlive,
     cooldown = 3,
     manaCost = 5
 )
@@ -57,7 +61,7 @@ val snipe = Skill(
     name = "Snipe",
     initialTargets = ::leastHpEnemy,
     effects = listOf(SkillEffect(type = SkillEffectType.Damage(DamageType.Physical, 50))),
-    activationRule = { actor, _, enemies -> enemies.isNotEmpty() && actor.temporalEffects.any { it.id == "Amplify" } },
+    condition = { actor, _, enemies -> enemies.isNotEmpty() && actor.temporalEffects.any { it.id == "Amplify" } },
     cooldown = 4,
     manaCost = 10
 )
@@ -70,7 +74,7 @@ val cheer = Skill(
             TemporalEffect.StatOverride(id = "Cheer", duration = 1, statOverrides = mapOf("critChance" to 100))
         ))
     ),
-    activationRule = { _, allies, _ ->
+    condition = { _, allies, _ ->
         allies.any { it.temporalEffects.any { buff -> buff.id == "Amplify" } }
     },
     cooldown = 5,
@@ -84,7 +88,7 @@ val doubleStrike = Skill(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Physical, 15)),
         SkillEffect(type = SkillEffectType.Damage(DamageType.Physical, 15))
     ),
-    activationRule = ::atLeastOneEnemyAlive,
+    condition = ::atLeastOneEnemyAlive,
     cooldown = 2,
     manaCost = 0
 )
@@ -93,7 +97,7 @@ val whirlwind = Skill(
     name = "Whirlwind",
     initialTargets = ::allEnemies,
     effects = listOf(SkillEffect(type = SkillEffectType.Damage(DamageType.Physical, 15))),
-    activationRule = ::atLeastOneEnemyAlive,
+    condition = ::atLeastOneEnemyAlive,
     cooldown = 2,
     manaCost = 20
 )
@@ -107,7 +111,7 @@ val fireball = Skill(
             TemporalEffect.ResourceTick(id = "Burn", duration = 2, resourceChanges = mapOf("hp" to -10))
         ))
     ),
-    activationRule = ::atLeastOneEnemyAlive,
+    condition = ::atLeastOneEnemyAlive,
     cooldown = 4,
     manaCost = 30
 )
@@ -121,7 +125,7 @@ val spark = Skill(
             TemporalEffect.StatBuff(id = "Shock", duration = 2, statChanges = mapOf("def" to -5))
         ))
     ),
-    activationRule = ::atLeastOneEnemyAlive,
+    condition = ::atLeastOneEnemyAlive,
     cooldown = 1,
     manaCost = 5
 )
@@ -137,7 +141,7 @@ val hotBuff = Skill(
             TemporalEffect.StatBuff(id = "Protection", duration = 3, statChanges = mapOf("protection" to 10))
         )),
     ),
-    activationRule = { actor, _, _ -> actor.temporalEffects.none { it.id == "Regen" } },
+    condition = { actor, _, _ -> actor.temporalEffects.none { it.id == "Regen" } },
     cooldown = 3,
     manaCost = 10
 )
@@ -146,7 +150,7 @@ val flashHeal = Skill(
     name = "Flash Heal",
     initialTargets = ::leastHpAlly,
     effects = listOf(SkillEffect(type = SkillEffectType.Heal(25))),
-    activationRule = { _, allies, _ ->
+    condition = { _, allies, _ ->
         val target = allies.minByOrNull { it.getHp() }
         target != null && target.getHp() < target.maxHp / 2
     },
@@ -163,7 +167,7 @@ val iceShot = Skill(
             TemporalEffect.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -10))
         ))
     ),
-    activationRule = ::atLeastOneEnemyAlive,
+    condition = ::atLeastOneEnemyAlive,
     cooldown = 2,
     manaCost = 10
 )
@@ -177,7 +181,7 @@ val groupHeal = Skill(
             TemporalEffect.ResourceTick(id = "Regen", duration = 2, resourceChanges = mapOf("hp" to 5))
         ))
     ),
-    activationRule = { _, allies, _ ->
+    condition = { _, allies, _ ->
         allies.count { it.getHp() < it.maxHp * 0.7 } >= 2
     },
     cooldown = 6,
@@ -193,7 +197,7 @@ val poisonStrike = Skill(
             TemporalEffect.ResourceTick(id = "Poison", duration = 4, resourceChanges = mapOf("hp" to -5))
         ))
     ),
-    activationRule = ::atLeastOneEnemyAlive,
+    condition = ::atLeastOneEnemyAlive,
     cooldown = 2,
     manaCost = 5
 )
@@ -202,7 +206,7 @@ val blackHole = Skill(
     name = "Black Hole",
     initialTargets = ::allEnemies,
     effects = listOf(SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 40))),
-    activationRule = ::atLeastOneEnemyAlive,
+    condition = ::atLeastOneEnemyAlive,
     cooldown = 5,
     manaCost = 40
 )
@@ -216,7 +220,7 @@ val iceLance = Skill(
             TemporalEffect.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -5))
         )),
     ),
-    activationRule = ::atLeastOneEnemyAlive,
+    condition = ::atLeastOneEnemyAlive,
     cooldown = 3,
     manaCost = 15
 )
@@ -230,7 +234,7 @@ val solo = Skill(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 10)),
         SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 15)),
     ),
-    activationRule = ::atLeastOneEnemyAlive,
+    condition = ::atLeastOneEnemyAlive,
     cooldown = 1,
     manaCost = 35
 )
