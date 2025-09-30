@@ -13,7 +13,7 @@ class GameEngineTest : StringSpec({
             maxHp = 100,
             mana = 100,
             maxMana = 100,
-            skills = emptyList(),
+            skills = emptyList(), // No skills
             team = 0
         )
         val team = Team(mutableListOf(actor))
@@ -72,7 +72,7 @@ class GameEngineTest : StringSpec({
             maxHp = 50,
             mana = 100,
             maxMana = 100,
-            skills = listOf(basicAttack),
+            skills = listOf(basicAttack).map { ConditionalSkill(emptyList(), it) },
             team = 0
         )
         val actorB = Actor(
@@ -82,7 +82,7 @@ class GameEngineTest : StringSpec({
             maxHp = 40,
             mana = 100,
             maxMana = 100,
-            skills = listOf(basicAttack),
+            skills = listOf(basicAttack).map { ConditionalSkill(emptyList(), it) },
             team = 1
         )
         val teamA = Team(mutableListOf(actorA))
@@ -111,7 +111,7 @@ class GameEngineTest : StringSpec({
             maxHp = 30,
             mana = 100,
             maxMana = 100,
-            skills = listOf(basicAttack),
+            skills = listOf(basicAttack).map { ConditionalSkill(emptyList(), it) },
             team = 0
         )
         val defender = Actor(
@@ -121,7 +121,7 @@ class GameEngineTest : StringSpec({
             maxHp = 25,
             mana = 100,
             maxMana = 100,
-            skills = listOf(basicAttack),
+            skills = listOf(basicAttack).map { ConditionalSkill(emptyList(), it) },
             team = 1
         )
         val teamA = Team(mutableListOf(attacker))
@@ -176,4 +176,3 @@ class GameEngineTest : StringSpec({
         )
     }
 })
-

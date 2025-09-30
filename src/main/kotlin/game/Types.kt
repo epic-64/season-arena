@@ -106,6 +106,14 @@ data class Amplifiers(
     }
 }
 
+// --- Condition Function and Conditional Skill ---
+typealias ConditionFn = (Actor, List<Actor>, List<Actor>) -> Boolean
+
+data class ConditionalSkill(
+    val conditions: List<ConditionFn>,
+    val skill: Skill
+)
+
 // --- Actor ---
 data class Actor(
     val actorClass: ActorClass,
@@ -114,7 +122,7 @@ data class Actor(
     val maxHp: Int,
     private var mana: Int, // current mana
     val maxMana: Int, // maximum mana
-    val skills: List<Skill>,
+    val skills: List<ConditionalSkill>,
     val team: Int, // 0 or 1
     val amplifiers: Amplifiers = Amplifiers(),
     val stats: MutableMap<String, Int> = mutableMapOf(),

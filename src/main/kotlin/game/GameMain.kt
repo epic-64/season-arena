@@ -36,7 +36,7 @@ fun exampleTeam1(): Team {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        skills = listOf(snipe, takeAim, iceShot, basicAttack),
+        skills = listOf(snipe, takeAim, iceShot, basicAttack).map { ConditionalSkill(emptyList(), it) },
         team = 0
     )
     val actorA2 = Actor(
@@ -46,7 +46,7 @@ fun exampleTeam1(): Team {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        skills = listOf(fireball, spark, basicAttack),
+        skills = listOf(fireball, spark, basicAttack).map { ConditionalSkill(emptyList(), it) },
         team = 0
     )
     val actorA3 = Actor(
@@ -56,7 +56,7 @@ fun exampleTeam1(): Team {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        skills = listOf(groupHeal, flashHeal, iceLance, basicAttack),
+        skills = listOf(groupHeal, flashHeal, iceLance, basicAttack).map { ConditionalSkill(emptyList(), it) },
         team = 0
     )
     val actorA4 = Actor(
@@ -66,7 +66,7 @@ fun exampleTeam1(): Team {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        skills = listOf(blackHole, hotBuff, basicAttack),
+        skills = listOf(blackHole, hotBuff, basicAttack).map { ConditionalSkill(emptyList(), it) },
         team = 0
     )
     val actorA5 = Actor(
@@ -76,7 +76,7 @@ fun exampleTeam1(): Team {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        skills = listOf(cheer, spark, basicAttack),
+        skills = listOf(cheer, spark, basicAttack).map { ConditionalSkill(emptyList(), it) },
         team = 0
     )
     return Team(mutableListOf(actorA1, actorA2, actorA3, actorA4, actorA5))
@@ -90,7 +90,7 @@ fun exampleTeam2(): Team {
         maxHp = 400,
         mana = 100,
         maxMana = 100,
-        skills = listOf(fireball, spark, iceLance, poisonStrike, basicAttack),
+        skills = listOf(fireball, spark, iceLance, poisonStrike, basicAttack).map { ConditionalSkill(emptyList(), it) },
         team = 1,
         amplifiers = Amplifiers(magicalDamageAdded = 20.0)
     )
@@ -101,7 +101,7 @@ fun exampleTeam2(): Team {
         maxHp = 120,
         mana = 100,
         maxMana = 100,
-        skills = listOf(groupHeal, flashHeal, hotBuff, spark, basicAttack),
+        skills = listOf(groupHeal, flashHeal, hotBuff, spark, basicAttack).map { ConditionalSkill(emptyList(), it) },
         team = 1
     )
     val actorB3 = Actor(
@@ -111,7 +111,7 @@ fun exampleTeam2(): Team {
         maxHp = 120,
         mana = 100,
         maxMana = 100,
-        skills = listOf(takeAim, iceShot, basicAttack),
+        skills = listOf(takeAim, iceShot, basicAttack).map { ConditionalSkill(emptyList(), it) },
         team = 1
     )
     val actorB4 = Actor(
@@ -121,7 +121,7 @@ fun exampleTeam2(): Team {
         maxHp = 120,
         mana = 100,
         maxMana = 100,
-        skills = listOf(whirlwind, doubleStrike, basicAttack),
+        skills = listOf(whirlwind, doubleStrike, basicAttack).map { ConditionalSkill(emptyList(), it) },
         team = 1
     )
     return Team(mutableListOf(
@@ -142,7 +142,7 @@ fun exampleTeam3(team: Int): Team {
         maxMana = 100,
         manaRegenPerTurn = 1,
         hpRegenPerTurn = 1,
-        skills = listOf(solo),
+        skills = listOf(solo).map { ConditionalSkill(emptyList(), it) },
         team = team,
         amplifiers = Amplifiers(magicalDamageAdded = 30.0, physicalDamageAdded = 10.0)
     )
@@ -157,7 +157,7 @@ fun exampleTeam4(team: Int): Team {
         maxHp = 500,
         mana = 100,
         maxMana = 100,
-        skills = listOf(fireball, spark, iceLance, poisonStrike, basicAttack),
+        skills = listOf(fireball, spark, iceLance, poisonStrike, basicAttack).map { ConditionalSkill(emptyList(), it) },
         team = team,
         amplifiers = Amplifiers(magicalDamageAdded = 20.0)
     )
@@ -172,7 +172,7 @@ fun simpleActor(name: String, team: Int): Actor {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        skills = listOf(basicAttack),
+        skills = listOf(basicAttack).map { ConditionalSkill(emptyList(), it) },
         team = team
     )
 }

@@ -68,7 +68,7 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
                                 statOverrides = mergedStatOverrides
                             )
                         },
-                    cooldowns = actor.skills.associate { it.name to (actor.cooldowns[it] ?: 0) }
+                    cooldowns = actor.skills.associate { it.skill.name to (actor.cooldowns[it.skill] ?: 0) }
                 )
             }
         }
@@ -159,11 +159,18 @@ fun battleRound(state: BattleState): BattleState {
     return newState
 }
 
-fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill?
-{
+fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill? {
     // Only pick skills that are not on cooldown and actor has enough mana for
-    val availableSkills = actor.skills.filter { (actor.cooldowns[it] ?: 0) <= 0 && actor.getMana() >= it.manaCost }
-    return availableSkills.firstOrNull { it.condition(actor, allies, enemies) } ?: availableSkills.firstOrNull()
+    val availableSkills = actor.skills.filter { cs ->
+        val skill = cs.skill
+        (actor.cooldowns[skill] ?: 0) <= 0 && actor.getMana() >= skill.manaCost
+    }
+    return availableSkills.firstOrNull { cs ->
+        val skill = cs.skill
+        val baseCondition = skill.condition(actor, allies, enemies)
+        val extraConditions = cs.conditions.all { cond -> cond(actor, allies, enemies) }
+        baseCondition && extraConditions
+    }?.skill
 }
 
 fun applySkill(
