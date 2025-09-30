@@ -36,7 +36,12 @@ fun exampleTeam1(): Team {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        skills = listOf(snipe, takeAim, iceShot, basicAttack).map { ConditionalSkill(emptyList(), it) },
+        skills = listOf(
+            takeAim.withConditions(),
+            snipe.withConditions(selfHasBuff("Amplify")),
+            iceShot.withConditions(enemyWeakTo(DamageType.Ice)),
+            basicAttack.withConditions(),
+        ),
         team = 0
     )
     val actorA2 = Actor(

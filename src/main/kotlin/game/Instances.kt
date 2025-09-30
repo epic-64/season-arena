@@ -34,6 +34,14 @@ fun atLeastOneEnemyAlive(actor: Actor, allies: List<Actor>, enemies: List<Actor>
 fun atLeastTwoEnemiesAlive(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Boolean =
     enemies.count { it.isAlive } >= 2
 
+@Suppress("UNUSED_PARAMETER")
+fun selfHasBuff(name: String): (Actor, List<Actor>, List<Actor>) -> Boolean =
+    { actor, _, _ -> actor.temporalEffects.any { it.id == name } }
+
+@Suppress("UNUSED_PARAMETER")
+fun enemyWeakTo(damageType: DamageType): (Actor, List<Actor>, List<Actor>) -> Boolean =
+    { _, _, enemies -> enemies.any { it.getResistance(damageType) < 0 } }
+
 
 val basicAttack = Skill(
     name = "Strike",
@@ -61,7 +69,7 @@ val snipe = Skill(
     name = "Snipe",
     initialTargets = ::leastHpEnemy,
     effects = listOf(SkillEffect(type = SkillEffectType.Damage(DamageType.Physical, 50))),
-    condition = { actor, _, enemies -> enemies.isNotEmpty() && actor.temporalEffects.any { it.id == "Amplify" } },
+    condition = ::atLeastOneEnemyAlive,
     cooldown = 4,
     manaCost = 10
 )
