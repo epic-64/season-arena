@@ -70,7 +70,7 @@ data class Skill(
     val name: String,
     val effects: List<SkillEffect>,
     val initialTargets: (Actor, List<Actor>, List<Actor>) -> List<Actor>,
-    val activationRule: (Actor, List<Actor>, List<Actor>) -> Boolean,
+    val condition: (Actor, List<Actor>, List<Actor>) -> Boolean,
     val cooldown: Int,
     val manaCost: Int,
 )

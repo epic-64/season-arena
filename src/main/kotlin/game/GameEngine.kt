@@ -163,7 +163,7 @@ fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill?
 {
     // Only pick skills that are not on cooldown and actor has enough mana for
     val availableSkills = actor.skills.filter { (actor.cooldowns[it] ?: 0) <= 0 && actor.getMana() >= it.manaCost }
-    return availableSkills.firstOrNull { it.activationRule(actor, allies, enemies) } ?: availableSkills.firstOrNull()
+    return availableSkills.firstOrNull { it.condition(actor, allies, enemies) } ?: availableSkills.firstOrNull()
 }
 
 fun applySkill(
