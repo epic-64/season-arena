@@ -127,45 +127,8 @@ fun exampleTeam1(): Team {
         ),
         team = 0
     )
-    val actorA4 = Actor(
-        actorClass = ActorClass.Paladin,
-        name = "Bob",
-        hp = 100,
-        maxHp = 100,
-        mana = 100,
-        maxMana = 100,
-        tactics = listOf(
-            Tactic(
-                conditions = listOf(selfHasNotBuff("Shield of Faith")),
-                skill = shieldOfFaith,
-                targetGroup = TargetGroup.actor,
-            ),
-            Tactic(
-                conditions = emptyList(),
-                skill = holyStrike,
-                targetGroup = TargetGroup.enemies,
-                ordering = listOf(::leastHp),
-            ),
-            Tactic(
-                conditions = emptyList(),
-                skill = basicAttack,
-                targetGroup = TargetGroup.enemies,
-                ordering = listOf(::leastHp),
-            )
-        )
-        team = 0
-    )
-    val actorA5 = Actor(
-        actorClass = ActorClass.Bard,
-        name = "Charlie",
-        hp = 100,
-        maxHp = 100,
-        mana = 100,
-        maxMana = 100,
-        tactics = listOf(cheer, spark, basicAttack).map { Tactic(emptyList(), it) },
-        team = 0
-    )
-    return Team(mutableListOf(actorA1, actorA2, actorA3, actorA4, actorA5))
+
+    return Team(mutableListOf(actorA1, actorA2, actorA3))
 }
 
 fun exampleTeam2(): Team {
@@ -176,91 +139,37 @@ fun exampleTeam2(): Team {
         maxHp = 400,
         mana = 100,
         maxMana = 100,
-        tactics = listOf(fireball, spark, iceLance, poisonStrike, basicAttack).map { Tactic(emptyList(), it) },
+        tactics = listOf(
+            Tactic(
+                conditions = listOf(minimumEnemiesAlive(3)),
+                skill = fireball,
+                targetGroup = TargetGroup.enemies,
+            ),
+            Tactic(
+                conditions = listOf(minimumEnemiesAlive(2)),
+                skill = spark,
+                targetGroup = TargetGroup.enemies, // will be overridden by spark.targetsOverride
+            ),
+            Tactic(
+                conditions = emptyList(),
+                skill = iceLance,
+                targetGroup = TargetGroup.enemies,
+                ordering = listOf(::leastHp),
+            ),
+            Tactic(
+                conditions = emptyList(),
+                skill = basicAttack,
+                targetGroup = TargetGroup.enemies,
+                ordering = listOf(::leastHp),
+            )
+        ),
         team = 1,
         amplifiers = Amplifiers(magicalDamageAdded = 20.0)
     )
-    val actorB2 = Actor(
-        actorClass = ActorClass.Fishman,
-        name = "Fishman Shaman",
-        hp = 120,
-        maxHp = 120,
-        mana = 100,
-        maxMana = 100,
-        tactics = listOf(groupHeal, flashHeal, hotBuff, spark, basicAttack).map { Tactic(emptyList(), it) },
-        team = 1
-    )
-    val actorB3 = Actor(
-        actorClass = ActorClass.Fishman,
-        name = "Fishman Archer",
-        hp = 120,
-        maxHp = 120,
-        mana = 100,
-        maxMana = 100,
-        tactics = listOf(takeAim, iceShot, basicAttack).map { Tactic(emptyList(), it) },
-        team = 1
-    )
-    val actorB4 = Actor(
-        actorClass = ActorClass.Fishman,
-        name = "Fishman Warrior",
-        hp = 120,
-        maxHp = 120,
-        mana = 100,
-        maxMana = 100,
-        tactics = listOf(whirlwind, doubleStrike, basicAttack).map { Tactic(emptyList(), it) },
-        team = 1
-    )
+
     return Team(mutableListOf(
         actorB1,
-        actorB2,
-        actorB3,
-        actorB4,
     ))
-}
-
-fun exampleTeam3(team: Int): Team {
-    val actor = Actor(
-        actorClass = ActorClass.Bard,
-        name = "Charlie the Bard",
-        hp = 450,
-        maxHp = 450,
-        mana = 100,
-        maxMana = 100,
-        manaRegenPerTurn = 1,
-        hpRegenPerTurn = 1,
-        tactics = listOf(solo).map { Tactic(emptyList(), it) },
-        team = team,
-        amplifiers = Amplifiers(magicalDamageAdded = 30.0, physicalDamageAdded = 10.0)
-    )
-    return Team(mutableListOf(actor))
-}
-
-fun exampleTeam4(team: Int): Team {
-    val actor = Actor(
-        actorClass = ActorClass.AbyssalDragon,
-        name = "Abyssal Dragon",
-        hp = 500,
-        maxHp = 500,
-        mana = 100,
-        maxMana = 100,
-        tactics = listOf(fireball, spark, iceLance, poisonStrike, basicAttack).map { Tactic(emptyList(), it) },
-        team = team,
-        amplifiers = Amplifiers(magicalDamageAdded = 20.0)
-    )
-    return Team(mutableListOf(actor))
-}
-
-fun simpleActor(name: String, team: Int): Actor {
-    return Actor(
-        actorClass = ActorClass.Fishman,
-        name = name,
-        hp = 100,
-        maxHp = 100,
-        mana = 100,
-        maxMana = 100,
-        tactics = listOf(basicAttack).map { Tactic(emptyList(), it) },
-        team = team
-    )
 }
 
 fun benchmark(inputTeamA: Team, inputTeamB: Team) {
