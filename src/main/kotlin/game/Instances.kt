@@ -42,6 +42,9 @@ fun atLeastTwoEnemiesAlive(actor: Actor, allies: List<Actor>, enemies: List<Acto
 fun minimumAlliesBelowHp(n: Int, threshold: Double): (Actor, List<Actor>, List<Actor>) -> Boolean =
     { _, allies, _ -> allies.count { it.getHp() <= it.statsBag.maxHp * threshold } >= n }
 
+fun minimumAlliesHaveBuff(name: String, n: Int): (Actor, List<Actor>, List<Actor>) -> Boolean =
+    { _, allies, _ -> allies.count { ally -> ally.temporalEffects.any { it.id == name } } >= n }
+
 // ---- Actor Conditions ----
 fun selfHasBuff(name: String): (Actor, List<Actor>, List<Actor>) -> Boolean =
     { actor, _, _ -> actor.temporalEffects.any { it.id == name } }
@@ -255,6 +258,18 @@ val iceLance = Skill(
     maximumTargets = 1,
     cooldown = 3,
     manaCost = 15
+)
+
+val extinguish = Skill(
+    description = "Remove burn effects from an ally and heal them for a small amount.",
+    name = "Extinguish",
+    effects = listOf(
+        SkillEffect(type = SkillEffectType.RemoveTemporalEffect("Burn")),
+        SkillEffect(type = SkillEffectType.Heal(10))
+    ),
+    maximumTargets = 1,
+    cooldown = 0,
+    manaCost = 5
 )
 
 // BARD skills

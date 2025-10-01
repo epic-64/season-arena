@@ -73,6 +73,12 @@ fun exampleTeam1(): Team {
             ),
             Tactic(
                 conditions = emptyList(),
+                skill = iceLance,
+                targetGroup = TargetGroup.enemies,
+                ordering = listOf(::leastHp),
+            ),
+            Tactic(
+                conditions = emptyList(),
                 skill = spark,
                 targetGroup = TargetGroup.enemies,
                 ordering = listOf(::leastHp),
@@ -102,6 +108,12 @@ fun exampleTeam1(): Team {
                 skill = flashHeal,
                 targetGroup = TargetGroup.allies,
                 ordering = listOf(::leastHp),
+            ),
+            Tactic(
+                conditions = listOf(minimumAlliesHaveBuff("Burning" , 1)),
+                skill = extinguish,
+                targetGroup = TargetGroup.allies,
+                ordering = listOf(::leastHp)
             ),
             Tactic(
                 conditions = listOf(minimumAlliesBelowHp(1, 1.0)),

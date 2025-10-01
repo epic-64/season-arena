@@ -61,6 +61,7 @@ sealed class SkillEffectType {
     data class ResourceTick(val resourceTick: TemporalEffect.ResourceTick) : SkillEffectType()
     data class StatOverride(val statOverride: TemporalEffect.StatOverride) : SkillEffectType()
     data class DamageOverTime(val dot: TemporalEffect.DamageOverTime) : SkillEffectType()
+    data class RemoveTemporalEffect(val effectId: String) : SkillEffectType()
 }
 
 data class SkillEffect(
@@ -341,6 +342,14 @@ sealed class CombatEvent {
     ) : CombatEvent()
 
     @Serializable
+    @SerialName("BuffRemoved")
+    data class BuffRemoved(
+        val target: String,
+        val buffId: String,
+        override val snapshot: BattleSnapshot
+    ) : CombatEvent()
+
+    @Serializable
     @SerialName("ResourceDrained")
     data class ResourceDrained(
         val target: String,
@@ -503,6 +512,14 @@ sealed class CompactCombatEvent {
     ) : CompactCombatEvent()
 
     @Serializable
+    @SerialName("BuffRemoved")
+    data class CBuffRemoved(
+        val target: String,
+        val buffId: String,
+        val delta: BattleDelta
+    ) : CompactCombatEvent()
+
+    @Serializable
     @SerialName("BuffExpired")
     data class CBuffExpired(val target: String, val buffId: String, val delta: BattleDelta) : CompactCombatEvent()
 
@@ -539,6 +556,7 @@ fun CombatEvent.toCompactCombatEvent(delta: BattleDelta): CompactCombatEvent = w
     is DamageDealt -> CDamageDealt(source, target, amount, targetHp, delta)
     is Healed -> CHealed(source, target, amount, targetHp, delta)
     is BuffApplied -> CBuffApplied(source, target, buffId, delta)
+    is BuffRemoved -> CBuffRemoved(target, buffId, delta)
     is ResourceDrained -> CResourceDrained(target, buffId, resource, amount, newValue, delta)
     is ResourceRegenerated -> CResourceRegenerated(target, resource, amount, newValue, delta)
     is BattleEnd -> CBattleEnd(winner, delta)
