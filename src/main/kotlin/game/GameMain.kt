@@ -71,7 +71,25 @@ fun exampleTeam1(): Team {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        tactics = listOf(fireball, spark, basicAttack).map { Tactic(emptyList(), it) },
+        tactics = listOf(
+            Tactic(
+                conditions = listOf(minimumEnemiesAlive(3), enemyWeakTo(DamageType.Fire)),
+                skill = fireball,
+                targetGroup = TargetGroup.enemies,
+            ),
+            Tactic(
+                conditions = emptyList(),
+                skill = spark,
+                targetGroup = TargetGroup.enemies,
+                ordering = listOf(::leastHp),
+            ),
+            Tactic(
+                conditions = emptyList(),
+                skill = basicAttack,
+                targetGroup = TargetGroup.enemies,
+                ordering = listOf(::leastHp),
+            )
+        ),
         team = 0
     )
     val actorA3 = Actor(
@@ -81,7 +99,32 @@ fun exampleTeam1(): Team {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        tactics = listOf(groupHeal, flashHeal, iceLance, basicAttack).map { Tactic(emptyList(), it) },
+        tactics = listOf(
+            Tactic(
+                conditions = listOf(minimumAlliesBelowHp(2, 0.5)),
+                skill = groupHeal,
+                targetGroup = TargetGroup.allies,
+                ordering = listOf(::leastHp),
+            ),
+            Tactic(
+                conditions = listOf(minimumAlliesBelowHp(1, 0.8)),
+                skill = flashHeal,
+                targetGroup = TargetGroup.allies,
+                ordering = listOf(::leastHp),
+            ),
+            Tactic(
+                conditions = listOf(minimumAlliesBelowHp(1, 1.0)),
+                skill = hotBuff,
+                targetGroup = TargetGroup.allies,
+                ordering = listOf(::leastHp),
+            ),
+            Tactic(
+                conditions = emptyList(),
+                skill = basicAttack,
+                targetGroup = TargetGroup.enemies,
+                ordering = listOf(::leastHp),
+            )
+        ),
         team = 0
     )
     val actorA4 = Actor(
@@ -91,7 +134,25 @@ fun exampleTeam1(): Team {
         maxHp = 100,
         mana = 100,
         maxMana = 100,
-        tactics = listOf(blackHole, hotBuff, basicAttack).map { Tactic(emptyList(), it) },
+        tactics = listOf(
+            Tactic(
+                conditions = listOf(selfHasNotBuff("Shield of Faith")),
+                skill = shieldOfFaith,
+                targetGroup = TargetGroup.actor,
+            ),
+            Tactic(
+                conditions = emptyList(),
+                skill = holyStrike,
+                targetGroup = TargetGroup.enemies,
+                ordering = listOf(::leastHp),
+            ),
+            Tactic(
+                conditions = emptyList(),
+                skill = basicAttack,
+                targetGroup = TargetGroup.enemies,
+                ordering = listOf(::leastHp),
+            )
+        )
         team = 0
     )
     val actorA5 = Actor(

@@ -69,12 +69,15 @@ data class SkillEffect(
         { actor, allies, enemies, previous -> previous }
 )
 
+typealias targetSelectionFn = (Actor, List<Actor>, List<Actor>) -> List<Actor>
+
 data class Skill(
+    val description: String,
     val name: String,
     val effects: List<SkillEffect>,
     val maximumTargets: Int,
-    val initialTargets: (Actor, List<Actor>, List<Actor>) -> List<Actor>,
-    val condition: (Actor, List<Actor>, List<Actor>) -> Boolean,
+    val targetsOverride: targetSelectionFn? = null,
+    val condition: (Actor, List<Actor>, List<Actor>) -> Boolean = { _, _, _ -> true },
     val cooldown: Int,
     val manaCost: Int,
 )
@@ -120,8 +123,14 @@ data class Tactic(
     val conditions: List<ConditionFn>,
     val skill: Skill,
     val targetGroup: TargetFn,
-    val ordering: List<PriorityFn>,
-)
+    val ordering: List<PriorityFn> = emptyList()
+) {
+    fun getTargets(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Actor> {
+        val initialTargets = targetGroup(actor, allies, enemies)
+        val ordered = ordering.fold(initialTargets) { currentTargets, ordering -> ordering(currentTargets) }
+        return ordered.take(skill.maximumTargets)
+    }
+}
 
 // --- Actor ---
 data class Actor(

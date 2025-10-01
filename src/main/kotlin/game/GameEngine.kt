@@ -128,15 +128,17 @@ fun battleTick(state: BattleState, actor: Actor): BattleState {
         return state // dead actors skip their turn
     }
 
-    // skill application logic
+    // tactic application logic
     val allies = if (actor.team == 0) teamA.aliveActors() else teamB.aliveActors()
     val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
-    val skill = pickSkill(actor, allies, enemies)
+    val tactic = pickTactic(actor, allies, enemies)
 
-    if (skill != null) {
+    if (tactic != null) {
+        val skill = tactic.skill
+
         // Deduct mana cost before applying skill
         actor.setMana(actor.getMana() - skill.manaCost)
-        val initialTargets = skill.initialTargets(actor, allies, enemies)
+        val initialTargets = tactic.getTargets(actor, allies, enemies)
         val targetNames = initialTargets.map { it.name }
         log.add(CombatEvent.SkillUsed(actor.name, skill.name, targetNames, snapshotActors(listOf(teamA, teamB))))
         applySkill(state, actor, skill, allies, enemies, initialTargets)
@@ -165,18 +167,16 @@ fun battleRound(state: BattleState): BattleState {
     return newState
 }
 
-fun pickSkill(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Skill? {
-    // Only pick skills that are not on cooldown and actor has enough mana for
-    val availableSkills = actor.tactics.filter { cs ->
-        val skill = cs.skill
-        (actor.cooldowns[skill] ?: 0) <= 0 && actor.getMana() >= skill.manaCost
+fun pickTactic(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Tactic? {
+    fun isOffCooldown(skill: Skill): Boolean = (actor.cooldowns[skill] ?: 0) <= 0
+    fun hasEnoughMana(skill: Skill): Boolean = actor.getMana() >= skill.manaCost
+    fun matchesConditions(tactic: Tactic): Boolean =
+        tactic.skill.condition(actor, allies, enemies) &&
+        tactic.conditions.all { it(actor, allies, enemies) }
+
+    return actor.tactics.firstOrNull {
+        isOffCooldown(it.skill) && hasEnoughMana(it.skill) && matchesConditions(it)
     }
-    return availableSkills.firstOrNull { cs ->
-        val skill = cs.skill
-        val baseCondition = skill.condition(actor, allies, enemies)
-        val extraConditions = cs.conditions.all { cond -> cond(actor, allies, enemies) }
-        baseCondition && extraConditions
-    }?.skill
 }
 
 fun applySkill(
