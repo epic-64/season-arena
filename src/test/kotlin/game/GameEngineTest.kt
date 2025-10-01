@@ -9,7 +9,7 @@ class GameEngineTest : StringSpec({
         val actor = Actor(
             actorClass = ActorClass.Mage,
             name = "TestHero",
-            statsBag = StatsBag(hp = 50, maxHp = 100, mana = 100, maxMana = 100),
+            statsBag = StatsBag(hp = 50, maxHp = 100, mana = 100, maxMana = 100, hpRegenPerTurn = 5, manaRegenPerTurn = 5),
             tactics = emptyList(), // No skills
             team = 0
         )
@@ -31,7 +31,7 @@ class GameEngineTest : StringSpec({
         val actor = Actor(
             actorClass = ActorClass.Hunter,
             name = "DeepHero",
-            statsBag = StatsBag(hp = 100, maxHp = 100, mana = 100, maxMana = 100),
+            statsBag = StatsBag(hp = 100, maxHp = 100, mana = 100, maxMana = 100, hpRegenPerTurn = 5, manaRegenPerTurn = 5),
             tactics = emptyList(),
             team = 1,
             stats = mutableMapOf("strength" to 10),
@@ -62,14 +62,14 @@ class GameEngineTest : StringSpec({
         val actorA = Actor(
             actorClass = ActorClass.Hunter,
             name = "Hero",
-            statsBag = StatsBag(hp = 50, maxHp = 50, mana = 100, maxMana = 100),
+            statsBag = StatsBag(hp = 50, maxHp = 50, mana = 100, maxMana = 100, hpRegenPerTurn = 5, manaRegenPerTurn = 5),
             tactics = listOf(basicAttack).map { Tactic(emptyList(), it, TargetGroup.enemies) },
             team = 0
         )
         val actorB = Actor(
             actorClass = ActorClass.AbyssalDragon,
             name = "Villain",
-            statsBag = StatsBag(hp = 40, maxHp = 40, mana = 100, maxMana = 100),
+            statsBag = StatsBag(hp = 40, maxHp = 40, mana = 100, maxMana = 100, hpRegenPerTurn = 5, manaRegenPerTurn = 5),
             tactics = listOf(basicAttack).map { Tactic(emptyList(), it, TargetGroup.enemies) },
             team = 1
         )
@@ -95,14 +95,14 @@ class GameEngineTest : StringSpec({
         val attacker = Actor(
             actorClass = ActorClass.Hunter,
             name = "Attacker",
-            statsBag = StatsBag(hp = 30, maxHp = 30, mana = 100, maxMana = 100),
+            statsBag = StatsBag(hp = 30, maxHp = 30, mana = 100, maxMana = 100, hpRegenPerTurn = 5, manaRegenPerTurn = 5),
             tactics = listOf(basicAttack).map { Tactic(emptyList(), it, TargetGroup.enemies) },
             team = 0
         )
         val defender = Actor(
             actorClass = ActorClass.Mage,
             name = "Defender",
-            statsBag = StatsBag(hp = 25, maxHp = 25, mana = 100, maxMana = 100),
+            statsBag = StatsBag(hp = 25, maxHp = 25, mana = 100, maxMana = 100, hpRegenPerTurn = 5, manaRegenPerTurn = 5),
             tactics = listOf(basicAttack).map { Tactic(emptyList(), it, TargetGroup.enemies) },
             team = 1
         )
