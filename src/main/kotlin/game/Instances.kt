@@ -38,19 +38,18 @@ fun atLeastOneEnemyAlive(actor: Actor, allies: List<Actor>, enemies: List<Actor>
 fun atLeastTwoEnemiesAlive(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Boolean =
     enemies.count { it.isAlive } >= 2
 
-@Suppress("UNUSED_PARAMETER")
-fun minimumEnemiesAlive(n: Int): (Actor, List<Actor>, List<Actor>) -> Boolean =
-    { _, _, enemies -> enemies.count { it.isAlive } >= n }
-
-@Suppress("UNUSED_PARAMETER")
+// ---- Ally Conditions ----
 fun minimumAlliesBelowHp(n: Int, threshold: Double): (Actor, List<Actor>, List<Actor>) -> Boolean =
     { _, allies, _ -> allies.count { it.getHp() <= it.statsBag.maxHp * threshold } >= n }
 
-@Suppress("UNUSED_PARAMETER")
+// ---- Actor Conditions ----
 fun selfHasBuff(name: String): (Actor, List<Actor>, List<Actor>) -> Boolean =
     { actor, _, _ -> actor.temporalEffects.any { it.id == name } }
 
-@Suppress("UNUSED_PARAMETER")
+// ---- Enemy Conditions ----
+fun minimumEnemiesAlive(n: Int): (Actor, List<Actor>, List<Actor>) -> Boolean =
+    { _, _, enemies -> enemies.count { it.isAlive } >= n }
+
 fun enemyWeakTo(damageType: DamageType): (Actor, List<Actor>, List<Actor>) -> Boolean =
     { _, _, enemies -> enemies.any { it.getResistance(damageType) < 0 } }
 
