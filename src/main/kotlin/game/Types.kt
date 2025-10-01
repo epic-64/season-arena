@@ -136,10 +136,7 @@ data class Tactic(
 data class Actor(
     val actorClass: ActorClass,
     val name: String,
-    private var hp: Int,
-    val maxHp: Int,
-    private var mana: Int, // current mana
-    val maxMana: Int, // maximum mana
+    val statsBag: StatsBag,
     val tactics: List<Tactic>,
     val team: Int, // 0 or 1
     val amplifiers: Amplifiers = Amplifiers(),
@@ -147,15 +144,15 @@ data class Actor(
     val stats: MutableMap<String, Int> = mutableMapOf(),
     val temporalEffects: MutableList<TemporalEffect> = mutableListOf(),
     val cooldowns: MutableMap<Skill, Int> = mutableMapOf(), // skill -> turns left
-    val hpRegenPerTurn: Int = 0, // new: passive hp regeneration per turn (applied at start of turn)
-    val manaRegenPerTurn: Int = 0, // new: passive mana regeneration per turn (applied at start of turn)
+    val hpRegenPerTurn: Int = 0, // passive hp regeneration per turn (applied at start of turn)
+    val manaRegenPerTurn: Int = 0, // passive mana regeneration per turn (applied at start of turn)
 ) {
-    val isAlive: Boolean get() = hp > 0
+    val isAlive: Boolean get() = statsBag.hp > 0
 
-    fun getHp(): Int = hp
+    fun getHp(): Int = statsBag.hp
 
     fun setHp(value: Int) {
-        hp = value.coerceIn(0, maxHp)
+        statsBag.hp = value.coerceIn(0, statsBag.maxHp)
 
         if (!isAlive) {
             temporalEffects.clear()
@@ -163,20 +160,17 @@ data class Actor(
         }
     }
 
-    fun getMana(): Int = mana
+    fun getMana(): Int = statsBag.mana
 
     fun setMana(value: Int) {
-        mana = value.coerceIn(0, maxMana)
+        statsBag.mana = value.coerceIn(0, statsBag.maxMana)
     }
 
     fun deepCopy(): Actor {
         return Actor(
             actorClass = actorClass,
             name = name,
-            hp = hp,
-            maxHp = maxHp,
-            mana = mana,
-            maxMana = maxMana,
+            statsBag = StatsBag(statsBag.hp, statsBag.maxHp, statsBag.mana, statsBag.maxMana),
             tactics = tactics, // Skills are immutable
             team = team,
             stats = stats.toMutableMap(),
@@ -525,3 +519,11 @@ fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
     }
     return compactEvents
 }
+
+// Container for core combat resources
+data class StatsBag(
+    var hp: Int,
+    val maxHp: Int,
+    var mana: Int,
+    val maxMana: Int,
+)

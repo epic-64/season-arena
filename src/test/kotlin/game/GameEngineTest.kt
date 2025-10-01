@@ -72,7 +72,7 @@ class GameEngineTest : StringSpec({
             maxHp = 50,
             mana = 100,
             maxMana = 100,
-            tactics = listOf(basicAttack).map { Tactic(emptyList(), it) },
+            tactics = listOf(basicAttack).map { Tactic(emptyList(), it, TargetGroup.enemies) },
             team = 0
         )
         val actorB = Actor(
@@ -82,7 +82,7 @@ class GameEngineTest : StringSpec({
             maxHp = 40,
             mana = 100,
             maxMana = 100,
-            tactics = listOf(basicAttack).map { Tactic(emptyList(), it) },
+            tactics = listOf(basicAttack).map { Tactic(emptyList(), it, TargetGroup.enemies) },
             team = 1
         )
         val teamA = Team(mutableListOf(actorA))
@@ -111,7 +111,7 @@ class GameEngineTest : StringSpec({
             maxHp = 30,
             mana = 100,
             maxMana = 100,
-            tactics = listOf(basicAttack).map { Tactic(emptyList(), it) },
+            tactics = listOf(basicAttack).map { Tactic(emptyList(), it, TargetGroup.enemies) },
             team = 0
         )
         val defender = Actor(
@@ -121,7 +121,7 @@ class GameEngineTest : StringSpec({
             maxHp = 25,
             mana = 100,
             maxMana = 100,
-            tactics = listOf(basicAttack).map { Tactic(emptyList(), it) },
+            tactics = listOf(basicAttack).map { Tactic(emptyList(), it, TargetGroup.enemies) },
             team = 1
         )
         val teamA = Team(mutableListOf(attacker))

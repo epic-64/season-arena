@@ -32,10 +32,7 @@ fun exampleTeam1(): Team {
     val actorA1 = Actor(
         actorClass = ActorClass.Hunter,
         name = "Alice",
-        hp = 100,
-        maxHp = 100,
-        mana = 100,
-        maxMana = 100,
+        statsBag = StatsBag(hp = 100, maxHp = 100, mana = 100, maxMana = 100),
         tactics = listOf(
             Tactic(
                 conditions = listOf(selfHasNotBuff("Amplify")),
@@ -67,10 +64,7 @@ fun exampleTeam1(): Team {
     val actorA2 = Actor(
         actorClass = ActorClass.Mage,
         name = "Jane",
-        hp = 100,
-        maxHp = 100,
-        mana = 100,
-        maxMana = 100,
+        statsBag = StatsBag(hp = 100, maxHp = 100, mana = 100, maxMana = 100),
         tactics = listOf(
             Tactic(
                 conditions = listOf(minimumEnemiesAlive(3), enemyWeakTo(DamageType.Fire)),
@@ -95,10 +89,7 @@ fun exampleTeam1(): Team {
     val actorA3 = Actor(
         actorClass = ActorClass.Cleric,
         name = "Aidan",
-        hp = 100,
-        maxHp = 100,
-        mana = 100,
-        maxMana = 100,
+        statsBag = StatsBag(hp = 100, maxHp = 100, mana = 100, maxMana = 100),
         tactics = listOf(
             Tactic(
                 conditions = listOf(minimumAlliesBelowHp(2, 0.5)),
@@ -135,10 +126,7 @@ fun exampleTeam2(): Team {
     val actorB1 = Actor(
         actorClass = ActorClass.AbyssalDragon,
         name = "Abyssal Dragon",
-        hp = 400,
-        maxHp = 400,
-        mana = 100,
-        maxMana = 100,
+        statsBag = StatsBag(hp = 400, maxHp = 400, mana = 100, maxMana = 100),
         tactics = listOf(
             Tactic(
                 conditions = listOf(minimumEnemiesAlive(3)),
