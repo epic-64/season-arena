@@ -291,9 +291,9 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
     // Passive regeneration (applied at the start of the actor's turn before other duration effects tick)
     if (actor.isAlive) {
         // HP regen
-        if (actor.hpRegenPerTurn > 0 && actor.getHp() < actor.statsBag.maxHp) {
+        if (actor.statsBag.hpRegenPerTurn > 0 && actor.getHp() < actor.statsBag.maxHp) {
             val before = actor.getHp()
-            actor.setHp(before + actor.hpRegenPerTurn)
+            actor.setHp(before + actor.statsBag.hpRegenPerTurn)
             val gained = actor.getHp() - before
             if (gained > 0) {
                 state.log.add(
@@ -308,9 +308,9 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
             }
         }
         // Mana regen
-        if (actor.manaRegenPerTurn > 0 && actor.getMana() < actor.statsBag.maxMana) {
+        if (actor.statsBag.manaRegenPerTurn > 0 && actor.getMana() < actor.statsBag.maxMana) {
             val before = actor.getMana()
-            actor.setMana(actor.getMana() + actor.manaRegenPerTurn)
+            actor.setMana(actor.getMana() + actor.statsBag.manaRegenPerTurn)
             val gained = actor.getMana() - before
             if (gained > 0) {
                 state.log.add(

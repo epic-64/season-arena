@@ -132,6 +132,37 @@ data class Tactic(
     }
 }
 
+data class ResistanceBag(
+    val physical: Int = 0,
+    val magical: Int = 0,
+    val ice: Int = 0,
+    val fire: Int = 0,
+    val lightning: Int = 0,
+    val poison: Int = 0,
+    val absolute: Int = 0,
+)
+
+// Container for core combat resources
+data class StatsBag(
+    var hp: Int,
+    val maxHp: Int,
+    var mana: Int,
+    val maxMana: Int,
+    val hpRegenPerTurn: Int,
+    val manaRegenPerTurn: Int,
+) {
+    companion object {
+        fun default() = StatsBag(
+            hp = 100,
+            maxHp = 100,
+            mana = 100,
+            maxMana = 100,
+            hpRegenPerTurn = 0,
+            manaRegenPerTurn = 0
+        )
+    }
+}
+
 // --- Actor ---
 data class Actor(
     val actorClass: ActorClass,
@@ -144,8 +175,6 @@ data class Actor(
     val stats: MutableMap<String, Int> = mutableMapOf(),
     val temporalEffects: MutableList<TemporalEffect> = mutableListOf(),
     val cooldowns: MutableMap<Skill, Int> = mutableMapOf(), // skill -> turns left
-    val hpRegenPerTurn: Int = 0, // passive hp regeneration per turn (applied at start of turn)
-    val manaRegenPerTurn: Int = 0, // passive mana regeneration per turn (applied at start of turn)
 ) {
     val isAlive: Boolean get() = statsBag.hp > 0
 
@@ -170,15 +199,14 @@ data class Actor(
         return Actor(
             actorClass = actorClass,
             name = name,
-            statsBag = StatsBag(statsBag.hp, statsBag.maxHp, statsBag.mana, statsBag.maxMana),
+            statsBag = statsBag.copy(),
             tactics = tactics, // Skills are immutable
             team = team,
             stats = stats.toMutableMap(),
             temporalEffects = temporalEffects.toMutableList(),
             cooldowns = cooldowns.toMutableMap(),
             amplifiers = amplifiers,
-            hpRegenPerTurn = hpRegenPerTurn,
-            manaRegenPerTurn = manaRegenPerTurn,
+            resistances = resistances.toMap(),
         )
     }
 
@@ -519,11 +547,3 @@ fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
     }
     return compactEvents
 }
-
-// Container for core combat resources
-data class StatsBag(
-    var hp: Int,
-    val maxHp: Int,
-    var mana: Int,
-    val maxMana: Int,
-)
