@@ -44,7 +44,7 @@ fun minimumEnemiesAlive(n: Int): (Actor, List<Actor>, List<Actor>) -> Boolean =
 
 @Suppress("UNUSED_PARAMETER")
 fun minimumAlliesBelowHp(n: Int, threshold: Double): (Actor, List<Actor>, List<Actor>) -> Boolean =
-    { _, allies, _ -> allies.count { it.getHp() <= it.maxHp * threshold } >= n }
+    { _, allies, _ -> allies.count { it.getHp() <= it.statsBag.maxHp * threshold } >= n }
 
 @Suppress("UNUSED_PARAMETER")
 fun selfHasBuff(name: String): (Actor, List<Actor>, List<Actor>) -> Boolean =

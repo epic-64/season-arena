@@ -21,9 +21,9 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
                     actorClass = actor.actorClass,
                     name = actor.name,
                     hp = actor.getHp(),
-                    maxHp = actor.maxHp,
+                    maxHp = actor.statsBag.maxHp,
                     mana = actor.getMana(),
-                    maxMana = actor.maxMana,
+                    maxMana = actor.statsBag.maxMana,
                     team = actor.team,
                     stats = actor.stats.toMap(),
                     statBuffs = actor.temporalEffects.filterIsInstance<TemporalEffect.StatBuff>()
@@ -246,7 +246,7 @@ fun applySkill(
             is SkillEffectType.Heal -> {
                 for (target in targets) {
                     val heal = max(1, effect.type.power + (actor.stats["matk"] ?: 0))
-                    target.setHp(min(target.maxHp, target.getHp() + heal))
+                    target.setHp(min(target.statsBag.maxHp, target.getHp() + heal))
                     log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), snapshotActors(listOf(teamA, teamB))))
                 }
             }
@@ -291,7 +291,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
     // Passive regeneration (applied at the start of the actor's turn before other duration effects tick)
     if (actor.isAlive) {
         // HP regen
-        if (actor.hpRegenPerTurn > 0 && actor.getHp() < actor.maxHp) {
+        if (actor.hpRegenPerTurn > 0 && actor.getHp() < actor.statsBag.maxHp) {
             val before = actor.getHp()
             actor.setHp(before + actor.hpRegenPerTurn)
             val gained = actor.getHp() - before
@@ -308,7 +308,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
             }
         }
         // Mana regen
-        if (actor.manaRegenPerTurn > 0 && actor.getMana() < actor.maxMana) {
+        if (actor.manaRegenPerTurn > 0 && actor.getMana() < actor.statsBag.maxMana) {
             val before = actor.getMana()
             actor.setMana(actor.getMana() + actor.manaRegenPerTurn)
             val gained = actor.getMana() - before
@@ -367,7 +367,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState
                 when (resource) {
                     "hp" -> {
                         val newHp = when (amount > 0) {
-                            true -> min(actor.maxHp, actor.getHp() + amount)
+                            true -> min(actor.statsBag.maxHp, actor.getHp() + amount)
                             false -> max(0, actor.getHp() + amount)
                         }
                         actor.setHp(newHp)
