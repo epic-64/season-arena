@@ -274,6 +274,16 @@ fun applySkill(
                     effect.type.dot.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id, snapshotActors(listOf(teamA, teamB)))) }
                 }
             }
+            is SkillEffectType.RemoveTemporalEffect -> {
+                for (target in targets) {
+                    val before = target.temporalEffects.size
+                    target.temporalEffects.removeIf { it.id == effect.type.effectId }
+                    val after = target.temporalEffects.size
+                    if (before != after) {
+                        log.add(CombatEvent.BuffRemoved(target.name, effect.type.effectId, snapshotActors(listOf(teamA, teamB))))
+                    }
+                }
+            }
         }
     }
     // Apply cooldown
