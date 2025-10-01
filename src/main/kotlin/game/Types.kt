@@ -133,24 +133,50 @@ data class Tactic(
 }
 
 data class ResistanceBag(
-    val physical: Int = 0,
-    val magical: Int = 0,
-    val ice: Int = 0,
-    val fire: Int = 0,
-    val lightning: Int = 0,
-    val poison: Int = 0,
-    val absolute: Int = 0,
-)
+    val physical: Int,
+    val ice: Int,
+    val fire: Int,
+    val lightning: Int,
+    val chaos: Int,
+) {
+    companion object {
+        fun default() = ResistanceBag(
+            physical = 0,
+            ice = 0,
+            fire = 0,
+            lightning = 0,
+            chaos = 0
+        )
+    }
+}
 
 // Container for core combat resources
+interface ResourceStats {
+    fun getHp(): Int
+    fun setHp(value: Int)
+    fun getMana(): Int
+    fun setMana(value: Int)
+    val maxHp: Int
+    val maxMana: Int
+    val hpRegenPerTurn: Int
+    val manaRegenPerTurn: Int
+    val isAlive: Boolean
+}
+
 data class StatsBag(
-    var hp: Int,
-    val maxHp: Int,
-    var mana: Int,
-    val maxMana: Int,
-    val hpRegenPerTurn: Int,
-    val manaRegenPerTurn: Int,
-) {
+    private var mana: Int,
+    private var hp: Int,
+    override val maxHp: Int,
+    override val maxMana: Int,
+    override val hpRegenPerTurn: Int,
+    override val manaRegenPerTurn: Int,
+) : ResourceStats {
+    override val isAlive: Boolean get() = hp > 0
+    override fun getHp(): Int = hp
+    override fun getMana(): Int = mana
+    override fun setHp(value: Int) { hp = value.coerceIn(0, maxHp) }
+    override fun setMana(value: Int) { mana = value.coerceIn(0, maxMana) }
+
     companion object {
         fun default() = StatsBag(
             hp = 100,
@@ -174,25 +200,16 @@ data class Actor(
     val resistances: Map<DamageType, Int> = mapOf(),
     val stats: MutableMap<String, Int> = mutableMapOf(),
     val temporalEffects: MutableList<TemporalEffect> = mutableListOf(),
-    val cooldowns: MutableMap<Skill, Int> = mutableMapOf(), // skill -> turns left
-) {
-    val isAlive: Boolean get() = statsBag.hp > 0
-
-    fun getHp(): Int = statsBag.hp
-
-    fun setHp(value: Int) {
-        statsBag.hp = value.coerceIn(0, statsBag.maxHp)
+    val cooldowns: MutableMap<Skill, Int> = mutableMapOf(),
+) : ResourceStats by statsBag {
+    override fun setHp(value: Int) {
+        statsBag.setHp(value)
 
         if (!isAlive) {
+            statsBag.setMana(0)
             temporalEffects.clear()
             cooldowns.clear()
         }
-    }
-
-    fun getMana(): Int = statsBag.mana
-
-    fun setMana(value: Int) {
-        statsBag.mana = value.coerceIn(0, statsBag.maxMana)
     }
 
     fun deepCopy(): Actor {
@@ -200,7 +217,7 @@ data class Actor(
             actorClass = actorClass,
             name = name,
             statsBag = statsBag.copy(),
-            tactics = tactics, // Skills are immutable
+            tactics = tactics, // immutable assumed
             team = team,
             stats = stats.toMutableMap(),
             temporalEffects = temporalEffects.toMutableList(),
