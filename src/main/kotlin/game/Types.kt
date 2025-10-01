@@ -191,11 +191,11 @@ data class StatsBag(
 
 // --- Actor ---
 data class Actor(
+    val team: Int, // 0 or 1
     val actorClass: ActorClass,
     val name: String,
     val statsBag: StatsBag,
     val tactics: List<Tactic>,
-    val team: Int, // 0 or 1
     val amplifiers: Amplifiers = Amplifiers(),
     val resistances: Map<DamageType, Int> = mapOf(),
     val stats: MutableMap<String, Int> = mutableMapOf(),
