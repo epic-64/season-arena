@@ -5,7 +5,7 @@ import {
     animateResourceDrained,
     animateSkillUsed,
     animateTurnStart,
-    animateCharacterActivated
+    animateCharacterActivated, animateBattleEnd
 } from './animations.js';
 
 import {statusEmojis} from './emojiMappings.js';
@@ -270,6 +270,9 @@ function animateEvent(event) {
             break;
         case CombatEventType.BuffApplied:
             animateBuffApplied(event);
+            break;
+        case CombatEventType.BattleEnd:
+            animateBattleEnd(event);
             break;
         default:
             console.error('Unhandled event type', event);

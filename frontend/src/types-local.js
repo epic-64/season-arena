@@ -9,5 +9,6 @@ export const CombatEventType = {
     BuffExpired: 'BuffExpired',
     DamageDealt: 'DamageDealt',
     Healed: 'Healed',
-    ResourceDrained: 'ResourceDrained'
+    ResourceDrained: 'ResourceDrained',
+    BattleEnd: 'BattleEnd',
 };
