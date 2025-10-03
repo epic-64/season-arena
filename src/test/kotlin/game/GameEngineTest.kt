@@ -112,16 +112,15 @@ class GameEngineTest : StringSpec({
         val newState = battleTick(state, attacker)
 
         val compactLog = toCompactCombatEvents(newState.log)
+        // [
+        // CCharacterActivated(actor=Attacker, delta=BattleDelta(actors=[ActorDelta(name=Attacker, hp=30, maxHp=30, mana=100, maxMana=100, stats={}, statBuffs=[], resourceTicks=[], statOverrides=[], cooldowns={Strike=0}), ActorDelta(name=Defender, hp=25, maxHp=25, mana=100, maxMana=100, stats={}, statBuffs=[], resourceTicks=[], statOverrides=[], cooldowns={Strike=0})])),
+        // CSkillUsed(actor=Attacker, skill=Strike, targets=[Defender], delta=BattleDelta(actors=[])),
+        // CDamageDealt(source=Attacker, target=Defender, amount=20, targetHp=5, delta=BattleDelta(actors=[ActorDelta(name=Defender, hp=5, maxHp=null, mana=null, maxMana=null, stats=null, statBuffs=null, resourceTicks=null, statOverrides=null, cooldowns=null)]))
+        // ]
 
         val log0 = compactLog[0] as CompactCombatEvent.CCharacterActivated
         log0.actor shouldBe attacker.name
-
-        val log1 = compactLog[1] as CompactCombatEvent.CSkillUsed
-
-        log1.actor shouldBe attacker.name
-        log1.skill shouldBe "Strike"
-        log1.targets shouldBe listOf(defender.name)
-        log1.delta.actors[0] shouldBe ActorDelta(
+        log0.delta.actors[0] shouldBe ActorDelta(
             name = attacker.name,
             hp = 30,
             maxHp = 30,
@@ -133,7 +132,7 @@ class GameEngineTest : StringSpec({
             cooldowns = mapOf("Strike" to 0),
             statOverrides = emptyList(),
         )
-        log1.delta.actors[1] shouldBe ActorDelta(
+        log0.delta.actors[1] shouldBe ActorDelta(
             name = defender.name,
             hp = 25,
             maxHp = 25,
@@ -146,8 +145,13 @@ class GameEngineTest : StringSpec({
             statOverrides = emptyList(),
         )
 
-        val log2 = compactLog[2] as CompactCombatEvent.CDamageDealt
+        val log1 = compactLog[1] as CompactCombatEvent.CSkillUsed
 
+        log1.actor shouldBe attacker.name
+        log1.skill shouldBe "Strike"
+        log1.targets shouldBe listOf(defender.name)
+
+        val log2 = compactLog[2] as CompactCombatEvent.CDamageDealt
         log2.source shouldBe attacker.name
         log2.target shouldBe defender.name
         log2.amount shouldBe 20
