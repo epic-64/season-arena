@@ -311,7 +311,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState {
     for (effect in actor.temporalEffects) {
         val def = BuffRegistry.definitions[effect.id] ?: continue
         // stat buffs (additive * stacks)
-        def.statBuff.forEach { (stat, value) =>
+        def.statBuff.forEach { (stat, value) ->
             statBuffTotals[stat] = (statBuffTotals[stat] ?: 0) + value * effect.stacks
         }
     }
@@ -324,7 +324,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState {
     // Apply overrides (ignore stacking, last wins but they should be same per id)
     for (effect in actor.temporalEffects) {
         val def = BuffRegistry.definitions[effect.id] ?: continue
-        def.statOverride.forEach { (stat, value) =>
+        def.statOverride.forEach { (stat, value) ->
             actor.stats[stat] = value
         }
     }
@@ -333,7 +333,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState {
     val resourceAggregates = mutableMapOf<String, Int>()
     for (effect in actor.temporalEffects) {
         val def = BuffRegistry.definitions[effect.id] ?: continue
-        def.resourceTick.forEach { (resource, amount) =>
+        def.resourceTick.forEach { (resource, amount) ->
             resourceAggregates[resource] = (resourceAggregates[resource] ?: 0) + amount * effect.stacks
         }
     }

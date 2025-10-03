@@ -17,6 +17,7 @@ enum class BuffId(val label: String) {
     Protection("Protection"),
     Chill("Chill"),
     Poison("Poison"),
+    Empower("Empower"),
 }
 
 // Simplified TemporalEffect now only tracks id, remaining duration, and stacks. All logic/data for what a buff does
@@ -49,6 +50,7 @@ object BuffRegistry {
         BuffId.Protection to BuffDefinition(statBuff = mapOf("protection" to 10)),
         BuffId.Chill to BuffDefinition(statBuff = mapOf("amplify" to -5)), // stack to reach -10
         BuffId.Poison to BuffDefinition(resourceTick = mapOf("hp" to -5)),
+        BuffId.Empower to BuffDefinition(statBuff = mapOf("strength" to 5)),
     )
 }
 
