@@ -2,6 +2,7 @@ package game
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlin.collections.iterator
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
@@ -127,12 +128,15 @@ fun battleTick(state: BattleState, actor: Actor): BattleState {
         return state // dead actors skip their turn
     }
 
+    // tactic application logic
     val allies = if (actor.team == 0) teamA.aliveActors() else teamB.aliveActors()
     val enemies = if (actor.team == 0) teamB.aliveActors() else teamA.aliveActors()
     val tactic = pickTactic(actor, allies, enemies)
 
     if (tactic != null) {
         val skill = tactic.skill
+
+        // Deduct mana cost before applying skill
         actor.setMana(actor.getMana() - skill.manaCost)
         val initialTargets = tactic.getTargets(actor, allies, enemies)
         val targetNames = initialTargets.map { it.name }
@@ -140,6 +144,7 @@ fun battleTick(state: BattleState, actor: Actor): BattleState {
         applySkill(state, actor, skill, allies, enemies, initialTargets)
     }
 
+    // remove buffs after skill application to ensure they last the full turn
     actor.temporalEffects.removeAll { it.duration <= 0 }
 
     return state
@@ -181,7 +186,8 @@ fun applySkill(
     allies: List<Actor>,
     enemies: List<Actor>,
     initialTargets: List<Actor>,
-): BattleState {
+): BattleState
+{
     val teamA = state.teamA
     val teamB = state.teamB
     val log = state.log
@@ -202,17 +208,23 @@ fun applySkill(
                     var isCriticalHit = false
 
                     val finalDamage: Int = effect.type.amount
-                        .let { actor.amplifiers.getAmplifiedDamage(effect.type.damageType, it) }
-                        .let {
+                        .let { // get amplifiers from actor
+                            actor.amplifiers.getAmplifiedDamage(effect.type.damageType, it)
+                        }
+                        .let { // apply critical damage if applicable
                             isCriticalHit = (actor.stats["critChance"] ?: 0) > Random.nextInt(100)
                             if (isCriticalHit) it * 2 else it
                         }
-                        .let { (it * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt() }
-                        .let {
+                        .let { // apply amplify buffs from actor
+                            (it * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt()
+                        }
+                        .let { // apply protection from target (0-100%)
                             val protection = target.stats["protection"]?.coerceIn(0, 100) ?: 0
                             max(1, (it * (1 - protection / 100.0)).toInt())
                         }
-                        .let { max(1, it) }
+                        .let { // clamp to at least 1 damage
+                            max(1, it)
+                        }
 
                     target.setHp(max(0, target.getHp() - finalDamage))
 
@@ -274,6 +286,7 @@ fun applySkill(
             }
         }
     }
+    // Apply cooldown
     actor.cooldowns[skill] = skill.cooldown
 
     return state
@@ -284,7 +297,9 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState {
     val statBuffTotals = mutableMapOf<String, Int>()
     val statOverrides = actor.temporalEffects.filterIsInstance<TemporalEffect.StatOverride>()
 
+    // Passive regeneration (applied at the start of the actor's turn before other duration effects tick)
     if (actor.isAlive) {
+        // HP regen
         if (actor.statsBag.hpRegenPerTurn > 0 && actor.getHp() < actor.statsBag.maxHp) {
             val before = actor.getHp()
             actor.setHp(before + actor.statsBag.hpRegenPerTurn)
@@ -301,6 +316,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState {
                 )
             }
         }
+        // Mana regen
         if (actor.statsBag.manaRegenPerTurn > 0 && actor.getMana() < actor.statsBag.maxMana) {
             val before = actor.getMana()
             actor.setMana(actor.getMana() + actor.statsBag.manaRegenPerTurn)
@@ -325,28 +341,34 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState {
         }
     }
 
+    // Set stats to base + total from active buffs
     for ((stat, value) in statBuffTotals) {
         actor.stats[stat] = value
     }
 
+    // Apply stat overrides (these take precedence)
     for (override in statOverrides) {
         for ((stat, value) in override.statOverrides) {
             actor.stats[stat] = value
         }
     }
 
+    // Remove stats for buffs that have expired
     val expiredBuffs = actor.temporalEffects.filterIsInstance<TemporalEffect.StatBuff>().filter { it.duration <= 0 }
     for (buff in expiredBuffs) {
         for ((stat, _) in buff.statChanges) {
+            // Remove stat if no other active buff provides it
             if (activeStatBuffs.none { it.statChanges.containsKey(stat) }) {
                 actor.stats.remove(stat)
             }
         }
     }
 
+    // --- ResourceTicks: aggregate by id ---
     val resourceTickGroups = actor.temporalEffects.filterIsInstance<TemporalEffect.ResourceTick>().groupBy { it.id }
     for ((id, ticks) in resourceTickGroups) {
         if (ticks.isNotEmpty()) {
+            // Aggregate resource changes
             val totalResourceChanges = ticks.flatMap { it.resourceChanges.entries }
                 .groupBy { it.key }
                 .mapValues { (_, v) -> v.sumOf { it.value } }
@@ -366,6 +388,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState {
     }
 
     actor.temporalEffects.replaceAll { it.decrement() }
+
     actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
 
     return state
