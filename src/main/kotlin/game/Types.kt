@@ -4,8 +4,25 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.reflect.full.memberProperties
 
+typealias Turns = Int
+
+fun Int.turns() = this
+
+@Serializable
+enum class BuffId(val label: String) {
+    Amplify("Amplify"),
+    Cheer("Cheer"),
+    MoraleBoost("Morale Boost"),
+    Burn("Burn"),
+    Shock("Shock"),
+    Regen("Regen"),
+    Protection("Protection"),
+    Chill("Chill"),
+    Poison("Poison"),
+}
+
 sealed class TemporalEffect {
-    abstract val id: String
+    abstract val id: BuffId
     abstract val duration: Int
 
     fun decrement(): TemporalEffect = when (this) {
@@ -16,25 +33,25 @@ sealed class TemporalEffect {
     }
 
     data class StatBuff(
-        override val id: String,
+        override val id: BuffId,
         override val duration: Int,
         val statChanges: Map<String, Int>
     ) : TemporalEffect()
 
     data class StatOverride(
-        override val id: String,
+        override val id: BuffId,
         override val duration: Int,
         val statOverrides: Map<String, Int>
     ) : TemporalEffect()
 
     data class ResourceTick(
-        override val id: String,
+        override val id: BuffId,
         override val duration: Int,
         val resourceChanges: Map<String, Int>
     ) : TemporalEffect()
 
     data class DamageOverTime(
-        override val id: String,
+        override val id: BuffId,
         override val duration: Int,
         val damageType: DamageType,
         val amount: Int
@@ -58,13 +75,13 @@ sealed class SkillEffectType {
     data class ResourceTick(val resourceTick: TemporalEffect.ResourceTick) : SkillEffectType()
     data class StatOverride(val statOverride: TemporalEffect.StatOverride) : SkillEffectType()
     data class DamageOverTime(val dot: TemporalEffect.DamageOverTime) : SkillEffectType()
-    data class RemoveTemporalEffect(val effectId: String) : SkillEffectType()
+    data class RemoveTemporalEffect(val effectId: BuffId) : SkillEffectType()
 }
 
 data class SkillEffect(
     val type: SkillEffectType,
     val targetRule: (Actor, List<Actor>, List<Actor>, List<Actor>) -> List<Actor> =
-        { actor, allies, enemies, previous -> previous }
+        { _, _, _, previous -> previous }
 )
 
 typealias targetSelectionFn = (Actor, List<Actor>, List<Actor>) -> List<Actor>

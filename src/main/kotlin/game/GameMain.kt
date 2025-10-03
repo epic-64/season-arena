@@ -35,7 +35,7 @@ fun exampleTeam1(): Team {
         statsBag = StatsBag.default().copy(hpRegenPerTurn = 5),
         tactics = listOf(
             Tactic(
-                conditions = listOf(selfHasNotBuff("Amplify")),
+                conditions = listOf(selfHasNotBuff(BuffId.Amplify)),
                 skill = takeAim,
                 targetGroup = TargetGroup.actor,
                 ordering = emptyList(),
@@ -47,7 +47,7 @@ fun exampleTeam1(): Team {
                 ordering = listOf(::leastHp),
             ),
             Tactic(
-                conditions = listOf(selfHasBuff("Amplify")),
+                conditions = listOf(selfHasBuff(BuffId.Amplify)),
                 skill = snipe,
                 targetGroup = TargetGroup.enemies,
                 ordering = listOf(::mostHp),
@@ -110,7 +110,7 @@ fun exampleTeam1(): Team {
                 ordering = listOf(::leastHp),
             ),
             Tactic(
-                conditions = listOf(minimumAlliesHaveBuff("Burning" , 1)),
+                conditions = listOf(minimumAlliesHaveBuff(BuffId.Burn , 1)),
                 skill = extinguish,
                 targetGroup = TargetGroup.allies,
                 ordering = listOf(::leastHp)
