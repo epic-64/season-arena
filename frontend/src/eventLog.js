@@ -42,6 +42,9 @@ function formatEventLog(event) {
             case CombatEventType.TurnStart: {
                 return `--- Turn ${event.turn} ---`;
             }
+            case CombatEventType.CharacterActivated: {
+                return `> ${event.actor} prepares an action`;
+            }
             case CombatEventType.SkillUsed: {
                 const actor = event.actor || 'Unknown';
                 const skill = event.skill || 'Skill';

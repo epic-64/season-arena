@@ -10,6 +10,7 @@ import game.CombatEvent.ResourceDrained
 import game.CombatEvent.ResourceRegenerated
 import game.CombatEvent.SkillUsed
 import game.CombatEvent.TurnStart
+import game.CombatEvent.CharacterActivated
 import game.CompactCombatEvent.CBattleEnd
 import game.CompactCombatEvent.CBattleStart
 import game.CompactCombatEvent.CBuffApplied
@@ -20,6 +21,7 @@ import game.CompactCombatEvent.CResourceDrained
 import game.CompactCombatEvent.CResourceRegenerated
 import game.CompactCombatEvent.CSkillUsed
 import game.CompactCombatEvent.CTurnStart
+import game.CompactCombatEvent.CCharacterActivated
 
 fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta {
     val prevActors = prev.actors.associateBy { it.name }
@@ -85,6 +87,7 @@ fun BattleDelta.Companion.fullSnapshot(snapshot: BattleSnapshot): BattleDelta {
 fun CombatEvent.toCompactCombatEvent(delta: BattleDelta): CompactCombatEvent = when (this) {
     is BattleStart -> CBattleStart(snapshot)
     is TurnStart -> CTurnStart(turn, delta)
+    is CharacterActivated -> CCharacterActivated(actor, delta)
     is SkillUsed -> CSkillUsed(actor, skill, targets, delta)
     is DamageDealt -> CDamageDealt(source, target, amount, targetHp, delta)
     is Healed -> CHealed(source, target, amount, targetHp, delta)

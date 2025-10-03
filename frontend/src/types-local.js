@@ -3,6 +3,7 @@
 export const CombatEventType = {
     BattleStart: 'BattleStart',
     TurnStart: 'TurnStart',
+    CharacterActivated: 'CharacterActivated',
     SkillUsed: 'SkillUsed',
     BuffApplied: 'BuffApplied',
     BuffExpired: 'BuffExpired',

@@ -185,6 +185,22 @@ function animateTurnStart(event) {
     }
 }
 
+/**
+ * @param {CompactCombatEvent_CharacterActivated} event - The character activated event object
+ * @return {void}
+ */
+function animateCharacterActivated(event) {
+    try {
+        // remove previous active highlights
+        document.querySelectorAll('.actor.actor-active').forEach(el => el.classList.remove('actor-active'));
+        const actorEl = document.getElementById(`actor-${event.actor}`);
+        if (!actorEl) return;
+        actorEl.classList.add('actor-active');
+    } catch (e) {
+        console.error('CharacterActivated animation error', e);
+    }
+}
+
 export {
     animateSkillUsed,
     animateDamageDealt,
@@ -192,5 +208,6 @@ export {
     animateHeal,
     animateBuffApplied,
     showFloatingNumber,
-    animateTurnStart
+    animateTurnStart,
+    animateCharacterActivated
 };
