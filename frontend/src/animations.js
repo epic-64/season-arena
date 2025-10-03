@@ -66,7 +66,7 @@ function flickerOutline(targetEl, className, duration = 450) {
 }
 
 /**
- * @param {CombatEvent_DamageDealt} event - The damage dealt event object
+ * @param {CompactCombatEvent_DamageDealt} event - The damage dealt event object
  * @return {void}
  */
 function animateDamageDealt(event) {
@@ -84,7 +84,7 @@ function animateDamageDealt(event) {
 }
 
 /**
- * @param {CombatEvent_ResourceDrained} event - The resource drained event object
+ * @param {CompactCombatEvent_ResourceDrained} event - The resource drained event object
  * @return {void}
  */
 function animateResourceDrained(event) {
@@ -107,7 +107,7 @@ function animateResourceDrained(event) {
 }
 
 /**
- * @param {CombatEvent_Healed} event - The heal event object
+ * @param {CompactCombatEvent_Healed} event
  * @return {void}
  */
 function animateHeal(event)
@@ -201,6 +201,14 @@ function animateCharacterActivated(event) {
     }
 }
 
+/**
+ * @param {CompactCombatEvent_BattleEnd} event - The battle end event object
+ */
+function animateBattleEnd(event) {
+    // remove previous active highlights
+    document.querySelectorAll('.actor.actor-active').forEach(el => el.classList.remove('actor-active'));
+}
+
 export {
     animateSkillUsed,
     animateDamageDealt,
@@ -209,5 +217,6 @@ export {
     animateBuffApplied,
     showFloatingNumber,
     animateTurnStart,
-    animateCharacterActivated
+    animateCharacterActivated,
+    animateBattleEnd,
 };
