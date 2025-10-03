@@ -4,7 +4,8 @@ import {
     animateHeal,
     animateResourceDrained,
     animateSkillUsed,
-    animateTurnStart
+    animateTurnStart,
+    animateCharacterActivated
 } from './animations.js';
 
 import {statusEmojis} from './emojiMappings.js';
@@ -251,6 +252,9 @@ function animateEvent(event) {
     switch (event.type) {
         case CombatEventType.TurnStart:
             animateTurnStart(event);
+            break;
+        case CombatEventType.CharacterActivated:
+            animateCharacterActivated(event);
             break;
         case CombatEventType.SkillUsed:
             animateSkillUsed(event);

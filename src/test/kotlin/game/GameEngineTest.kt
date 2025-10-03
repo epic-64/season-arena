@@ -113,7 +113,10 @@ class GameEngineTest : StringSpec({
 
         val compactLog = toCompactCombatEvents(newState.log)
 
-        val log1 = compactLog[0] as CompactCombatEvent.CSkillUsed
+        val log0 = compactLog[0] as CompactCombatEvent.CCharacterActivated
+        log0.actor shouldBe attacker.name
+
+        val log1 = compactLog[1] as CompactCombatEvent.CSkillUsed
 
         log1.actor shouldBe attacker.name
         log1.skill shouldBe "Strike"
@@ -143,7 +146,7 @@ class GameEngineTest : StringSpec({
             statOverrides = emptyList(),
         )
 
-        val log2 = compactLog[1] as CompactCombatEvent.CDamageDealt
+        val log2 = compactLog[2] as CompactCombatEvent.CDamageDealt
 
         log2.source shouldBe attacker.name
         log2.target shouldBe defender.name

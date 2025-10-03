@@ -112,6 +112,9 @@ fun battleTick(state: BattleState, actor: Actor): BattleState {
     val teamB = state.teamB
     val log = state.log
 
+    // Emit CharacterActivated event after buffs processed and actor confirmed alive
+    log.add(CombatEvent.CharacterActivated(actor.name, snapshotActors(listOf(teamA, teamB))))
+
     processBuffs(state, actor)
 
     if (!actor.isAlive) {

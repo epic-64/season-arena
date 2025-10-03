@@ -310,6 +310,10 @@ sealed class CombatEvent {
     data class TurnStart(val turn: Int, override val snapshot: BattleSnapshot) : CombatEvent()
 
     @Serializable
+    @SerialName("CharacterActivated")
+    data class CharacterActivated(val actor: String, override val snapshot: BattleSnapshot) : CombatEvent()
+
+    @Serializable
     @SerialName("SkillUsed")
     data class SkillUsed(
         val actor: String,
@@ -420,6 +424,10 @@ sealed class CompactCombatEvent {
     @Serializable
     @SerialName("TurnStart")
     data class CTurnStart(val turn: Int, val delta: BattleDelta) : CompactCombatEvent()
+
+    @Serializable
+    @SerialName("CharacterActivated")
+    data class CCharacterActivated(val actor: String, val delta: BattleDelta) : CompactCombatEvent()
 
     @Serializable
     @SerialName("SkillUsed")
