@@ -19,41 +19,37 @@ enum class BuffId(val label: String) {
     Poison("Poison"),
 }
 
-sealed class TemporalEffect {
-    abstract val id: BuffId
-    abstract val duration: Turns
+// Simplified TemporalEffect now only tracks id, remaining duration, and stacks. All logic/data for what a buff does
+// lives in the central BuffRegistry.
+data class TemporalEffect(
+    val id: BuffId,
+    val duration: Turns,
+    val stacks: Int = 1,
+) {
+    fun decrement(): TemporalEffect = copy(duration = duration - 1)
+}
 
-    fun decrement(): TemporalEffect = when (this) {
-        is StatBuff -> copy(duration = duration - 1)
-        is ResourceTick -> copy(duration = duration - 1)
-        is StatOverride -> copy(duration = duration - 1)
-        is DamageOverTime -> copy(duration = duration - 1)
-    }
+// Central registry describing what each BuffId does.
+object BuffRegistry {
+    data class BuffDefinition(
+        val statBuff: Map<String, Int> = emptyMap(),          // additive per stack
+        val statOverride: Map<String, Int> = emptyMap(),      // overrides (stacks ignored)
+        val resourceTick: Map<String, Int> = emptyMap(),      // per-turn resource deltas per stack
+        val damageOverTime: Pair<DamageType, Int>? = null     // future use (per stack amount)
+    )
 
-    data class StatBuff(
-        override val id: BuffId,
-        override val duration: Turns,
-        val statChanges: Map<String, Int>
-    ) : TemporalEffect()
-
-    data class StatOverride(
-        override val id: BuffId,
-        override val duration: Turns,
-        val statOverrides: Map<String, Int>
-    ) : TemporalEffect()
-
-    data class ResourceTick(
-        override val id: BuffId,
-        override val duration: Turns,
-        val resourceChanges: Map<String, Int>
-    ) : TemporalEffect()
-
-    data class DamageOverTime(
-        override val id: BuffId,
-        override val duration: Turns,
-        val damageType: DamageType,
-        val amount: Int
-    ) : TemporalEffect()
+    // Base values chosen so skills can scale using stacks when needed (e.g. Chill -5 * stacks, Regen +5 * stacks)
+    val definitions: Map<BuffId, BuffDefinition> = mapOf(
+        BuffId.Amplify to BuffDefinition(statBuff = mapOf("amplify" to 200)),
+        BuffId.Cheer to BuffDefinition(statOverride = mapOf("critChance" to 100)),
+        BuffId.MoraleBoost to BuffDefinition(statBuff = mapOf("attack" to 10)),
+        BuffId.Burn to BuffDefinition(resourceTick = mapOf("hp" to -10)),
+        BuffId.Shock to BuffDefinition(statBuff = mapOf("def" to -5)),
+        BuffId.Regen to BuffDefinition(resourceTick = mapOf("hp" to 5)), // stack for stronger regen sources
+        BuffId.Protection to BuffDefinition(statBuff = mapOf("protection" to 10)),
+        BuffId.Chill to BuffDefinition(statBuff = mapOf("amplify" to -5)), // stack to reach -10
+        BuffId.Poison to BuffDefinition(resourceTick = mapOf("hp" to -5)),
+    )
 }
 
 enum class DamageType {
@@ -69,10 +65,7 @@ enum class DamageType {
 sealed class SkillEffectType {
     data class Damage(val damageType: DamageType, val amount: Int) : SkillEffectType()
     data class Heal(val power: Int) : SkillEffectType()
-    data class StatBuff(val buff: TemporalEffect.StatBuff) : SkillEffectType()
-    data class ResourceTick(val resourceTick: TemporalEffect.ResourceTick) : SkillEffectType()
-    data class StatOverride(val statOverride: TemporalEffect.StatOverride) : SkillEffectType()
-    data class DamageOverTime(val dot: TemporalEffect.DamageOverTime) : SkillEffectType()
+    data class ApplyBuff(val id: BuffId, val duration: Int, val stacks: Int = 1) : SkillEffectType()
     data class RemoveTemporalEffect(val effectId: BuffId) : SkillEffectType()
 }
 

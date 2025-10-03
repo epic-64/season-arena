@@ -14,9 +14,7 @@ val takeAim = Skill(
     description = "Increase your next attack's damage by 200% for one turn.",
     name = "Take Aim",
     effects = listOf(
-        SkillEffect(type = SkillEffectType.StatBuff(
-            TemporalEffect.StatBuff(id = BuffId.Amplify, duration = 1, statChanges = mapOf("amplify" to 200))
-        ))
+        SkillEffect(type = SkillEffectType.ApplyBuff(BuffId.Amplify, duration = 1))
     ),
     targetsOverride = ::actorSelf,
     condition = ::atLeastOneEnemyAlive,
@@ -39,12 +37,8 @@ val cheer = Skill(
     description = "Increase one ally's critical hit chance to 100% and boost their attack by 10 for 3 turns.",
     name = "Cheer",
     effects = listOf(
-        SkillEffect(type = SkillEffectType.StatOverride(
-            TemporalEffect.StatOverride(id = BuffId.Cheer, duration = 1, statOverrides = mapOf("critChance" to 100))
-        )),
-        SkillEffect(type = SkillEffectType.StatBuff(
-            TemporalEffect.StatBuff(id = BuffId.MoraleBoost, duration = 1, statChanges = mapOf("attack" to 10))
-        ))
+        SkillEffect(type = SkillEffectType.ApplyBuff(BuffId.Cheer, duration = 1)),
+        SkillEffect(type = SkillEffectType.ApplyBuff(BuffId.MoraleBoost, duration = 1)),
     ),
     maximumTargets = 1,
     cooldown = 2,
@@ -79,9 +73,7 @@ val fireball = Skill(
     targetsOverride = ::allEnemies,
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 25)),
-        SkillEffect(type = SkillEffectType.ResourceTick(
-            TemporalEffect.ResourceTick(id = BuffId.Burn, duration = 2, resourceChanges = mapOf("hp" to -10))
-        ))
+        SkillEffect(type = SkillEffectType.ApplyBuff(BuffId.Burn, duration = 2))
     ),
     maximumTargets = 100,
     cooldown = 4,
@@ -94,9 +86,7 @@ val spark = Skill(
     targetsOverride = { _, _, enemies -> if (enemies.isNotEmpty()) enemies.shuffled().take(2) else emptyList() },
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 10)),
-        SkillEffect(type = SkillEffectType.StatBuff(
-            TemporalEffect.StatBuff(id = BuffId.Shock, duration = 2, statChanges = mapOf("def" to -5))
-        ))
+        SkillEffect(type = SkillEffectType.ApplyBuff(BuffId.Shock, duration = 2))
     ),
     condition = ::atLeastOneEnemyAlive,
     maximumTargets = 2,
@@ -109,12 +99,8 @@ val hotBuff = Skill(
     name = "Regeneration",
     targetsOverride = ::actorSelf,
     effects = listOf(
-        SkillEffect(type = SkillEffectType.ResourceTick(
-            TemporalEffect.ResourceTick(id = BuffId.Regen, duration = 3, resourceChanges = mapOf("hp" to 10))
-        )),
-        SkillEffect(type = SkillEffectType.StatBuff(
-            TemporalEffect.StatBuff(id = BuffId.Protection, duration = 3, statChanges = mapOf("protection" to 10))
-        )),
+        SkillEffect(type = SkillEffectType.ApplyBuff(BuffId.Regen, duration = 3, stacks = 2)), // 2 * 5 = 10 per turn
+        SkillEffect(type = SkillEffectType.ApplyBuff(BuffId.Protection, duration = 3)),
     ),
     condition = { actor, _, _ -> actor.temporalEffects.none { it.id == BuffId.Regen } },
     maximumTargets = 1,
@@ -136,9 +122,7 @@ val iceShot = Skill(
     name = "Ice Shot",
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 25)),
-        SkillEffect(type = SkillEffectType.StatBuff(
-            TemporalEffect.StatBuff(id = BuffId.Chill, duration = 2, statChanges = mapOf("amplify" to -10))
-        ))
+        SkillEffect(type = SkillEffectType.ApplyBuff(BuffId.Chill, duration = 2, stacks = 2)), // -5 *2 = -10 amplify
     ),
     maximumTargets = 1,
     cooldown = 2,
@@ -151,9 +135,7 @@ val groupHeal = Skill(
     targetsOverride = ::allAllies,
     effects = listOf(
         SkillEffect(type = SkillEffectType.Heal(20)),
-        SkillEffect(type = SkillEffectType.ResourceTick(
-            TemporalEffect.ResourceTick(id = BuffId.Regen, duration = 2, resourceChanges = mapOf("hp" to 5))
-        ))
+        SkillEffect(type = SkillEffectType.ApplyBuff(BuffId.Regen, duration = 2)), // 5 per turn
     ),
     maximumTargets = 100,
     cooldown = 6,
@@ -165,9 +147,7 @@ val poisonStrike = Skill(
     name = "Poison Strike",
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Physical, 15)),
-        SkillEffect(type = SkillEffectType.ResourceTick(
-            TemporalEffect.ResourceTick(id = BuffId.Poison, duration = 4, resourceChanges = mapOf("hp" to -5))
-        ))
+        SkillEffect(type = SkillEffectType.ApplyBuff(BuffId.Poison, duration = 4))
     ),
     maximumTargets = 1,
     cooldown = 2,
@@ -188,9 +168,7 @@ val iceLance = Skill(
     name = "Ice Lance",
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 30)),
-        SkillEffect(type = SkillEffectType.StatBuff(
-            TemporalEffect.StatBuff(id = BuffId.Chill, duration = 2, statChanges = mapOf("amplify" to -5))
-        )),
+        SkillEffect(type = SkillEffectType.ApplyBuff(BuffId.Chill, duration = 2)), // -5 amplify
     ),
     maximumTargets = 1,
     cooldown = 3,
