@@ -6,8 +6,6 @@ import kotlin.reflect.full.memberProperties
 
 typealias Turns = Int
 
-fun Int.turns() = this
-
 @Serializable
 enum class BuffId(val label: String) {
     Amplify("Amplify"),
@@ -23,7 +21,7 @@ enum class BuffId(val label: String) {
 
 sealed class TemporalEffect {
     abstract val id: BuffId
-    abstract val duration: Int
+    abstract val duration: Turns
 
     fun decrement(): TemporalEffect = when (this) {
         is StatBuff -> copy(duration = duration - 1)
@@ -34,25 +32,25 @@ sealed class TemporalEffect {
 
     data class StatBuff(
         override val id: BuffId,
-        override val duration: Int,
+        override val duration: Turns,
         val statChanges: Map<String, Int>
     ) : TemporalEffect()
 
     data class StatOverride(
         override val id: BuffId,
-        override val duration: Int,
+        override val duration: Turns,
         val statOverrides: Map<String, Int>
     ) : TemporalEffect()
 
     data class ResourceTick(
         override val id: BuffId,
-        override val duration: Int,
+        override val duration: Turns,
         val resourceChanges: Map<String, Int>
     ) : TemporalEffect()
 
     data class DamageOverTime(
         override val id: BuffId,
-        override val duration: Int,
+        override val duration: Turns,
         val damageType: DamageType,
         val amount: Int
     ) : TemporalEffect()
