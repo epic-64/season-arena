@@ -15,7 +15,7 @@ val takeAim = Skill(
     name = "Take Aim",
     effects = listOf(
         SkillEffect(type = SkillEffectType.StatBuff(
-            TemporalEffect.StatBuff(id = "Amplify", duration = 1, statChanges = mapOf("amplify" to 200))
+            TemporalEffect.StatBuff(id = BuffId.Amplify, duration = 1, statChanges = mapOf("amplify" to 200))
         ))
     ),
     targetsOverride = ::actorSelf,
@@ -40,10 +40,10 @@ val cheer = Skill(
     name = "Cheer",
     effects = listOf(
         SkillEffect(type = SkillEffectType.StatOverride(
-            TemporalEffect.StatOverride(id = "Cheer", duration = 1, statOverrides = mapOf("critChance" to 100))
+            TemporalEffect.StatOverride(id = BuffId.Cheer, duration = 1, statOverrides = mapOf("critChance" to 100))
         )),
         SkillEffect(type = SkillEffectType.StatBuff(
-            TemporalEffect.StatBuff(id = "Morale Boost", duration = 1, statChanges = mapOf("attack" to 10))
+            TemporalEffect.StatBuff(id = BuffId.MoraleBoost, duration = 1, statChanges = mapOf("attack" to 10))
         ))
     ),
     maximumTargets = 1,
@@ -80,7 +80,7 @@ val fireball = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 25)),
         SkillEffect(type = SkillEffectType.ResourceTick(
-            TemporalEffect.ResourceTick(id = "Burn", duration = 2, resourceChanges = mapOf("hp" to -10))
+            TemporalEffect.ResourceTick(id = BuffId.Burn, duration = 2, resourceChanges = mapOf("hp" to -10))
         ))
     ),
     maximumTargets = 100,
@@ -95,7 +95,7 @@ val spark = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 10)),
         SkillEffect(type = SkillEffectType.StatBuff(
-            TemporalEffect.StatBuff(id = "Shock", duration = 2, statChanges = mapOf("def" to -5))
+            TemporalEffect.StatBuff(id = BuffId.Shock, duration = 2, statChanges = mapOf("def" to -5))
         ))
     ),
     condition = ::atLeastOneEnemyAlive,
@@ -110,13 +110,13 @@ val hotBuff = Skill(
     targetsOverride = ::actorSelf,
     effects = listOf(
         SkillEffect(type = SkillEffectType.ResourceTick(
-            TemporalEffect.ResourceTick(id = "Regen", duration = 3, resourceChanges = mapOf("hp" to 10))
+            TemporalEffect.ResourceTick(id = BuffId.Regen, duration = 3, resourceChanges = mapOf("hp" to 10))
         )),
         SkillEffect(type = SkillEffectType.StatBuff(
-            TemporalEffect.StatBuff(id = "Protection", duration = 3, statChanges = mapOf("protection" to 10))
+            TemporalEffect.StatBuff(id = BuffId.Protection, duration = 3, statChanges = mapOf("protection" to 10))
         )),
     ),
-    condition = { actor, _, _ -> actor.temporalEffects.none { it.id == "Regen" } },
+    condition = { actor, _, _ -> actor.temporalEffects.none { it.id == BuffId.Regen } },
     maximumTargets = 1,
     cooldown = 3,
     manaCost = 10
@@ -137,7 +137,7 @@ val iceShot = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 25)),
         SkillEffect(type = SkillEffectType.StatBuff(
-            TemporalEffect.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -10))
+            TemporalEffect.StatBuff(id = BuffId.Chill, duration = 2, statChanges = mapOf("amplify" to -10))
         ))
     ),
     maximumTargets = 1,
@@ -152,7 +152,7 @@ val groupHeal = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Heal(20)),
         SkillEffect(type = SkillEffectType.ResourceTick(
-            TemporalEffect.ResourceTick(id = "Regen", duration = 2, resourceChanges = mapOf("hp" to 5))
+            TemporalEffect.ResourceTick(id = BuffId.Regen, duration = 2, resourceChanges = mapOf("hp" to 5))
         ))
     ),
     maximumTargets = 100,
@@ -166,7 +166,7 @@ val poisonStrike = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Physical, 15)),
         SkillEffect(type = SkillEffectType.ResourceTick(
-            TemporalEffect.ResourceTick(id = "Poison", duration = 4, resourceChanges = mapOf("hp" to -5))
+            TemporalEffect.ResourceTick(id = BuffId.Poison, duration = 4, resourceChanges = mapOf("hp" to -5))
         ))
     ),
     maximumTargets = 1,
@@ -189,7 +189,7 @@ val iceLance = Skill(
     effects = listOf(
         SkillEffect(type = SkillEffectType.Damage(DamageType.Magical, 30)),
         SkillEffect(type = SkillEffectType.StatBuff(
-            TemporalEffect.StatBuff(id = "Chill", duration = 2, statChanges = mapOf("amplify" to -5))
+            TemporalEffect.StatBuff(id = BuffId.Chill, duration = 2, statChanges = mapOf("amplify" to -5))
         )),
     ),
     maximumTargets = 1,
@@ -201,7 +201,7 @@ val extinguish = Skill(
     description = "Remove burn effects from an ally and heal them for a small amount.",
     name = "Extinguish",
     effects = listOf(
-        SkillEffect(type = SkillEffectType.RemoveTemporalEffect("Burn")),
+        SkillEffect(type = SkillEffectType.RemoveTemporalEffect(BuffId.Burn)),
         SkillEffect(type = SkillEffectType.Heal(10))
     ),
     maximumTargets = 1,

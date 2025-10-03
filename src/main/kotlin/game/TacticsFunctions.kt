@@ -27,8 +27,8 @@ fun leastHpEnemy(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<
 
 // ---- Skill Activation Rules ----
 @Suppress("UNUSED_PARAMETER")
-fun selfHasNotBuff(name: String): (Actor, List<Actor>, List<Actor>) -> Boolean =
-    { actor, _, _ -> actor.temporalEffects.none { it.id == name } }
+fun selfHasNotBuff(id: BuffId): (Actor, List<Actor>, List<Actor>) -> Boolean =
+    { actor, _, _ -> actor.temporalEffects.none { it.id == id } }
 
 @Suppress("UNUSED_PARAMETER")
 fun atLeastOneEnemyAlive(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Boolean =
@@ -42,12 +42,12 @@ fun atLeastTwoEnemiesAlive(actor: Actor, allies: List<Actor>, enemies: List<Acto
 fun minimumAlliesBelowHp(n: Int, threshold: Double): (Actor, List<Actor>, List<Actor>) -> Boolean =
     { _, allies, _ -> allies.count { it.getHp() <= it.statsBag.maxHp * threshold } >= n }
 
-fun minimumAlliesHaveBuff(name: String, n: Int): (Actor, List<Actor>, List<Actor>) -> Boolean =
-    { _, allies, _ -> allies.count { ally -> ally.temporalEffects.any { it.id == name } } >= n }
+fun minimumAlliesHaveBuff(id: BuffId, n: Int): (Actor, List<Actor>, List<Actor>) -> Boolean =
+    { _, allies, _ -> allies.count { ally -> ally.temporalEffects.any { it.id == id } } >= n }
 
 // ---- Actor Conditions ----
-fun selfHasBuff(name: String): (Actor, List<Actor>, List<Actor>) -> Boolean =
-    { actor, _, _ -> actor.temporalEffects.any { it.id == name } }
+fun selfHasBuff(id: BuffId): (Actor, List<Actor>, List<Actor>) -> Boolean =
+    { actor, _, _ -> actor.temporalEffects.any { it.id == id } }
 
 // ---- Enemy Conditions ----
 fun minimumEnemiesAlive(n: Int): (Actor, List<Actor>, List<Actor>) -> Boolean =
