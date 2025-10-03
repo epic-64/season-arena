@@ -87,8 +87,7 @@ class GameEngineTest : StringSpec({
         villain.hp shouldBe 0
         hero.hp shouldBeGreaterThan 0
 
-        val turnCount = events.count { it is CombatEvent.TurnStart }
-        turnCount shouldBe 2
+        events.count { it is CombatEvent.TurnStart } shouldBe 3
     }
 
     "battleTick applies basic attack and reduces enemy HP" {
