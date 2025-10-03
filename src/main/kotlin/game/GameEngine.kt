@@ -2,7 +2,6 @@ package game
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlin.collections.iterator
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
@@ -17,6 +16,42 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
     return BattleSnapshot(
         actors = teams.flatMap { team ->
             team.actors.map { actor ->
+                // aggregate temporal effects using BuffRegistry definitions
+                val grouped = actor.temporalEffects.groupBy { it.id }
+
+                val statBuffSnapshots = grouped.mapNotNull { (id, effects) ->
+                    val def = BuffRegistry.definitions[id] ?: return@mapNotNull null
+                    if (def.statBuff.isEmpty()) return@mapNotNull null
+                    val totalStacks = effects.sumOf { it.stacks }
+                    val mergedStatChanges = def.statBuff.mapValues { (_, v) -> v * totalStacks }
+                    StatBuffSnapshot(
+                        id = id.label,
+                        duration = effects.maxOf { it.duration },
+                        statChanges = mergedStatChanges
+                    )
+                }
+                val resourceTickSnapshots = grouped.mapNotNull { (id, effects) ->
+                    val def = BuffRegistry.definitions[id] ?: return@mapNotNull null
+                    if (def.resourceTick.isEmpty()) return@mapNotNull null
+                    val totalStacks = effects.sumOf { it.stacks }
+                    val mergedResourceChanges = def.resourceTick.mapValues { (_, v) -> v * totalStacks }
+                    ResourceTickSnapshot(
+                        id = id.label,
+                        duration = effects.maxOf { it.duration },
+                        resourceChanges = mergedResourceChanges
+                    )
+                }
+                val statOverrideSnapshots = grouped.mapNotNull { (id, effects) ->
+                    val def = BuffRegistry.definitions[id] ?: return@mapNotNull null
+                    if (def.statOverride.isEmpty()) return@mapNotNull null
+                    // overrides ignore stacks (latest duration kept)
+                    StatOverrideSnapshot(
+                        id = id.label,
+                        duration = effects.maxOf { it.duration },
+                        statOverrides = def.statOverride
+                    )
+                }
+
                 ActorSnapshot(
                     actorClass = actor.actorClass,
                     name = actor.name,
@@ -26,54 +61,9 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
                     maxMana = actor.statsBag.maxMana,
                     team = actor.team,
                     stats = actor.stats.toMap(),
-                    statBuffs = actor.temporalEffects.filterIsInstance<TemporalEffect.StatBuff>()
-                        .groupBy { it.id }
-                        .map { (id, buffs) ->
-                            // Summarize statChanges by summing values for each stat
-                            val mergedStatChanges = mutableMapOf<String, Int>()
-                            buffs.forEach { buff ->
-                                buff.statChanges.forEach { (stat, value) ->
-                                    mergedStatChanges[stat] = (mergedStatChanges[stat] ?: 0) + value
-                                }
-                            }
-                            StatBuffSnapshot(
-                                id = id.label,
-                                duration = buffs.maxOf { it.duration },
-                                statChanges = mergedStatChanges
-                            )
-                        },
-                    resourceTicks = actor.temporalEffects.filterIsInstance<TemporalEffect.ResourceTick>()
-                        .groupBy { it.id }
-                        .map { (id, ticks) ->
-                            // Summarize resourceChanges by summing values for each resource
-                            val mergedResourceChanges = mutableMapOf<String, Int>()
-                            ticks.forEach { tick ->
-                                tick.resourceChanges.forEach { (resource, value) ->
-                                    mergedResourceChanges[resource] = (mergedResourceChanges[resource] ?: 0) + value
-                                }
-                            }
-                            ResourceTickSnapshot(
-                                id = id.label,
-                                duration = ticks.maxOf { it.duration },
-                                resourceChanges = mergedResourceChanges
-                            )
-                        },
-                    statOverrides = actor.temporalEffects.filterIsInstance<TemporalEffect.StatOverride>()
-                        .groupBy { it.id }
-                        .map { (id, overrides) ->
-                            // Summarize statOverrides by taking the latest value for each stat
-                            val mergedStatOverrides = mutableMapOf<String, Int>()
-                            overrides.forEach { override ->
-                                override.statOverrides.forEach { (stat, value) ->
-                                    mergedStatOverrides[stat] = value // latest value
-                                }
-                            }
-                            StatOverrideSnapshot(
-                                id = id.label,
-                                duration = overrides.maxOf { it.duration },
-                                statOverrides = mergedStatOverrides
-                            )
-                        },
+                    statBuffs = statBuffSnapshots,
+                    resourceTicks = resourceTickSnapshots,
+                    statOverrides = statOverrideSnapshots,
                     cooldowns = actor.tactics.associate { it.skill.name to (actor.cooldowns[it.skill] ?: 0) }
                 )
             }
@@ -250,28 +240,10 @@ fun applySkill(
                     log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), snapshotActors(listOf(teamA, teamB))))
                 }
             }
-            is SkillEffectType.StatBuff -> {
+            is SkillEffectType.ApplyBuff -> {
                 for (target in targets) {
-                    effect.type.buff.let { target.temporalEffects.add(it.copy()) }
-                    effect.type.buff.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id.label, snapshotActors(listOf(teamA, teamB)))) }
-                }
-            }
-            is SkillEffectType.ResourceTick -> {
-                for (target in targets) {
-                    effect.type.resourceTick.let { target.temporalEffects.add(it.copy()) }
-                    effect.type.resourceTick.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id.label, snapshotActors(listOf(teamA, teamB)))) }
-                }
-            }
-            is SkillEffectType.StatOverride -> {
-                for (target in targets) {
-                    effect.type.statOverride.let { target.temporalEffects.add(it.copy()) }
-                    effect.type.statOverride.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id.label, snapshotActors(listOf(teamA, teamB)))) }
-                }
-            }
-            is SkillEffectType.DamageOverTime -> {
-                for (target in targets) {
-                    effect.type.dot.let { target.temporalEffects.add(it.copy()) }
-                    effect.type.dot.let { log.add(CombatEvent.BuffApplied(actor.name, target.name, it.id.label, snapshotActors(listOf(teamA, teamB)))) }
+                    target.temporalEffects.add(TemporalEffect(effect.type.id, effect.type.duration, effect.type.stacks))
+                    log.add(CombatEvent.BuffApplied(actor.name, target.name, effect.type.id.label, snapshotActors(listOf(teamA, teamB))))
                 }
             }
             is SkillEffectType.RemoveTemporalEffect -> {
@@ -293,9 +265,7 @@ fun applySkill(
 }
 
 fun processBuffs(state: BattleState, actor: Actor): BattleState {
-    val activeStatBuffs = actor.temporalEffects.filterIsInstance<TemporalEffect.StatBuff>()
-    val statBuffTotals = mutableMapOf<String, Int>()
-    val statOverrides = actor.temporalEffects.filterIsInstance<TemporalEffect.StatOverride>()
+    val log = state.log
 
     // Passive regeneration (applied at the start of the actor's turn before other duration effects tick)
     if (actor.isAlive) {
@@ -305,7 +275,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState {
             actor.setHp(before + actor.statsBag.hpRegenPerTurn)
             val gained = actor.getHp() - before
             if (gained > 0) {
-                state.log.add(
+                log.add(
                     CombatEvent.ResourceRegenerated(
                         target = actor.name,
                         resource = "hp",
@@ -322,7 +292,7 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState {
             actor.setMana(actor.getMana() + actor.statsBag.manaRegenPerTurn)
             val gained = actor.getMana() - before
             if (gained > 0) {
-                state.log.add(
+                log.add(
                     CombatEvent.ResourceRegenerated(
                         target = actor.name,
                         resource = "mana",
@@ -335,59 +305,54 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState {
         }
     }
 
-    for (buff in activeStatBuffs) {
-        for ((stat, change) in buff.statChanges) {
-            statBuffTotals[stat] = (statBuffTotals[stat] ?: 0) + change
+    val statBuffTotals = mutableMapOf<String, Int>()
+
+    // Process all temporal effects using registry definitions
+    for (effect in actor.temporalEffects) {
+        val def = BuffRegistry.definitions[effect.id] ?: continue
+        // stat buffs (additive * stacks)
+        def.statBuff.forEach { (stat, value) =>
+            statBuffTotals[stat] = (statBuffTotals[stat] ?: 0) + value * effect.stacks
         }
     }
 
-    // Set stats to base + total from active buffs
+    // Set stats to buff totals first
     for ((stat, value) in statBuffTotals) {
         actor.stats[stat] = value
     }
 
-    // Apply stat overrides (these take precedence)
-    for (override in statOverrides) {
-        for ((stat, value) in override.statOverrides) {
+    // Apply overrides (ignore stacking, last wins but they should be same per id)
+    for (effect in actor.temporalEffects) {
+        val def = BuffRegistry.definitions[effect.id] ?: continue
+        def.statOverride.forEach { (stat, value) =>
             actor.stats[stat] = value
         }
     }
 
-    // Remove stats for buffs that have expired
-    val expiredBuffs = actor.temporalEffects.filterIsInstance<TemporalEffect.StatBuff>().filter { it.duration <= 0 }
-    for (buff in expiredBuffs) {
-        for ((stat, _) in buff.statChanges) {
-            // Remove stat if no other active buff provides it
-            if (activeStatBuffs.none { it.statChanges.containsKey(stat) }) {
-                actor.stats.remove(stat)
-            }
+    // Resource ticks aggregated by resource
+    val resourceAggregates = mutableMapOf<String, Int>()
+    for (effect in actor.temporalEffects) {
+        val def = BuffRegistry.definitions[effect.id] ?: continue
+        def.resourceTick.forEach { (resource, amount) =>
+            resourceAggregates[resource] = (resourceAggregates[resource] ?: 0) + amount * effect.stacks
         }
     }
-
-    // --- ResourceTicks: aggregate by id ---
-    val resourceTickGroups = actor.temporalEffects.filterIsInstance<TemporalEffect.ResourceTick>().groupBy { it.id }
-    for ((id, ticks) in resourceTickGroups) {
-        if (ticks.isNotEmpty()) {
-            // Aggregate resource changes
-            val totalResourceChanges = ticks.flatMap { it.resourceChanges.entries }
-                .groupBy { it.key }
-                .mapValues { (_, v) -> v.sumOf { it.value } }
-            for ((resource, amount) in totalResourceChanges) {
-                when (resource) {
-                    "hp" -> {
-                        val newHp = when (amount > 0) {
-                            true -> min(actor.statsBag.maxHp, actor.getHp() + amount)
-                            false -> max(0, actor.getHp() + amount)
-                        }
-                        actor.setHp(newHp)
-                        state.log.add(CombatEvent.ResourceDrained(actor.name, id.label, resource, amount, actor.getHp(), snapshotActors(listOf(state.teamA, state.teamB))))
-                    }
+    for ((resource, amount) in resourceAggregates) {
+        when (resource) {
+            "hp" -> {
+                val newHp = when (amount > 0) {
+                    true -> min(actor.statsBag.maxHp, actor.getHp() + amount)
+                    false -> max(0, actor.getHp() + amount)
                 }
+                actor.setHp(newHp)
+                log.add(CombatEvent.ResourceDrained(actor.name, "Buff", resource, amount, actor.getHp(), snapshotActors(listOf(state.teamA, state.teamB))))
             }
         }
     }
 
+    // decrement and remove expired
     actor.temporalEffects.replaceAll { it.decrement() }
+    actor.temporalEffects.removeAll { it.duration <= 0 }
 
     actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
 
