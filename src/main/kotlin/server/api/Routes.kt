@@ -2,13 +2,13 @@ package server.api
 
 import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.http.content.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.html.*
 import kotlinx.serialization.Serializable
 import kotlinx.html.*
+import game.exampleTeam2
 
 fun Application.installRoutes() {
 
@@ -26,7 +26,10 @@ fun Application.installRoutes() {
         get("/health") { call.respond(mapOf("ok" to true)) }
 
         post("next-encounter") {
-            call.respond(mapOf("encounterId" to "not implemented yet"))
+            // Build an enemy team (player team is not stored here)
+            val enemyTeam = exampleTeam2()
+            val encounterId = EncounterStore.create(enemyTeam)
+            call.respond(mapOf("encounterId" to encounterId))
         }
 
         post("battle") {
