@@ -25,6 +25,10 @@ fun Application.installRoutes() {
 
         get("/health") { call.respond(mapOf("ok" to true)) }
 
+        post("next-encounter") {
+            call.respond(mapOf("encounterId" to "not implemented yet"))
+        }
+
         post("battle") {
             val req = try { call.receive<BattleRequest>() } catch (t: ContentTransformationException) {
                 val errorMsg = "invalid request body" + t.cause?.let { ": ${it.message}" }.orEmpty()
