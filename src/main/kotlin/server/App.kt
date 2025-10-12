@@ -15,9 +15,9 @@ val jsonCodec = Json {
 }
 
 fun main() {
-    val port = System.getenv("PORT")?.toIntOrNull() ?: 8080
+    val port = System.getenv("PORT")?.toIntOrNull() ?: 1337
 
-    embeddedServer(Netty, port = port) {
+    embeddedServer(Netty, host = "localhost", port = port) {
         install(ContentNegotiation) { json(jsonCodec) }
         installRoutes()
     }.start(wait = true)
