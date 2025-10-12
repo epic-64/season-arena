@@ -13,7 +13,7 @@ import kotlinx.html.*
 fun Application.installRoutes() {
 
     routing {
-        staticResources("/", "static")
+        // staticResources("/", "static")
 
         // Config for the page
         get("/_config") {
@@ -24,6 +24,18 @@ fun Application.installRoutes() {
         }
 
         get("/health") { call.respond(mapOf("ok" to true)) }
+
+        post("battle") {
+            val req = try { call.receive<BattleRequest>() } catch (t: ContentTransformationException) {
+                val errorMsg = "invalid request body" + t.cause?.let { ": ${it.message}" }.orEmpty()
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to errorMsg))
+                return@post
+            }
+
+            val encounterId = req.encounterId
+
+            call.respond(mapOf("encounterId" to encounterId, "result" to "not implemented yet"))
+        }
 
         post("/simulate") {
             val req = try { call.receive<SimRequest>() } catch (t: Throwable) {
@@ -55,6 +67,11 @@ fun Application.installRoutes() {
         }
     }
 }
+
+@Serializable
+data class BattleRequest(
+    val encounterId: String,
+)
 
 @Serializable
 data class SimRequest(
