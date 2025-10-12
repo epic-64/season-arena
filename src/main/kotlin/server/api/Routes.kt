@@ -9,6 +9,10 @@ import io.ktor.server.html.*
 import kotlinx.serialization.Serializable
 import kotlinx.html.*
 import game.exampleTeam2
+import game.exampleTeam1
+import game.simulateBattle
+import game.toCompactCombatEvents
+import game.CombatEvent
 
 fun Application.installRoutes() {
 
@@ -40,8 +44,32 @@ fun Application.installRoutes() {
             }
 
             val encounterId = req.encounterId
+            val enemyTeam = EncounterStore.get(encounterId)
+            if (enemyTeam == null) {
+                call.respond(HttpStatusCode.NotFound, mapOf("error" to "encounter not found"))
+                return@post
+            }
 
-            call.respond(mapOf("encounterId" to encounterId, "result" to "not implemented yet"))
+            val playerTeam = exampleTeam1()
+
+            try {
+                val battleState = simulateBattle(playerTeam, enemyTeam)
+                val events = battleState.log
+                val compactEvents = toCompactCombatEvents(events)
+                val turns = events.count { it is CombatEvent.TurnStart } - 1 // exclude initial state
+                val winner = (events.lastOrNull { it is CombatEvent.BattleEnd } as? CombatEvent.BattleEnd)?.winner ?: "Unknown"
+
+                val response = BattleResponse(
+                    encounterId = encounterId,
+                    winner = winner,
+                    turns = turns,
+                    events = compactEvents
+                )
+                call.respond(response)
+            } catch (t: Throwable) {
+                application.log.error("battle simulation failed", t)
+                call.respond(HttpStatusCode.InternalServerError, mapOf("error" to (t.message ?: "internal error")))
+            }
         }
 
         post("/simulate") {
@@ -78,6 +106,14 @@ fun Application.installRoutes() {
 @Serializable
 data class BattleRequest(
     val encounterId: String,
+)
+
+@Serializable
+data class BattleResponse(
+    val encounterId: String,
+    val winner: String,
+    val turns: Int,
+    val events: List<game.CompactCombatEvent>,
 )
 
 @Serializable
