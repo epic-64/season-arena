@@ -19,26 +19,17 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
-
-    // Logging (quiet and simple)
-    implementation("ch.qos.logback:logback-classic:1.5.13")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.2.20")
 
     // JWT parsing and validation
     implementation("com.auth0:java-jwt:4.4.0")
 
-    implementation("org.jetbrains.kotlin:kotlin-reflect:2.2.20")
-
-    // Spring Boot (minimal)
+    // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web:3.3.4")
 
     testImplementation(kotlin("test"))
     testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
     testImplementation("io.kotest:kotest-assertions-core:5.8.0")
-}
-
-application {
-    // Default package and file names below
-    mainClass.set("io.holonaut.arena.AppKt")
 }
 
 tasks.test {
