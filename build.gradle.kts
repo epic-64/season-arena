@@ -1,7 +1,6 @@
 plugins {
     kotlin("jvm") version "2.2.20"
     kotlin("plugin.serialization") version "2.2.20"
-    application
     // Spring Boot plugins for server2 package
     id("org.springframework.boot") version "3.3.4"
     id("io.spring.dependency-management") version "1.1.4"
