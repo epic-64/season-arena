@@ -25,10 +25,13 @@ dependencies {
 
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web:3.5.6")
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     testImplementation(kotlin("test"))
     testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
     testImplementation("io.kotest:kotest-assertions-core:5.8.0")
+
+    runtimeOnly("com.h2database:h2")
 }
 
 tasks.test {
