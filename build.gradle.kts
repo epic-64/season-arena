@@ -2,6 +2,10 @@ plugins {
     kotlin("jvm") version "2.2.20"
     kotlin("plugin.serialization") version "2.2.20"
     application
+    // Spring Boot plugins for server2 package
+    id("org.springframework.boot") version "3.3.4"
+    id("io.spring.dependency-management") version "1.1.4"
+    kotlin("plugin.spring") version "2.2.20"
 }
 
 group = "io.holonaut"
@@ -28,6 +32,9 @@ dependencies {
     implementation("com.auth0:java-jwt:4.4.0")
 
     implementation("org.jetbrains.kotlin:kotlin-reflect:2.2.20")
+
+    // Spring Boot (minimal) for server2 package
+    implementation("org.springframework.boot:spring-boot-starter-web:3.3.4")
 
     testImplementation(kotlin("test"))
     testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
@@ -63,6 +70,13 @@ tasks.register<JavaExec>("generateJsDoc") {
 
     args("--file", "src/main/kotlin/game/Types.kt")
     args("--out", "frontend/generated/types.js")
+}
+
+tasks.register<JavaExec>("runSpringServer2") {
+    group = "application"
+    description = "Runs the Spring Boot server2 application"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("server2.SpringAppKt")
 }
 
 kotlin {
