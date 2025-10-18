@@ -1,27 +1,7 @@
 package game
 
-import game.CombatEvent.BattleEnd
-import game.CombatEvent.BattleStart
-import game.CombatEvent.BuffApplied
-import game.CombatEvent.BuffRemoved
-import game.CombatEvent.DamageDealt
-import game.CombatEvent.Healed
-import game.CombatEvent.ResourceDrained
-import game.CombatEvent.ResourceRegenerated
-import game.CombatEvent.SkillUsed
-import game.CombatEvent.TurnStart
-import game.CombatEvent.CharacterActivated
-import game.CompactCombatEvent.CBattleEnd
-import game.CompactCombatEvent.CBattleStart
-import game.CompactCombatEvent.CBuffApplied
-import game.CompactCombatEvent.CBuffRemoved
-import game.CompactCombatEvent.CDamageDealt
-import game.CompactCombatEvent.CHealed
-import game.CompactCombatEvent.CResourceDrained
-import game.CompactCombatEvent.CResourceRegenerated
-import game.CompactCombatEvent.CSkillUsed
-import game.CompactCombatEvent.CTurnStart
-import game.CompactCombatEvent.CCharacterActivated
+import game.CombatEvent.*
+import game.CompactCombatEvent.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
