@@ -22,6 +22,7 @@ import game.CompactCombatEvent.CResourceRegenerated
 import game.CompactCombatEvent.CSkillUsed
 import game.CompactCombatEvent.CTurnStart
 import game.CompactCombatEvent.CCharacterActivated
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta {
@@ -99,7 +100,7 @@ fun CombatEvent.toCompactCombatEvent(delta: BattleDelta): CompactCombatEvent = w
     is BattleEnd -> CBattleEnd(winner, delta)
 }
 
-fun List<CombatEvent>.toCompactCombatEvents(): List<CompactCombatEvent> {
+fun List<CombatEvent>.compact(): List<CompactCombatEvent> {
     val compactEvents = mutableListOf<CompactCombatEvent>()
 
     val firstEvent = firstOrNull() ?: throw IllegalArgumentException("Event list is empty")
@@ -125,5 +126,4 @@ fun List<CombatEvent>.toCompactCombatEvents(): List<CompactCombatEvent> {
     return compactEvents
 }
 
-//fun List<CompactCombatEvent>.toJson(): String =
-//    Json.encodeToString<List<CompactCombatEvent>>(this)
+fun List<CompactCombatEvent>.toJson(): String = Json.encodeToString(this)

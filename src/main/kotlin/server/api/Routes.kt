@@ -12,7 +12,7 @@ import game.exampleTeam2
 import game.exampleTeam1
 import game.simulateBattle
 import game.CombatEvent
-import game.toCompactCombatEvents
+import game.compact
 
 fun Application.installRoutes() {
 
@@ -54,8 +54,8 @@ fun Application.installRoutes() {
 
             try {
                 val battleState = simulateBattle(playerTeam, enemyTeam)
-                val events = battleState.log
-                val compactEvents = events.toCompactCombatEvents()
+                val events = battleState.events
+                val compactEvents = events.compact()
                 val turns = events.count { it is CombatEvent.TurnStart } - 1 // exclude initial state
                 val winner = (events.lastOrNull { it is CombatEvent.BattleEnd } as? CombatEvent.BattleEnd)?.winner ?: "Unknown"
 
