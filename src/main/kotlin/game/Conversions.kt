@@ -86,7 +86,7 @@ fun BattleDelta.Companion.fullSnapshot(snapshot: BattleSnapshot): BattleDelta {
     })
 }
 
-fun CombatEvent.toCompactCombatEvent(delta: BattleDelta): CompactCombatEvent = when (this) {
+fun CombatEvent.compact(delta: BattleDelta): CompactCombatEvent = when (this) {
     is BattleStart -> CBattleStart(snapshot)
     is TurnStart -> CTurnStart(turn, delta)
     is CharacterActivated -> CCharacterActivated(actor, delta)
@@ -108,13 +108,13 @@ fun List<CombatEvent>.compact(): List<CompactCombatEvent> {
     // For the first event, we always include the full snapshot as delta
     var prevSnapshot: BattleSnapshot = firstEvent.snapshot
     val firstDelta = BattleDelta.fullSnapshot(prevSnapshot)
-    val firstCompactEvent = firstEvent.toCompactCombatEvent(firstDelta)
+    val firstCompactEvent = firstEvent.compact(firstDelta)
     compactEvents.add(firstCompactEvent)
     prevSnapshot = firstEvent.snapshot
 
     for (event in drop(1)) {
         val delta = computeBattleDelta(prevSnapshot, event.snapshot)
-        val compactEvent = event.toCompactCombatEvent(delta)
+        val compactEvent = event.compact(delta)
         compactEvents.add(compactEvent)
         prevSnapshot = event.snapshot
     }
@@ -126,4 +126,4 @@ fun List<CombatEvent>.compact(): List<CompactCombatEvent> {
     return compactEvents
 }
 
-fun List<CompactCombatEvent>.toJson(): String = Json.encodeToString(this)
+fun<T> List<T>.toJson(): String = Json.encodeToString(this)
