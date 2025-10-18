@@ -13,7 +13,7 @@ fun main() {
     println("Battle log has ${events.size} events")
     println("Battle finished in ${events.count { it is CombatEvent.TurnStart } - 1} turns")
 
-    val compactEvents = toCompactCombatEvents(events)
+    val compactEvents = events.toCompactCombatEvents()
     println("Original events: ${events.size}, compact events: ${compactEvents.size}")
     if (events.size != compactEvents.size) {
         throw IllegalStateException("Event size mismatch after compaction")

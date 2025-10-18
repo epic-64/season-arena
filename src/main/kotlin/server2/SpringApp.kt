@@ -4,6 +4,14 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
+import game.exampleTeam1
+import game.exampleTeam2
+import game.simulateBattle
+import game.toCompactCombatEvents
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @SpringBootApplication
 class SpringApp
@@ -18,3 +26,14 @@ class HelloController {
     fun hello(): String = "Hello World"
 }
 
+@RestController
+class CombatController {
+    @GetMapping("/combat/example", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun exampleCombat(): ResponseEntity<String> {
+        val teamA = exampleTeam1()
+        val teamB = exampleTeam2()
+        val compact = simulateBattle(teamA, teamB).log.toCompactCombatEvents()
+        val json = Json.encodeToString(compact)
+        return ResponseEntity.ok(json)
+    }
+}
