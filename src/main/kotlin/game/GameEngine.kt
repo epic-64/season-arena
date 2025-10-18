@@ -104,13 +104,13 @@ data class BattleState(
     val teamA: Team,
     val teamB: Team,
     var turn: Int,
-    val log: MutableList<CombatEvent>
+    val events: MutableList<CombatEvent>
 )
 
 fun battleTick(state: BattleState, actor: Actor): BattleState {
     val teamA = state.teamA
     val teamB = state.teamB
-    val log = state.log
+    val log = state.events
 
     // Emit CharacterActivated event after buffs processed and actor confirmed alive
     log.add(CombatEvent.CharacterActivated(actor.name, snapshotActors(listOf(teamA, teamB))))
@@ -145,7 +145,7 @@ fun battleTick(state: BattleState, actor: Actor): BattleState {
 
 fun battleRound(state: BattleState): BattleState {
     val turn = state.turn
-    val log = state.log
+    val log = state.events
     val teamA = state.teamA
     val teamB = state.teamB
 
@@ -183,7 +183,7 @@ fun applySkill(
 {
     val teamA = state.teamA
     val teamB = state.teamB
-    val log = state.log
+    val log = state.events
 
     var previousTargets: List<Actor> = initialTargets
 
@@ -268,7 +268,7 @@ fun applySkill(
 }
 
 fun processBuffs(state: BattleState, actor: Actor): BattleState {
-    val log = state.log
+    val log = state.events
 
     // Passive regeneration (applied at the start of the actor's turn before other duration effects tick)
     if (actor.isAlive) {

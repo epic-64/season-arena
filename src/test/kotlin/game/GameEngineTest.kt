@@ -75,7 +75,7 @@ class GameEngineTest : StringSpec({
         )
         val teamA = Team(mutableListOf(actorA))
         val teamB = Team(mutableListOf(actorB))
-        val events = simulateBattle(teamA, teamB).log
+        val events = simulateBattle(teamA, teamB).events
 
         val endEvent = events.last() as CombatEvent.BattleEnd
         val winner = endEvent.winner
@@ -111,7 +111,7 @@ class GameEngineTest : StringSpec({
         val state = BattleState(teamA, teamB, turn = 1, log)
         val newState = battleTick(state, attacker)
 
-        val compactLog = newState.log.toCompactCombatEvents()
+        val compactLog = newState.events.compact()
         // [
         // CCharacterActivated(actor=Attacker, delta=BattleDelta(actors=[ActorDelta(name=Attacker, hp=30, maxHp=30, mana=100, maxMana=100, stats={}, statBuffs=[], resourceTicks=[], statOverrides=[], cooldowns={Strike=0}), ActorDelta(name=Defender, hp=25, maxHp=25, mana=100, maxMana=100, stats={}, statBuffs=[], resourceTicks=[], statOverrides=[], cooldowns={Strike=0})])),
         // CSkillUsed(actor=Attacker, skill=Strike, targets=[Defender], delta=BattleDelta(actors=[])),

@@ -1,25 +1,12 @@
 package game
 
-import kotlin.time.measureTime
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import java.io.File
 
 fun main() {
-    val teamA = exampleTeam1()
-    val teamB = exampleTeam2()
-
-    val events = simulateBattle(teamA, teamB).log
-    println("Battle log has ${events.size} events")
-    println("Battle finished in ${events.count { it is CombatEvent.TurnStart } - 1} turns")
-
-    val compactEvents = events.toCompactCombatEvents()
-    println("Original events: ${events.size}, compact events: ${compactEvents.size}")
-    if (events.size != compactEvents.size) {
-        throw IllegalStateException("Event size mismatch after compaction")
-    }
-
-    val json = Json.encodeToString(compactEvents)
+    val json = simulateBattle(exampleTeam1(), exampleTeam2())
+        .events
+        .compact()
+        .toJson()
 
     File("output/battle_log.json").apply {
         parentFile.mkdirs()
@@ -170,27 +157,4 @@ fun exampleTeam2(): Team {
     return Team(mutableListOf(
         actorB1,
     ))
-}
-
-fun benchmark(inputTeamA: Team, inputTeamB: Team) {
-    repeat(100) { i ->
-        val teamA = inputTeamA.deepCopy()
-        val teamB = inputTeamB.deepCopy()
-        val log: List<CombatEvent>
-        val milliSecondsSimulation = measureTime {
-            log = simulateBattle(teamA, teamB).log
-        }
-
-        val json: String
-        val milliSecondsJsonEncode = measureTime {
-            json = combatEventsToJson(log)
-        }
-
-        val turns = log.count { it is CombatEvent.TurnStart } - 1 // Subtract initial state
-        println("Run #$i: Simulation took $milliSecondsSimulation," +
-                "JSON encoding took $milliSecondsJsonEncode," +
-                "Turns: $turns," +
-                "Events: ${log.size}," +
-                "JSON size: ${json.length} chars")
-    }
 }

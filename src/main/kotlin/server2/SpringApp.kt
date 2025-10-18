@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController
 import game.exampleTeam1
 import game.exampleTeam2
 import game.simulateBattle
-import game.toCompactCombatEvents
+import game.compact
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import kotlinx.serialization.encodeToString
@@ -32,7 +32,7 @@ class CombatController {
     fun exampleCombat(): ResponseEntity<String> {
         val teamA = exampleTeam1()
         val teamB = exampleTeam2()
-        val compact = simulateBattle(teamA, teamB).log.toCompactCombatEvents()
+        val compact = simulateBattle(teamA, teamB).events.compact()
         val json = Json.encodeToString(compact)
         return ResponseEntity.ok(json)
     }
