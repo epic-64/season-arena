@@ -16,12 +16,7 @@ repositories {
 }
 
 dependencies {
-    // Ktor server
-    implementation("io.ktor:ktor-server-netty:3.0.0")
-    implementation("io.ktor:ktor-server-content-negotiation:3.0.0")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.0")
-    implementation("io.ktor:ktor-server-html-builder:3.0.0")
-
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 
@@ -33,7 +28,7 @@ dependencies {
 
     implementation("org.jetbrains.kotlin:kotlin-reflect:2.2.20")
 
-    // Spring Boot (minimal) for server2 package
+    // Spring Boot (minimal)
     implementation("org.springframework.boot:spring-boot-starter-web:3.3.4")
 
     testImplementation(kotlin("test"))
