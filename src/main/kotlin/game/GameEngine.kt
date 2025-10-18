@@ -71,10 +71,6 @@ fun snapshotActors(teams: List<Team>): BattleSnapshot {
     )
 }
 
-fun combatEventsToJson(events: List<CombatEvent>): String {
-    return Json.encodeToString(events)
-}
-
 fun simulateBattle(teamA: Team, teamB: Team): BattleState {
     val teamA = teamA.deepCopy()
     val teamB = teamB.deepCopy()
