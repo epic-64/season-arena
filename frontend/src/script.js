@@ -16,7 +16,8 @@ import {createPlayback} from './playback.js';
 
 async function loadLog() {
     try {
-        const response = await fetch('../output/battle_log.json');
+        // const response = await fetch('../output/battle_log.json');
+        const response = await fetch('http://localhost:8080/combat/example');
         return await response.json();
     } catch (error) {
         console.error('Error loading log:', error);
