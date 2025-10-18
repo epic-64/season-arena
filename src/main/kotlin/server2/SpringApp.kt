@@ -1,20 +1,16 @@
 package server2
 
-import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.runApplication
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RestController
+import game.compactJson
 import game.exampleTeam1
 import game.exampleTeam2
 import game.simulateBattle
-import game.compact
-import game.compactJson
-import game.toJson
+import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.runApplication
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import org.springframework.web.bind.annotation.CrossOrigin
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RestController
 
 @SpringBootApplication
 class SpringApp
@@ -23,10 +19,14 @@ fun main(args: Array<String>) {
     runApplication<SpringApp>(*args)
 }
 
+val counter = java.util.concurrent.atomic.AtomicLong()
+
 @RestController
 class HelloController {
+
+    @CrossOrigin(origins = ["*"])
     @GetMapping("/hello")
-    fun hello(): String = "Hello World"
+    fun hello(): String = "Hello, World! The app has served ${counter.incrementAndGet()} requests."
 }
 
 @RestController
