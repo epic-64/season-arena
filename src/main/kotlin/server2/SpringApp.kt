@@ -14,6 +14,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.springframework.web.bind.annotation.CrossOrigin
 
 @SpringBootApplication
 class SpringApp
@@ -31,6 +32,7 @@ class HelloController {
 @RestController
 class CombatController {
 
+    @CrossOrigin(origins = ["*"])
     @GetMapping("/combat/example", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun exampleCombat(): ResponseEntity<String> =
         simulateBattle(exampleTeam1(), exampleTeam2())
