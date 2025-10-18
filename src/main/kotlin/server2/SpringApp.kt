@@ -8,6 +8,8 @@ import game.exampleTeam1
 import game.exampleTeam2
 import game.simulateBattle
 import game.compact
+import game.compactJson
+import game.toJson
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import kotlinx.serialization.encodeToString
@@ -28,12 +30,11 @@ class HelloController {
 
 @RestController
 class CombatController {
+
     @GetMapping("/combat/example", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun exampleCombat(): ResponseEntity<String> {
-        val teamA = exampleTeam1()
-        val teamB = exampleTeam2()
-        val compact = simulateBattle(teamA, teamB).events.compact()
-        val json = Json.encodeToString(compact)
-        return ResponseEntity.ok(json)
-    }
+    fun exampleCombat(): ResponseEntity<String> =
+        simulateBattle(exampleTeam1(), exampleTeam2())
+            .compactJson()
+            .let { ResponseEntity.ok(it) }
+
 }

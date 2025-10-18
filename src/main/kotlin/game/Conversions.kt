@@ -106,4 +106,6 @@ fun List<CombatEvent>.compact(): List<CompactCombatEvent> {
     return compactEvents
 }
 
-fun<T> List<T>.toJson(): String = Json.encodeToString(this)
+inline fun<reified T> List<T>.toJson(): String = Json.encodeToString(this)
+
+fun BattleState.compactJson(): String = this.events.compact().toJson()
