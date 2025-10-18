@@ -22,6 +22,7 @@ import game.CompactCombatEvent.CResourceRegenerated
 import game.CompactCombatEvent.CSkillUsed
 import game.CompactCombatEvent.CTurnStart
 import game.CompactCombatEvent.CCharacterActivated
+import kotlinx.serialization.json.Json
 
 fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta {
     val prevActors = prev.actors.associateBy { it.name }
@@ -98,10 +99,10 @@ fun CombatEvent.toCompactCombatEvent(delta: BattleDelta): CompactCombatEvent = w
     is BattleEnd -> CBattleEnd(winner, delta)
 }
 
-fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
+fun List<CombatEvent>.toCompactCombatEvents(): List<CompactCombatEvent> {
     val compactEvents = mutableListOf<CompactCombatEvent>()
 
-    val firstEvent = events.firstOrNull() ?: throw IllegalArgumentException("Event list is empty")
+    val firstEvent = firstOrNull() ?: throw IllegalArgumentException("Event list is empty")
 
     // For the first event, we always include the full snapshot as delta
     var prevSnapshot: BattleSnapshot = firstEvent.snapshot
@@ -110,11 +111,19 @@ fun toCompactCombatEvents(events: List<CombatEvent>): List<CompactCombatEvent> {
     compactEvents.add(firstCompactEvent)
     prevSnapshot = firstEvent.snapshot
 
-    for (event in events.drop(1)) {
+    for (event in drop(1)) {
         val delta = computeBattleDelta(prevSnapshot, event.snapshot)
         val compactEvent = event.toCompactCombatEvent(delta)
         compactEvents.add(compactEvent)
         prevSnapshot = event.snapshot
     }
+
+    if (compactEvents.size != size) {
+        throw IllegalStateException("Mismatch in compact event size and original event size")
+    }
+
     return compactEvents
 }
+
+//fun List<CompactCombatEvent>.toJson(): String =
+//    Json.encodeToString<List<CompactCombatEvent>>(this)

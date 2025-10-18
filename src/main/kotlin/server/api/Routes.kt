@@ -11,8 +11,8 @@ import kotlinx.html.*
 import game.exampleTeam2
 import game.exampleTeam1
 import game.simulateBattle
-import game.toCompactCombatEvents
 import game.CombatEvent
+import game.toCompactCombatEvents
 
 fun Application.installRoutes() {
 
@@ -55,7 +55,7 @@ fun Application.installRoutes() {
             try {
                 val battleState = simulateBattle(playerTeam, enemyTeam)
                 val events = battleState.log
-                val compactEvents = toCompactCombatEvents(events)
+                val compactEvents = events.toCompactCombatEvents()
                 val turns = events.count { it is CombatEvent.TurnStart } - 1 // exclude initial state
                 val winner = (events.lastOrNull { it is CombatEvent.BattleEnd } as? CombatEvent.BattleEnd)?.winner ?: "Unknown"
 
