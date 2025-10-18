@@ -24,7 +24,7 @@ dependencies {
     implementation("com.auth0:java-jwt:4.4.0")
 
     // Spring Boot
-    implementation("org.springframework.boot:spring-boot-starter-web:3.3.4")
+    implementation("org.springframework.boot:spring-boot-starter-web:3.5.6")
 
     testImplementation(kotlin("test"))
     testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
