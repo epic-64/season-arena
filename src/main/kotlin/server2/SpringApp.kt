@@ -23,7 +23,6 @@ val counter = java.util.concurrent.atomic.AtomicLong()
 
 @RestController
 class HelloController {
-
     @CrossOrigin(origins = ["*"])
     @GetMapping("/hello")
     fun hello(): String = "Hello, World! The app has served ${counter.incrementAndGet()} requests."
@@ -31,12 +30,10 @@ class HelloController {
 
 @RestController
 class CombatController {
-
     @CrossOrigin(origins = ["*"])
     @GetMapping("/combat/example", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun exampleCombat(): ResponseEntity<String> =
         simulateBattle(exampleTeam1(), exampleTeam2())
             .compactJson()
             .let { ResponseEntity.ok(it) }
-
 }
