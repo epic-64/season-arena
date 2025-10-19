@@ -6,6 +6,11 @@ import game.ActorDelta
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import kotlinx.browser.document
+import kotlinx.browser.window
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.await
+import kotlinx.serialization.decodeFromString
 
 // Simple helper functions to build demo data
 private fun sampleSnapshot(): BattleSnapshot = BattleSnapshot(
@@ -90,7 +95,35 @@ private fun render(events: List<CompactCombatEvent>) {
     console.log(Json.encodeToString(events))
 }
 
+private val scope = MainScope()
+
+private fun renderLoading(message: String = "Loading combat events...") {
+    val doc = document
+    val root = doc.getElementById("kotlin-root") ?: run {
+        val div = doc.createElement("div")
+        div.id = "kotlin-root"
+        doc.body?.appendChild(div)
+        div
+    }
+    root.textContent = message
+}
+
+private suspend fun fetchRemoteEvents(): List<CompactCombatEvent> {
+    val resp = window.fetch("http://localhost:8080/combat/example").await()
+    if (!resp.ok) throw IllegalStateException("HTTP ${resp.status}")
+    val text = resp.text().await()
+    return Json.decodeFromString(text)
+}
+
 fun main() {
-    val events = sampleEvents()
-    render(events)
+    renderLoading()
+    scope.launch {
+        val events = try {
+            fetchRemoteEvents()
+        } catch (e: Throwable) {
+            console.error("Failed to fetch remote combat events, using sample events", e)
+            sampleEvents()
+        }
+        render(events)
+    }
 }
