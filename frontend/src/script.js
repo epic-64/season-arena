@@ -122,6 +122,8 @@ function renderStatusEffect(container, effect, getTitle) {
     const effectEmoji = createElement('span', {
         classes: ['status-effect']
     });
+    // Add identifying attribute for animation targeting
+    effectEmoji.setAttribute('data-effect-id', effect.id);
     effectEmoji.textContent = symbol;
 
     // value indicator (top left)
@@ -221,6 +223,54 @@ function updateActorDisplay(actor)
     renderStatusEffects(statusEffects, actor.statBuffs, buff => buff.statChanges ? `+${JSON.stringify(buff.statChanges)} (${buff.duration || 0}t)` : undefined);
     renderStatusEffects(statusEffects, actor.resourceTicks, tick => tick.resourceChanges ? `${JSON.stringify(tick.resourceChanges)} (${tick.duration || 0}t)` : undefined);
     renderStatusEffects(statusEffects, actor.statOverrides, override => override.statOverrides ? `=${JSON.stringify(override.statOverrides)}` : undefined);
+
+    // Animate only changed / new effects
+    try {
+        const prev = previousActorEffects[actor.name] || { statBuffs: {}, resourceTicks: {}, statOverrides: {} };
+        const current = { statBuffs: {}, resourceTicks: {}, statOverrides: {} };
+
+        const serialize = e => JSON.stringify(e);
+
+        (actor.statBuffs || []).forEach(e => { current.statBuffs[e.id] = serialize(e); });
+        (actor.resourceTicks || []).forEach(e => { current.resourceTicks[e.id] = serialize(e); });
+        (actor.statOverrides || []).forEach(e => { current.statOverrides[e.id] = serialize(e); });
+
+        const animateIds = [];
+        const collectChanges = (category) => {
+            const currMap = current[category];
+            const prevMap = prev[category] || {};
+            Object.keys(currMap).forEach(id => {
+                if (!prevMap[id] || prevMap[id] !== currMap[id]) {
+                    animateIds.push(id);
+                }
+            });
+        };
+        collectChanges('statBuffs');
+        collectChanges('resourceTicks');
+        collectChanges('statOverrides');
+
+        if (animateIds.length) {
+            animateIds.forEach(id => {
+                const elems = statusEffects.querySelectorAll(`[data-effect-id="${id}"]`);
+                elems.forEach(el => {
+                    // restart animation
+                    if (el.classList.contains('buff-animate')) {
+                        el.classList.remove('buff-animate');
+                        void el.offsetWidth; // reflow
+                    }
+                    el.classList.add('buff-animate');
+                    el.addEventListener('animationend', function handler() {
+                        el.classList.remove('buff-animate');
+                        el.removeEventListener('animationend', handler);
+                    });
+                });
+            });
+        }
+
+        previousActorEffects[actor.name] = current; // store snapshot for next comparison
+    } catch (e) {
+        console.error('Status effect change animation error', e);
+    }
 }
 
 const playback = createPlayback();
