@@ -5,7 +5,7 @@ import { createElement } from './utils.js';
 import { skillEmojis } from './emojiMappings.js';
 
 /**
- * @param {CompactCombatEvent_SkillUsed} event - The skill used event object
+ * @param {CompactCombatEvent_CSkillUsed} event - The skill used event object
  * @return {void}
  */
 function animateSkillUsed(event) {
@@ -66,7 +66,7 @@ function flickerOutline(targetEl, className, duration = 450) {
 }
 
 /**
- * @param {CompactCombatEvent_DamageDealt} event - The damage dealt event object
+ * @param {CompactCombatEvent_CDamageDealt} event - The damage dealt event object
  * @return {void}
  */
 function animateDamageDealt(event) {
@@ -84,7 +84,7 @@ function animateDamageDealt(event) {
 }
 
 /**
- * @param {CompactCombatEvent_ResourceDrained} event - The resource drained event object
+ * @param {CompactCombatEvent_CResourceDrained} event - The resource drained event object
  * @return {void}
  */
 function animateResourceDrained(event) {
@@ -107,7 +107,7 @@ function animateResourceDrained(event) {
 }
 
 /**
- * @param {CompactCombatEvent_Healed} event
+ * @param {CompactCombatEvent_CHealed} event
  * @return {void}
  */
 function animateHeal(event)
@@ -124,7 +124,7 @@ function animateHeal(event)
 }
 
 /**
- * @param {CompactCombatEvent_BuffApplied} event - The buff applied event object
+ * @param {CompactCombatEvent_CBuffApplied} event - The buff applied event object
  * @return {void}
  */
 function animateBuffApplied(event) {
@@ -183,7 +183,7 @@ function showFloatingNumber(actorEl, value, kind) {
 
 // === New Turn Start Animation ===
 /**
- * @param {CompactCombatEvent_TurnStart} event - The turn start event (expects event.turn)
+ * @param {CompactCombatEvent_CTurnStart} event - The turn start event (expects event.turn)
  */
 function animateTurnStart(event) {
     try {
