@@ -124,7 +124,7 @@ function animateHeal(event)
 }
 
 /**
- * @param {CombatEvent_BuffApplied} event - The buff applied event object
+ * @param {CompactCombatEvent_BuffApplied} event - The buff applied event object
  * @return {void}
  */
 function animateBuffApplied(event) {
@@ -141,12 +141,33 @@ function animateBuffApplied(event) {
         return;
     }
 
-    // Add animation class
-    statusEffects.classList.add('buff-animate');
-    statusEffects.addEventListener('animationend', function handler() {
-        statusEffects.classList.remove('buff-animate');
-        statusEffects.removeEventListener('animationend', handler);
-    });
+    const applyAnimation = () => {
+        const matches = statusEffects.querySelectorAll(`[data-effect-id="${event.buffId}"]`);
+        if (!matches || matches.length === 0) {
+            return false;
+        }
+        // Animate the newest (rightmost) occurrence if multiple match
+        const effectElem = matches[matches.length - 1];
+        // Restart animation if already applied
+        if (effectElem.classList.contains('buff-animate')) {
+            effectElem.classList.remove('buff-animate');
+            void effectElem.offsetWidth; // force reflow
+        }
+        effectElem.classList.add('buff-animate');
+        effectElem.addEventListener('animationend', function handler() {
+            effectElem.classList.remove('buff-animate');
+            effectElem.removeEventListener('animationend', handler);
+        });
+        return true;
+    };
+
+    // Try immediately after render
+    if (applyAnimation()) return;
+    // Retry shortly in case render hasn't completed yet (re-render race)
+    setTimeout(() => {
+        if (applyAnimation()) return;
+        console.error(`Buff applied animation: effect element not found after retry (buffId=${event.buffId})`);
+    }, 30);
 }
 
 // Helper to show floating numbers for damage / heal
