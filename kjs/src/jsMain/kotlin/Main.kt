@@ -1,16 +1,14 @@
-import game.CompactCombatEvent
-import game.BattleSnapshot
 import game.ActorSnapshot
 import game.BattleDelta
-import game.ActorDelta
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.encodeToString
+import game.BattleSnapshot
+import game.CompactCombatEvent
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.await
-import kotlinx.serialization.decodeFromString
+import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 // Simple helper functions to build demo data
 private fun sampleSnapshot(): BattleSnapshot = BattleSnapshot(
