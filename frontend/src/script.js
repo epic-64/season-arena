@@ -254,6 +254,9 @@ function updatePlayToggleButton()
  */
 function animateEvent(event) {
     switch (event.type) {
+        case CombatEventType.BattleStart:
+            // No animation for BattleStart
+            break;
         case CombatEventType.TurnStart:
             animateTurnStart(event);
             break;

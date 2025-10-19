@@ -18,7 +18,8 @@ function createPlayback() {
         snapshotHistory: [],
 
         init(log) {
-            this.events = log
+            this.events = log; // may filter if needed
+            console.log(`Created playback with ${this.events.length} events`);
         },
 
         play() {
