@@ -20,6 +20,8 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":game-model"))
+
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
@@ -35,6 +37,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
+    testImplementation(project(":game-model"))
 
     runtimeOnly("com.h2database:h2")
 }
@@ -61,7 +64,7 @@ tasks.register<JavaExec>("generateJsDoc") {
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("tools.GenerateJsDocKt")
 
-    args("--file", "src/main/kotlin/game/Types.kt")
+    args("--file", "game-model/src/commonMain/kotlin/game/CompactTypes.kt")
     args("--out", "frontend/generated/types.js")
 }
 

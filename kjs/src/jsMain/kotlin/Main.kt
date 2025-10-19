@@ -1,3 +1,4 @@
+import game.ActorClass
 import game.ActorSnapshot
 import game.BattleDelta
 import game.BattleSnapshot
@@ -14,7 +15,7 @@ import kotlinx.serialization.json.Json
 private fun sampleSnapshot(): BattleSnapshot = BattleSnapshot(
     actors = listOf(
         ActorSnapshot(
-            actorClass = "Mage",
+            actorClass = ActorClass.Mage,
             name = "Alice",
             hp = 100,
             maxHp = 100,
@@ -28,7 +29,7 @@ private fun sampleSnapshot(): BattleSnapshot = BattleSnapshot(
             cooldowns = emptyMap()
         ),
         ActorSnapshot(
-            actorClass = "Fighter",
+            actorClass = ActorClass.Fighter,
             name = "Bob",
             hp = 120,
             maxHp = 120,
