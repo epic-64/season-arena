@@ -6,7 +6,7 @@ export const CombatEventType = {
     CharacterActivated: 'CharacterActivated',
     SkillUsed: 'SkillUsed',
     BuffApplied: 'BuffApplied',
-    BuffExpired: 'BuffExpired',
+    BuffRemoved: 'BuffRemoved',
     DamageDealt: 'DamageDealt',
     Healed: 'Healed',
     ResourceDrained: 'ResourceDrained',

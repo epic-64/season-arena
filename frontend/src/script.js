@@ -5,7 +5,8 @@ import {
     animateResourceDrained,
     animateSkillUsed,
     animateTurnStart,
-    animateCharacterActivated, animateBattleEnd
+    animateCharacterActivated,
+    animateBattleEnd
 } from './animations.js';
 
 import {statusEmojis} from './emojiMappings.js';
@@ -272,6 +273,9 @@ function animateEvent(event) {
             animateHeal(event);
             break;
         case CombatEventType.BuffApplied:
+            animateBuffApplied(event);
+            break;
+        case CombatEventType.BuffRemoved:
             animateBuffApplied(event);
             break;
         case CombatEventType.BattleEnd:

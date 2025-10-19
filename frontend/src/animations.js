@@ -223,7 +223,7 @@ function animateCharacterActivated(event) {
 }
 
 /**
- * @param {CompactCombatEvent_BattleEnd} event - The battle end event object
+ * @param {CompactCombatEvent_CBattleEnd} event - The battle end event object
  */
 function animateBattleEnd(event) {
     // remove previous active highlights

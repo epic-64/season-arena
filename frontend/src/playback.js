@@ -18,7 +18,7 @@ function createPlayback() {
         snapshotHistory: [],
 
         init(log) {
-            this.events = log.filter(e => e.type !== CombatEventType.BuffExpired)
+            this.events = log
         },
 
         play() {
