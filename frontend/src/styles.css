@@ -121,7 +121,7 @@ body { margin: 0; padding: 0; }
 }
 
 .strike {
-    transform: translateY(-20px);
+    /* transform: translateY(-20px); */
 }
 
 .flicker {
@@ -600,46 +600,13 @@ body::before {
 
 /* Buff animation for status effects */
 .buff-animate {
-    animation: buffPulse 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 0 12px 4px var(--accent-color), 0 0 0 2px #fffbe6;
-    filter: brightness(1.25) drop-shadow(0 0 6px var(--accent-color));
+    animation: buffPulse 0.7s cubic-bezier(0.45, 0, 0.2, 1);
+    filter: brightness(1.25);
 }
 @keyframes buffPulse {
-    0% { transform: scale(1); opacity: 1; }
-    30% { transform: scale(1.25); opacity: 1; }
-    60% { transform: scale(1.1); opacity: 0.95; }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-.status-effects.buff-animate {
-    animation: buffGlow 0.35s cubic-bezier(0.45, 0, 0.2, 1);
-    box-shadow: 0 0 0 0 var(--accent-color, #d4af37), 0 0 0 0 #f2e6d2;
-    border: 1.5px solid rgba(212,175,55,0.18);
-    background: linear-gradient(90deg, rgba(212,175,55,0.07) 0%, rgba(242,230,210,0.09) 100%);
-}
-
-@keyframes buffGlow {
-    0% {
-        box-shadow: 0 0 0 0 var(--accent-color, #d4af37), 0 0 0 0 #f2e6d2;
-        border-color: rgba(212,175,55,0.18);
-        background: linear-gradient(90deg, rgba(212,175,55,0.07) 0%, rgba(242,230,210,0.09) 100%);
-        opacity: 0.97;
-        transform: scale(1);
-    }
-    30% {
-        box-shadow: 0 0 10px 3px var(--accent-color, #d4af37), 0 0 4px 1px #f2e6d2;
-        border-color: rgba(212,175,55,0.22);
-        background: linear-gradient(90deg, rgba(212,175,55,0.13) 0%, rgba(242,230,210,0.14) 100%);
-        opacity: 1;
-        transform: scale(1.02);
-    }
-    100% {
-        box-shadow: 0 0 0 0 var(--accent-color, #d4af37), 0 0 0 0 #f2e6d2;
-        border-color: rgba(212,175,55,0.18);
-        background: linear-gradient(90deg, rgba(212,175,55,0.07) 0%, rgba(242,230,210,0.09) 100%);
-        opacity: 0.97;
-        transform: scale(1);
-    }
+    0% { transform: scale(1); }
+    50% { transform: scale(1.4); }
+    100% { transform: scale(1); }
 }
 
 /* Turn start banner (simplified fast version) */
