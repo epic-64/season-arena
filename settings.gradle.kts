@@ -17,3 +17,4 @@ pluginManagement {
 }
 
 include(":kjs")
+include(":game-model")
