@@ -192,7 +192,7 @@ data class StatsBag(
             mana = 100,
             maxMana = 100,
             hpRegenPerTurn = 0,
-            manaRegenPerTurn = 0
+            manaRegenPerTurn = 0,
         )
     }
 }

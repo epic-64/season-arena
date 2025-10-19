@@ -195,7 +195,7 @@ fun applySkill(
                     var isCriticalHit = false
 
                     val finalDamage: Int = effect.type.amount
-                        .let { // get amplifiers from actor
+                        .let { // get amplifiers from the actor
                             actor.amplifiers.getAmplifiedDamage(effect.type.damageType, it)
                         }
                         .let { // apply critical damage if applicable
@@ -232,7 +232,7 @@ fun applySkill(
             }
             is SkillEffectType.Heal -> {
                 for (target in targets) {
-                    val heal = max(1, effect.type.power + (actor.stats["matk"] ?: 0))
+                    val heal = max(1, actor.amplifiers.getAmplifiedDamage(DamageType.Magical, effect.type.power))
                     target.setHp(min(target.statsBag.maxHp, target.getHp() + heal))
                     log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), snapshotActors(listOf(teamA, teamB))))
                 }
