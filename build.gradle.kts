@@ -72,6 +72,10 @@ tasks.register<JavaExec>("runSpringServer2") {
     mainClass.set("server2.SpringAppKt")
 }
 
+springBoot {
+    mainClass.set("server2.SpringAppKt")
+}
+
 kotlin {
     jvmToolchain(21)
 }

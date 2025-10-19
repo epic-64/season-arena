@@ -8,8 +8,12 @@ pluginManagement {
         kotlin("jvm") version kotlinVersion
         kotlin("plugin.serialization") version kotlinVersion
         kotlin("plugin.spring") version kotlinVersion
+        kotlin("js") version kotlinVersion // enable KotlinJS plugin
+        kotlin("multiplatform") version kotlinVersion // add multiplatform plugin
         id("org.springframework.boot") version springBootVersion
         id("io.spring.dependency-management") version springDepManVersion
         id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
     }
 }
+
+include(":kjs")
