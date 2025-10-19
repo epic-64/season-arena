@@ -347,8 +347,21 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState {
         }
     }
 
+    fun logRemoved(e: TemporalEffect): Unit {
+        log.add(
+            CombatEvent.BuffRemoved(
+                actor.name,
+                e.id.label,
+                snapshotActors(listOf(state.teamA, state.teamB))
+            )
+        )
+
+        return
+    }
+
     // decrement and remove expired
     actor.temporalEffects.replaceAll { it.decrement() }
+    actor.temporalEffects.filter { it.duration <= 0 }.forEach { logRemoved(it) }
     actor.temporalEffects.removeAll { it.duration <= 0 }
 
     actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
