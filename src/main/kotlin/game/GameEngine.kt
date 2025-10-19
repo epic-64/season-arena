@@ -189,67 +189,61 @@ fun applySkill(
             continue
         }
 
-        when (effect.type) {
+        when (val t = effect.type) {
             is SkillEffectType.Damage -> {
                 for (target in targets) {
                     var isCriticalHit = false
 
-                    val finalDamage: Int = effect.type.amount
-                        .let { // get amplifiers from the actor
-                            actor.amplifiers.getAmplifiedDamage(effect.type.damageType, it)
-                        }
-                        .let { // apply critical damage if applicable
+                    val finalDamage: Int = t.amount
+                        .let { actor.amplifiers.getAmplifiedDamage(t.damageType, it) }
+                        .let {
                             isCriticalHit = (actor.stats["critChance"] ?: 0) > Random.nextInt(100)
                             if (isCriticalHit) it * 2 else it
                         }
-                        .let { // apply amplify buffs from actor
-                            (it * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt()
-                        }
-                        .let { // apply protection from target (0-100%)
+                        .let { (it * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt() }
+                        .let {
                             val protection = target.stats["protection"]?.coerceIn(0, 100) ?: 0
                             max(1, (it * (1 - protection / 100.0)).toInt())
                         }
-                        .let { // clamp to at least 1 damage
-                            max(1, it)
-                        }
+                        .let { max(1, it) }
 
                     target.setHp(max(0, target.getHp() - finalDamage))
 
                     val modifiers = mutableListOf<DamageModifier>()
-                    if (isCriticalHit) {
-                        modifiers.add(DamageModifier.Critical)
-                    }
+                    if (isCriticalHit) modifiers.add(DamageModifier.Critical)
 
-                    log.add(CombatEvent.DamageDealt(
-                        actor.name,
-                        target.name,
-                        finalDamage,
-                        target.getHp(),
-                        snapshotActors(listOf(teamA, teamB)),
-                        modifiers,
-                    ))
+                    log.add(
+                        CombatEvent.DamageDealt(
+                            actor.name,
+                            target.name,
+                            finalDamage,
+                            target.getHp(),
+                            snapshotActors(listOf(teamA, teamB)),
+                            modifiers,
+                        )
+                    )
                 }
             }
             is SkillEffectType.Heal -> {
                 for (target in targets) {
-                    val heal = max(1, actor.amplifiers.getAmplifiedDamage(DamageType.Magical, effect.type.power))
+                    val heal = max(1, actor.amplifiers.getAmplifiedDamage(DamageType.Magical, t.power))
                     target.setHp(min(target.statsBag.maxHp, target.getHp() + heal))
                     log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), snapshotActors(listOf(teamA, teamB))))
                 }
             }
             is SkillEffectType.ApplyBuff -> {
                 for (target in targets) {
-                    target.temporalEffects.add(TemporalEffect(effect.type.id, effect.type.duration, effect.type.stacks))
-                    log.add(CombatEvent.BuffApplied(actor.name, target.name, effect.type.id.label, snapshotActors(listOf(teamA, teamB))))
+                    target.temporalEffects.add(TemporalEffect(t.id, t.duration, t.stacks))
+                    log.add(CombatEvent.BuffApplied(actor.name, target.name, t.id.label, snapshotActors(listOf(teamA, teamB))))
                 }
             }
             is SkillEffectType.RemoveTemporalEffect -> {
                 for (target in targets) {
                     val before = target.temporalEffects.size
-                    target.temporalEffects.removeIf { it.id == effect.type.effectId }
+                    target.temporalEffects.removeIf { it.id == t.effectId }
                     val after = target.temporalEffects.size
                     if (before != after) {
-                        log.add(CombatEvent.BuffRemoved(target.name, effect.type.effectId.label, snapshotActors(listOf(teamA, teamB))))
+                        log.add(CombatEvent.BuffRemoved(target.name, t.effectId.label, snapshotActors(listOf(teamA, teamB))))
                     }
                 }
             }
