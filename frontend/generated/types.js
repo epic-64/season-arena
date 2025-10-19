@@ -7,9 +7,30 @@
  * @readonly
  * @enum {string}
  */
+export const BuffId = {
+    Amplify: 'Amplify',
+    Cheer: 'Cheer',
+    MoraleBoost: 'MoraleBoost',
+    Burn: 'Burn',
+    Shock: 'Shock',
+    Regen: 'Regen',
+    Protection: 'Protection',
+    Chill: 'Chill',
+    Poison: 'Poison',
+    Empower: 'Empower'
+};
+
+/**
+ * @readonly
+ * @enum {string}
+ */
 export const DamageType = {
     Physical: 'Physical',
     Magical: 'Magical',
+    Ice: 'Ice',
+    Fire: 'Fire',
+    Lightning: 'Lightning',
+    Poison: 'Poison',
     Absolute: 'Absolute'
 };
 
@@ -40,32 +61,17 @@ export const DamageModifier = {
 };
 
 /**
- * @typedef {Object} DurationEffect_DamageOverTime
- * @property {number} amount
- * @property {DamageType} damageType
+ * @typedef {Object} TemporalEffect
  * @property {number} duration
- * @property {string} id
+ * @property {BuffId} id
+ * @property {number} stacks
  */
 
 /**
- * @typedef {Object} DurationEffect_ResourceTick
+ * @typedef {Object} SkillEffectType_ApplyBuff
  * @property {number} duration
- * @property {string} id
- * @property {Object.<string, number>} resourceChanges
- */
-
-/**
- * @typedef {Object} DurationEffect_StatBuff
- * @property {number} duration
- * @property {string} id
- * @property {Object.<string, number>} statChanges
- */
-
-/**
- * @typedef {Object} DurationEffect_StatOverride
- * @property {number} duration
- * @property {string} id
- * @property {Object.<string, number>} statOverrides
+ * @property {BuffId} id
+ * @property {number} stacks
  */
 
 /**
@@ -75,28 +81,13 @@ export const DamageModifier = {
  */
 
 /**
- * @typedef {Object} SkillEffectType_DamageOverTime
- * @property {DamageOverTime} dot
- */
-
-/**
  * @typedef {Object} SkillEffectType_Heal
  * @property {number} power
  */
 
 /**
- * @typedef {Object} SkillEffectType_ResourceTick
- * @property {ResourceTick} resourceTick
- */
-
-/**
- * @typedef {Object} SkillEffectType_StatBuff
- * @property {StatBuff} buff
- */
-
-/**
- * @typedef {Object} SkillEffectType_StatOverride
- * @property {StatOverride} statOverride
+ * @typedef {Object} SkillEffectType_RemoveTemporalEffect
+ * @property {BuffId} effectId
  */
 
 /**
@@ -107,8 +98,10 @@ export const DamageModifier = {
 /**
  * @typedef {Object} Skill
  * @property {number} cooldown
+ * @property {string} description
  * @property {SkillEffect[]} effects
  * @property {number} manaCost
+ * @property {number} maximumTargets
  * @property {string} name
  */
 
@@ -123,20 +116,49 @@ export const DamageModifier = {
  */
 
 /**
+ * @typedef {Object} Tactic
+ * @property {Function3[]} conditions
+ * @property {Function1[]} ordering
+ * @property {Skill} skill
+ */
+
+/**
+ * @typedef {Object} ResistanceBag
+ * @property {number} chaos
+ * @property {number} fire
+ * @property {number} ice
+ * @property {number} lightning
+ * @property {number} physical
+ */
+
+/**
+ * @typedef {Object} StatsBag
+ * @property {number} hp
+ * @property {number} hpRegenPerTurn
+ * @property {boolean} isAlive
+ * @property {number} mana
+ * @property {number} manaRegenPerTurn
+ * @property {number} maxHp
+ * @property {number} maxMana
+ */
+
+/**
  * @typedef {Object} Actor
  * @property {ActorClass} actorClass
  * @property {Amplifiers} amplifiers
  * @property {Object.<Skill, number>} cooldowns
- * @property {number} hp
+ * @property {number} hpRegenPerTurn
  * @property {boolean} isAlive
- * @property {number} mana
+ * @property {number} manaRegenPerTurn
  * @property {number} maxHp
  * @property {number} maxMana
  * @property {string} name
- * @property {Skill[]} skills
+ * @property {Object.<DamageType, number>} resistances
  * @property {Object.<string, number>} stats
+ * @property {StatsBag} statsBag
+ * @property {Tactic[]} tactics
  * @property {number} team
- * @property {DurationEffect[]} temporalEffects
+ * @property {TemporalEffect[]} temporalEffects
  */
 
 /**
@@ -190,13 +212,18 @@ export const DamageModifier = {
  */
 
 /**
- * @typedef {Object} CompactCombatEvent_BattleEnd
+ * @typedef {Object} CompactCombatEvent_CBattleEnd
  * @property {BattleDelta} delta
  * @property {string} winner
  */
 
 /**
- * @typedef {Object} CompactCombatEvent_BuffApplied
+ * @typedef {Object} CompactCombatEvent_CBattleStart
+ * @property {BattleSnapshot} snapshot
+ */
+
+/**
+ * @typedef {Object} CompactCombatEvent_CBuffApplied
  * @property {string} buffId
  * @property {BattleDelta} delta
  * @property {string} source
@@ -204,14 +231,27 @@ export const DamageModifier = {
  */
 
 /**
- * @typedef {Object} CompactCombatEvent_BuffExpired
+ * @typedef {Object} CompactCombatEvent_CBuffExpired
  * @property {string} buffId
  * @property {BattleDelta} delta
  * @property {string} target
  */
 
 /**
- * @typedef {Object} CompactCombatEvent_DamageDealt
+ * @typedef {Object} CompactCombatEvent_CBuffRemoved
+ * @property {string} buffId
+ * @property {BattleDelta} delta
+ * @property {string} target
+ */
+
+/**
+ * @typedef {Object} CompactCombatEvent_CCharacterActivated
+ * @property {string} actor
+ * @property {BattleDelta} delta
+ */
+
+/**
+ * @typedef {Object} CompactCombatEvent_CDamageDealt
  * @property {number} amount
  * @property {BattleDelta} delta
  * @property {string} source
@@ -220,7 +260,7 @@ export const DamageModifier = {
  */
 
 /**
- * @typedef {Object} CompactCombatEvent_Healed
+ * @typedef {Object} CompactCombatEvent_CHealed
  * @property {number} amount
  * @property {BattleDelta} delta
  * @property {string} source
@@ -229,7 +269,7 @@ export const DamageModifier = {
  */
 
 /**
- * @typedef {Object} CompactCombatEvent_ResourceDrained
+ * @typedef {Object} CompactCombatEvent_CResourceDrained
  * @property {number} amount
  * @property {string} buffId
  * @property {BattleDelta} delta
@@ -239,7 +279,16 @@ export const DamageModifier = {
  */
 
 /**
- * @typedef {Object} CompactCombatEvent_SkillUsed
+ * @typedef {Object} CompactCombatEvent_CResourceRegenerated
+ * @property {number} amount
+ * @property {BattleDelta} delta
+ * @property {string} resource
+ * @property {string} target
+ * @property {number} targetResourceValue
+ */
+
+/**
+ * @typedef {Object} CompactCombatEvent_CSkillUsed
  * @property {string} actor
  * @property {BattleDelta} delta
  * @property {string} skill
@@ -247,38 +296,9 @@ export const DamageModifier = {
  */
 
 /**
- * @typedef {Object} CompactCombatEvent_TurnStart
- * @property {BattleSnapshot} snapshot
+ * @typedef {Object} CompactCombatEvent_CTurnStart
+ * @property {BattleDelta} delta
  * @property {number} turn
- */
-
-/**
- * @typedef {Object} DamageOverTime
- * @property {number} amount
- * @property {DamageType} damageType
- * @property {number} duration
- * @property {string} id
- */
-
-/**
- * @typedef {Object} ResourceTick
- * @property {number} duration
- * @property {string} id
- * @property {Object.<string, number>} resourceChanges
- */
-
-/**
- * @typedef {Object} StatBuff
- * @property {number} duration
- * @property {string} id
- * @property {Object.<string, number>} statChanges
- */
-
-/**
- * @typedef {Object} StatOverride
- * @property {number} duration
- * @property {string} id
- * @property {Object.<string, number>} statOverrides
  */
 
 /**
@@ -298,14 +318,10 @@ export const DamageModifier = {
  */
 
 /**
- * @typedef {(DurationEffect_DamageOverTime|DurationEffect_ResourceTick|DurationEffect_StatBuff|DurationEffect_StatOverride)} DurationEffect
+ * @typedef {(SkillEffectType_ApplyBuff|SkillEffectType_Damage|SkillEffectType_Heal|SkillEffectType_RemoveTemporalEffect)} SkillEffectType
  */
 
 /**
- * @typedef {(SkillEffectType_Damage|SkillEffectType_DamageOverTime|SkillEffectType_Heal|SkillEffectType_ResourceTick|SkillEffectType_StatBuff|SkillEffectType_StatOverride)} SkillEffectType
- */
-
-/**
- * @typedef {(CompactCombatEvent_BattleEnd|CompactCombatEvent_BuffApplied|CompactCombatEvent_BuffExpired|CompactCombatEvent_DamageDealt|CompactCombatEvent_Healed|CompactCombatEvent_ResourceDrained|CompactCombatEvent_SkillUsed|CompactCombatEvent_TurnStart)} CompactCombatEvent
+ * @typedef {(CompactCombatEvent_CBattleEnd|CompactCombatEvent_CBattleStart|CompactCombatEvent_CBuffApplied|CompactCombatEvent_CBuffExpired|CompactCombatEvent_CBuffRemoved|CompactCombatEvent_CCharacterActivated|CompactCombatEvent_CDamageDealt|CompactCombatEvent_CHealed|CompactCombatEvent_CResourceDrained|CompactCombatEvent_CResourceRegenerated|CompactCombatEvent_CSkillUsed|CompactCombatEvent_CTurnStart)} CompactCombatEvent
  */
 
