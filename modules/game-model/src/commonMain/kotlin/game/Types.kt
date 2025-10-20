@@ -1,13 +1,8 @@
 package game
 
-import game.CombatEvent.*
-import game.CompactCombatEvent.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 
-// --- Basic Aliases / Typealiases ---
 typealias Turns = Int
 
 @Serializable
@@ -24,7 +19,6 @@ enum class BuffId(val label: String) {
     Empower("Empower"),
 }
 
-// TemporalEffect used by actors for active buffs
 data class TemporalEffect(val id: BuffId, val duration: Turns, val stacks: Int = 1) {
     fun decrement(): TemporalEffect = copy(duration = duration - 1)
 }
@@ -172,6 +166,7 @@ data class Actor(
 ) : ResourceStats by statsBag {
     override fun setHp(value: Int) {
         statsBag.setHp(value)
+        
         if (!isAlive) {
             statsBag.setMana(0)
             temporalEffects.clear()
@@ -416,91 +411,3 @@ sealed class CompactCombatEvent {
     @SerialName("BattleEnd")
     data class CBattleEnd(val winner: String, val delta: BattleDelta) : CompactCombatEvent()
 }
-
-// Conversion utilities (subset) for compacting CombatEvents
-fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta {
-    val prevActors = prev.actors.associateBy { it.name }
-    val currActors = curr.actors.associateBy { it.name }
-    val deltas = mutableListOf<ActorDelta>()
-    for ((name, currActor) in currActors) {
-        val prevActor = prevActors[name]
-        if (prevActor == null) {
-            deltas.add(
-                ActorDelta(
-                    name = currActor.name,
-                    hp = currActor.hp,
-                    maxHp = currActor.maxHp,
-                    mana = currActor.mana,
-                    maxMana = currActor.maxMana,
-                    stats = currActor.stats,
-                    statBuffs = currActor.statBuffs,
-                    resourceTicks = currActor.resourceTicks,
-                    statOverrides = currActor.statOverrides,
-                    cooldowns = currActor.cooldowns
-                )
-            )
-        } else {
-            val delta = ActorDelta(
-                name = currActor.name,
-                hp = currActor.hp.takeIf { it != prevActor.hp },
-                maxHp = currActor.maxHp.takeIf { it != prevActor.maxHp },
-                mana = currActor.mana.takeIf { it != prevActor.mana },
-                maxMana = currActor.maxMana.takeIf { it != prevActor.maxMana },
-                stats = currActor.stats.takeIf { it != prevActor.stats },
-                statBuffs = currActor.statBuffs.takeIf { it != prevActor.statBuffs },
-                resourceTicks = currActor.resourceTicks.takeIf { it != prevActor.resourceTicks },
-                statOverrides = currActor.statOverrides.takeIf { it != prevActor.statOverrides },
-                cooldowns = currActor.cooldowns.takeIf { it != prevActor.cooldowns }
-            )
-            if (delta.hasAnyChange()) deltas.add(delta)
-        }
-    }
-    return BattleDelta(deltas)
-}
-
-fun BattleDelta.Companion.fullSnapshot(snapshot: BattleSnapshot): BattleDelta = BattleDelta(snapshot.actors.map { a ->
-    ActorDelta(
-        name = a.name,
-        hp = a.hp,
-        maxHp = a.maxHp,
-        mana = a.mana,
-        maxMana = a.maxMana,
-        stats = a.stats,
-        statBuffs = a.statBuffs,
-        resourceTicks = a.resourceTicks,
-        statOverrides = a.statOverrides,
-        cooldowns = a.cooldowns
-    )
-})
-
-fun CombatEvent.compact(delta: BattleDelta): CompactCombatEvent = when (this) {
-    is BattleStart -> CBattleStart(snapshot)
-    is TurnStart -> CTurnStart(turn, delta)
-    is CharacterActivated -> CCharacterActivated(actor, delta)
-    is SkillUsed -> CSkillUsed(actor, skill, targets, delta)
-    is DamageDealt -> CDamageDealt(source, target, amount, targetHp, delta)
-    is Healed -> CHealed(source, target, amount, targetHp, delta)
-    is BuffApplied -> CBuffApplied(source, target, buffId, delta)
-    is BuffRemoved -> CBuffRemoved(target, buffId, delta)
-    is ResourceDrained -> CResourceDrained(target, buffId, resource, amount, newValue, delta)
-    is ResourceRegenerated -> CResourceRegenerated(target, resource, amount, newValue, delta)
-    is BattleEnd -> CBattleEnd(winner, delta)
-}
-
-fun List<CombatEvent>.compact(): List<CompactCombatEvent> {
-    val firstEvent = firstOrNull() ?: return emptyList()
-    val compactEvents = mutableListOf<CompactCombatEvent>()
-    var prevSnapshot = firstEvent.snapshot
-    val firstDelta = BattleDelta.fullSnapshot(prevSnapshot)
-    compactEvents.add(firstEvent.compact(firstDelta))
-    for (event in drop(1)) {
-        val delta = computeBattleDelta(prevSnapshot, event.snapshot)
-        compactEvents.add(event.compact(delta))
-        prevSnapshot = event.snapshot
-    }
-    return compactEvents
-}
-
-inline fun <reified T> List<T>.toJson(): String = Json.encodeToString(this)
-
-// (BattleState.compactJson omitted; BattleState lives in server-only code currently)
