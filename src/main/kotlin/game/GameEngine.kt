@@ -3,6 +3,7 @@ package game
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
+import kotlin.reflect.full.memberProperties
 
 object TargetGroup {
     val actor = { actor: Actor, _: List<Actor>, _: List<Actor> -> listOf(actor) }
@@ -99,7 +100,9 @@ data class BattleState(
     val teamB: Team,
     var turn: Int,
     val events: MutableList<CombatEvent>
-)
+) {
+    fun compact(): List<CompactCombatEvent> = events.compact()
+}
 
 fun battleTick(state: BattleState, actor: Actor): BattleState {
     val teamA = state.teamA
@@ -159,7 +162,7 @@ fun pickTactic(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Tactic?
     fun hasEnoughMana(skill: Skill): Boolean = actor.getMana() >= skill.manaCost
     fun matchesConditions(tactic: Tactic): Boolean =
         tactic.skill.condition(actor, allies, enemies) &&
-        tactic.conditions.all { it(actor, allies, enemies) }
+                tactic.conditions.all { it(actor, allies, enemies) }
 
     return actor.tactics.firstOrNull {
         isOffCooldown(it.skill) && hasEnoughMana(it.skill) && matchesConditions(it)
@@ -173,8 +176,7 @@ fun applySkill(
     allies: List<Actor>,
     enemies: List<Actor>,
     initialTargets: List<Actor>,
-): BattleState
-{
+): BattleState {
     val teamA = state.teamA
     val teamB = state.teamB
     val log = state.events
@@ -189,67 +191,85 @@ fun applySkill(
             continue
         }
 
-        when (effect.type) {
+        when (val t = effect.type) {
             is SkillEffectType.Damage -> {
                 for (target in targets) {
                     var isCriticalHit = false
 
-                    val finalDamage: Int = effect.type.amount
-                        .let { // get amplifiers from the actor
-                            actor.amplifiers.getAmplifiedDamage(effect.type.damageType, it)
-                        }
-                        .let { // apply critical damage if applicable
+                    val finalDamage: Int = t.amount
+                        .let { actor.amplifiers.getAmplifiedDamage(t.damageType, it) }
+                        .let {
                             isCriticalHit = (actor.stats["critChance"] ?: 0) > Random.nextInt(100)
                             if (isCriticalHit) it * 2 else it
                         }
-                        .let { // apply amplify buffs from actor
-                            (it * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt()
-                        }
-                        .let { // apply protection from target (0-100%)
+                        .let { (it * (1 + (actor.stats["amplify"] ?: 0) / 100.0)).toInt() }
+                        .let {
                             val protection = target.stats["protection"]?.coerceIn(0, 100) ?: 0
                             max(1, (it * (1 - protection / 100.0)).toInt())
                         }
-                        .let { // clamp to at least 1 damage
-                            max(1, it)
-                        }
+                        .let { max(1, it) }
 
                     target.setHp(max(0, target.getHp() - finalDamage))
 
                     val modifiers = mutableListOf<DamageModifier>()
-                    if (isCriticalHit) {
-                        modifiers.add(DamageModifier.Critical)
-                    }
+                    if (isCriticalHit) modifiers.add(DamageModifier.Critical)
 
-                    log.add(CombatEvent.DamageDealt(
-                        actor.name,
-                        target.name,
-                        finalDamage,
-                        target.getHp(),
-                        snapshotActors(listOf(teamA, teamB)),
-                        modifiers,
-                    ))
+                    log.add(
+                        CombatEvent.DamageDealt(
+                            actor.name,
+                            target.name,
+                            finalDamage,
+                            target.getHp(),
+                            snapshotActors(listOf(teamA, teamB)),
+                            modifiers,
+                        )
+                    )
                 }
             }
+
             is SkillEffectType.Heal -> {
                 for (target in targets) {
-                    val heal = max(1, actor.amplifiers.getAmplifiedDamage(DamageType.Magical, effect.type.power))
+                    val heal = max(1, actor.amplifiers.getAmplifiedDamage(DamageType.Magical, t.power))
                     target.setHp(min(target.statsBag.maxHp, target.getHp() + heal))
-                    log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), snapshotActors(listOf(teamA, teamB))))
+                    log.add(
+                        CombatEvent.Healed(
+                            actor.name,
+                            target.name,
+                            heal,
+                            target.getHp(),
+                            snapshotActors(listOf(teamA, teamB))
+                        )
+                    )
                 }
             }
+
             is SkillEffectType.ApplyBuff -> {
                 for (target in targets) {
-                    target.temporalEffects.add(TemporalEffect(effect.type.id, effect.type.duration, effect.type.stacks))
-                    log.add(CombatEvent.BuffApplied(actor.name, target.name, effect.type.id.label, snapshotActors(listOf(teamA, teamB))))
+                    target.temporalEffects.add(TemporalEffect(t.id, t.duration, t.stacks))
+                    log.add(
+                        CombatEvent.BuffApplied(
+                            actor.name,
+                            target.name,
+                            t.id.label,
+                            snapshotActors(listOf(teamA, teamB))
+                        )
+                    )
                 }
             }
+
             is SkillEffectType.RemoveTemporalEffect -> {
                 for (target in targets) {
                     val before = target.temporalEffects.size
-                    target.temporalEffects.removeIf { it.id == effect.type.effectId }
+                    target.temporalEffects.removeIf { it.id == t.effectId }
                     val after = target.temporalEffects.size
                     if (before != after) {
-                        log.add(CombatEvent.BuffRemoved(target.name, effect.type.effectId.label, snapshotActors(listOf(teamA, teamB))))
+                        log.add(
+                            CombatEvent.BuffRemoved(
+                                target.name,
+                                t.effectId.label,
+                                snapshotActors(listOf(teamA, teamB))
+                            )
+                        )
                     }
                 }
             }
@@ -342,12 +362,21 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState {
                     false -> max(0, actor.getHp() + amount)
                 }
                 actor.setHp(newHp)
-                log.add(CombatEvent.ResourceDrained(actor.name, "Buff", resource, amount, actor.getHp(), snapshotActors(listOf(state.teamA, state.teamB))))
+                log.add(
+                    CombatEvent.ResourceDrained(
+                        actor.name,
+                        "Buff",
+                        resource,
+                        amount,
+                        actor.getHp(),
+                        snapshotActors(listOf(state.teamA, state.teamB))
+                    )
+                )
             }
         }
     }
 
-    fun logRemoved(e: TemporalEffect): Unit {
+    fun logBuffRemoval(e: TemporalEffect): Unit {
         log.add(
             CombatEvent.BuffRemoved(
                 actor.name,
@@ -361,10 +390,70 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState {
 
     // decrement and remove expired
     actor.temporalEffects.replaceAll { it.decrement() }
-    actor.temporalEffects.filter { it.duration <= 0 }.forEach { logRemoved(it) }
+    actor.temporalEffects.filter { it.duration <= 0 }.forEach { logBuffRemoval(it) }
     actor.temporalEffects.removeAll { it.duration <= 0 }
 
+    // decrement cooldowns
     actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
 
     return state
 }
+
+fun List<CombatEvent>.compact(): List<CompactCombatEvent> {
+    val firstEvent = firstOrNull() ?: return emptyList()
+    val compactEvents = mutableListOf<CompactCombatEvent>()
+    var prevSnapshot = firstEvent.snapshot
+    val firstDelta = BattleDelta.fullSnapshot(prevSnapshot)
+    compactEvents.add(firstEvent.compact(firstDelta))
+    for (event in drop(1)) {
+        val delta = computeBattleDelta(prevSnapshot, event.snapshot)
+        compactEvents.add(event.compact(delta))
+        prevSnapshot = event.snapshot
+    }
+    return compactEvents
+}
+
+fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta {
+    val prevActors = prev.actors.associateBy { it.name }
+    val currActors = curr.actors.associateBy { it.name }
+    val deltas = mutableListOf<ActorDelta>()
+    for ((name, currActor) in currActors) {
+        val prevActor = prevActors[name]
+        if (prevActor == null) {
+            deltas.add(
+                ActorDelta(
+                    name = currActor.name,
+                    hp = currActor.hp,
+                    maxHp = currActor.maxHp,
+                    mana = currActor.mana,
+                    maxMana = currActor.maxMana,
+                    stats = currActor.stats,
+                    statBuffs = currActor.statBuffs,
+                    resourceTicks = currActor.resourceTicks,
+                    statOverrides = currActor.statOverrides,
+                    cooldowns = currActor.cooldowns
+                )
+            )
+        } else {
+            val delta = ActorDelta(
+                name = currActor.name,
+                hp = currActor.hp.takeIf { it != prevActor.hp },
+                maxHp = currActor.maxHp.takeIf { it != prevActor.maxHp },
+                mana = currActor.mana.takeIf { it != prevActor.mana },
+                maxMana = currActor.maxMana.takeIf { it != prevActor.maxMana },
+                stats = currActor.stats.takeIf { it != prevActor.stats },
+                statBuffs = currActor.statBuffs.takeIf { it != prevActor.statBuffs },
+                resourceTicks = currActor.resourceTicks.takeIf { it != prevActor.resourceTicks },
+                statOverrides = currActor.statOverrides.takeIf { it != prevActor.statOverrides },
+                cooldowns = currActor.cooldowns.takeIf { it != prevActor.cooldowns }
+            )
+            if (delta.hasAnyChange()) deltas.add(delta)
+        }
+    }
+    return BattleDelta(deltas)
+}
+
+fun ActorDelta.hasAnyChange(): Boolean =
+    ActorDelta::class.memberProperties
+        .filter { it.name != "name" }
+        .any { it.get(this) != null }

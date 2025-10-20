@@ -2,9 +2,11 @@ package game
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlin.reflect.full.memberProperties
 
 typealias Turns = Int
+typealias targetSelectionFn = (Actor, List<Actor>, List<Actor>) -> List<Actor>
+typealias ConditionFn = (Actor, List<Actor>, List<Actor>) -> Boolean
+typealias PriorityFn = (List<Actor>) -> List<Actor>
 
 @Serializable
 enum class BuffId(val label: String) {
@@ -20,50 +22,35 @@ enum class BuffId(val label: String) {
     Empower("Empower"),
 }
 
-// Simplified TemporalEffect now only tracks id, remaining duration, and stacks. All logic/data for what a buff does
-// lives in the central BuffRegistry.
-data class TemporalEffect(
-    val id: BuffId,
-    val duration: Turns,
-    val stacks: Int = 1,
-) {
+data class TemporalEffect(val id: BuffId, val duration: Turns, val stacks: Int = 1) {
     fun decrement(): TemporalEffect = copy(duration = duration - 1)
 }
 
-// Central registry describing what each BuffId does.
 object BuffRegistry {
     data class BuffDefinition(
-        val statBuff: Map<String, Int> = emptyMap(),          // additive per stack
-        val statOverride: Map<String, Int> = emptyMap(),      // overrides (stacks ignored)
-        val resourceTick: Map<String, Int> = emptyMap(),      // per-turn resource deltas per stack
-        val damageOverTime: Pair<DamageType, Int>? = null     // future use (per stack amount)
+        val statBuff: Map<String, Int> = emptyMap(),
+        val statOverride: Map<String, Int> = emptyMap(),
+        val resourceTick: Map<String, Int> = emptyMap(),
+        val damageOverTime: Pair<DamageType, Int>? = null
     )
 
-    // Base values chosen so skills can scale using stacks when needed (e.g. Chill -5 * stacks, Regen +5 * stacks)
     val definitions: Map<BuffId, BuffDefinition> = mapOf(
         BuffId.Amplify to BuffDefinition(statBuff = mapOf("amplify" to 200)),
         BuffId.Cheer to BuffDefinition(statOverride = mapOf("critChance" to 100)),
         BuffId.MoraleBoost to BuffDefinition(statBuff = mapOf("attack" to 10)),
         BuffId.Burn to BuffDefinition(resourceTick = mapOf("hp" to -10)),
         BuffId.Shock to BuffDefinition(statBuff = mapOf("def" to -5)),
-        BuffId.Regen to BuffDefinition(resourceTick = mapOf("hp" to 5)), // stack for stronger regen sources
+        BuffId.Regen to BuffDefinition(resourceTick = mapOf("hp" to 5)),
         BuffId.Protection to BuffDefinition(statBuff = mapOf("protection" to 10)),
-        BuffId.Chill to BuffDefinition(statBuff = mapOf("amplify" to -5)), // stack to reach -10
+        BuffId.Chill to BuffDefinition(statBuff = mapOf("amplify" to -5)),
         BuffId.Poison to BuffDefinition(resourceTick = mapOf("hp" to -5)),
         BuffId.Empower to BuffDefinition(statBuff = mapOf("strength" to 5)),
     )
 }
 
-enum class DamageType {
-    Physical,
-    Magical,
-    Ice,
-    Fire,
-    Lightning,
-    Poison,
-    Absolute,
-}
+enum class DamageType { Physical, Magical, Ice, Fire, Lightning, Poison, Absolute }
 
+// --- Skill / Effects ---
 sealed class SkillEffectType {
     data class Damage(val damageType: DamageType, val amount: Int) : SkillEffectType()
     data class Heal(val power: Int) : SkillEffectType()
@@ -73,11 +60,8 @@ sealed class SkillEffectType {
 
 data class SkillEffect(
     val type: SkillEffectType,
-    val targetRule: (Actor, List<Actor>, List<Actor>, List<Actor>) -> List<Actor> =
-        { _, _, _, previous -> previous }
+    val targetRule: (Actor, List<Actor>, List<Actor>, List<Actor>) -> List<Actor> = { _, _, _, previous -> previous }
 )
-
-typealias targetSelectionFn = (Actor, List<Actor>, List<Actor>) -> List<Actor>
 
 data class Skill(
     val description: String,
@@ -90,47 +74,28 @@ data class Skill(
     val manaCost: Int,
 )
 
-enum class ActorClass {
-    Fighter,
-    Mage,
-    Cleric,
-    Rogue,
-    Hunter,
-    Paladin,
-    AbyssalDragon,
-    Bard,
-    Fishman,
-}
+enum class ActorClass { Fighter, Mage, Cleric, Rogue, Hunter, Paladin, AbyssalDragon, Bard, Fishman }
 
 data class Amplifiers(
     val physicalDamageAdded: Double = 0.0,
     val physicalDamageMultiplier: Double = 1.0,
-
     val magicalDamageAdded: Double = 0.0,
     val magicalDamageMultiplier: Double = 1.0,
-
     val absoluteDamageAdded: Double = 0.0,
     val absoluteDamageMultiplier: Double = 1.0,
 ) {
-    fun getAmplifiedDamage(damageType: DamageType, baseDamage: Int): Int {
-        return when (damageType) {
-            DamageType.Physical -> ((baseDamage + physicalDamageAdded) * physicalDamageMultiplier).toInt()
-            DamageType.Magical -> ((baseDamage + magicalDamageAdded) * magicalDamageMultiplier).toInt()
-            DamageType.Absolute -> ((baseDamage + absoluteDamageAdded) * absoluteDamageMultiplier).toInt()
-            else -> baseDamage // todo: handle elemental damage amplification
-        }
+    fun getAmplifiedDamage(damageType: DamageType, baseDamage: Int): Int = when (damageType) {
+        DamageType.Physical -> ((baseDamage + physicalDamageAdded) * physicalDamageMultiplier).toInt()
+        DamageType.Magical -> ((baseDamage + magicalDamageAdded) * magicalDamageMultiplier).toInt()
+        DamageType.Absolute -> ((baseDamage + absoluteDamageAdded) * absoluteDamageMultiplier).toInt()
+        else -> baseDamage
     }
 }
-
-// --- Condition Function and Conditional Skill ---
-typealias ConditionFn = (Actor, List<Actor>, List<Actor>) -> Boolean
-typealias TargetFn = (Actor, List<Actor>, List<Actor>) -> List<Actor>
-typealias PriorityFn = (List<Actor>) -> List<Actor>
 
 data class Tactic(
     val conditions: List<ConditionFn>,
     val skill: Skill,
-    val targetGroup: TargetFn,
+    val targetGroup: targetSelectionFn,
     val ordering: List<PriorityFn> = emptyList()
 ) {
     fun getTargets(actor: Actor, allies: List<Actor>, enemies: List<Actor>): List<Actor> {
@@ -140,25 +105,12 @@ data class Tactic(
     }
 }
 
-data class ResistanceBag(
-    val physical: Int,
-    val ice: Int,
-    val fire: Int,
-    val lightning: Int,
-    val chaos: Int,
-) {
+data class ResistanceBag(val physical: Int, val ice: Int, val fire: Int, val lightning: Int, val chaos: Int) {
     companion object {
-        fun default() = ResistanceBag(
-            physical = 0,
-            ice = 0,
-            fire = 0,
-            lightning = 0,
-            chaos = 0
-        )
+        fun default() = ResistanceBag(0, 0, 0, 0, 0)
     }
 }
 
-// Container for core combat resources
 interface ResourceStats {
     fun getHp(): Int
     fun setHp(value: Int)
@@ -182,24 +134,21 @@ data class StatsBag(
     override val isAlive: Boolean get() = hp > 0
     override fun getHp(): Int = hp
     override fun getMana(): Int = mana
-    override fun setHp(value: Int) { hp = value.coerceIn(0, maxHp) }
-    override fun setMana(value: Int) { mana = value.coerceIn(0, maxMana) }
+    override fun setHp(value: Int) {
+        hp = value.coerceIn(0, maxHp)
+    }
+
+    override fun setMana(value: Int) {
+        mana = value.coerceIn(0, maxMana)
+    }
 
     companion object {
-        fun default() = StatsBag(
-            hp = 100,
-            maxHp = 100,
-            mana = 100,
-            maxMana = 100,
-            hpRegenPerTurn = 0,
-            manaRegenPerTurn = 0,
-        )
+        fun default() = StatsBag(100, 100, 100, 100, 0, 0)
     }
 }
 
-// --- Actor ---
 data class Actor(
-    val team: Int, // 0 or 1
+    val team: Int,
     val actorClass: ActorClass,
     val name: String,
     val statsBag: StatsBag,
@@ -220,35 +169,28 @@ data class Actor(
         }
     }
 
-    fun deepCopy(): Actor {
-        return Actor(
-            actorClass = actorClass,
-            name = name,
-            statsBag = statsBag.copy(),
-            tactics = tactics, // immutable assumed
-            team = team,
-            stats = stats.toMutableMap(),
-            temporalEffects = temporalEffects.toMutableList(),
-            cooldowns = cooldowns.toMutableMap(),
-            amplifiers = amplifiers,
-            resistances = resistances.toMap(),
-        )
-    }
+    fun deepCopy(): Actor = Actor(
+        actorClass = actorClass,
+        name = name,
+        statsBag = statsBag.copy(),
+        tactics = tactics,
+        team = team,
+        stats = stats.toMutableMap(),
+        temporalEffects = temporalEffects.toMutableList(),
+        cooldowns = cooldowns.toMutableMap(),
+        amplifiers = amplifiers,
+        resistances = resistances.toMap(),
+    )
 
-    fun getResistance(damageType: DamageType): Int {
-        return resistances.getOrDefault(damageType, 0)
-    }
+    fun getResistance(damageType: DamageType): Int = resistances[damageType] ?: 0
 }
 
-// --- Team ---
 data class Team(val actors: MutableList<Actor>) {
-    fun aliveActors() = actors.filter { it.isAlive }
-    fun deepCopy(): Team {
-        return Team(actors.map { it.deepCopy() }.toMutableList())
-    }
+    fun aliveActors() = actors.filter { it.isAlive };
+    fun deepCopy(): Team = Team(actors.map { it.deepCopy() }.toMutableList())
 }
 
-// --- Actor Snapshot Data Structure ---
+// --- Snapshots ---
 @Serializable
 data class ActorSnapshot(
     val actorClass: ActorClass,
@@ -262,40 +204,22 @@ data class ActorSnapshot(
     val statBuffs: List<StatBuffSnapshot>,
     val resourceTicks: List<ResourceTickSnapshot>,
     val statOverrides: List<StatOverrideSnapshot>,
-    val cooldowns: Map<String, Int> // skill name -> cooldown
+    val cooldowns: Map<String, Int>
 )
 
 @Serializable
-data class StatBuffSnapshot(
-    val id: String,
-    val duration: Int,
-    val statChanges: Map<String, Int>
-)
+data class StatBuffSnapshot(val id: String, val duration: Int, val statChanges: Map<String, Int>)
 
 @Serializable
-data class ResourceTickSnapshot(
-    val id: String,
-    val duration: Int,
-    val resourceChanges: Map<String, Int>
-)
+data class ResourceTickSnapshot(val id: String, val duration: Int, val resourceChanges: Map<String, Int>)
 
 @Serializable
-data class StatOverrideSnapshot(
-    val id: String,
-    val duration: Int,
-    val statOverrides: Map<String, Int>
-)
+data class StatOverrideSnapshot(val id: String, val duration: Int, val statOverrides: Map<String, Int>)
 
 @Serializable
-data class BattleSnapshot(
-    val actors: List<ActorSnapshot>
-)
+data class BattleSnapshot(val actors: List<ActorSnapshot>)
 
-enum class DamageModifier {
-    Critical,
-    Blocked,
-    Resisted
-}
+enum class DamageModifier { Critical, Blocked, Resisted }
 
 @Serializable
 sealed class CombatEvent {
@@ -354,11 +278,8 @@ sealed class CombatEvent {
 
     @Serializable
     @SerialName("BuffRemoved")
-    data class BuffRemoved(
-        val target: String,
-        val buffId: String,
-        override val snapshot: BattleSnapshot
-    ) : CombatEvent()
+    data class BuffRemoved(val target: String, val buffId: String, override val snapshot: BattleSnapshot) :
+        CombatEvent()
 
     @Serializable
     @SerialName("ResourceDrained")
@@ -386,8 +307,6 @@ sealed class CombatEvent {
     data class BattleEnd(val winner: String, override val snapshot: BattleSnapshot) : CombatEvent()
 }
 
-// --- Delta and Compact Event Types ---
-
 @Serializable
 data class ActorDelta(
     val name: String,
@@ -403,17 +322,9 @@ data class ActorDelta(
 )
 
 @Serializable
-data class BattleDelta(
-    val actors: List<ActorDelta>
-)
-
-fun ActorDelta.hasAnyChange(): Boolean {
-    return ActorDelta::class.memberProperties
-        .filter { it.name != "name" }
-        .any { it.get(this) != null }
+data class BattleDelta(val actors: List<ActorDelta>) {
+    companion object
 }
-
-
 
 @Serializable
 sealed class CompactCombatEvent {
@@ -431,12 +342,8 @@ sealed class CompactCombatEvent {
 
     @Serializable
     @SerialName("SkillUsed")
-    data class CSkillUsed(
-        val actor: String,
-        val skill: String,
-        val targets: List<String>,
-        val delta: BattleDelta,
-    ) : CompactCombatEvent()
+    data class CSkillUsed(val actor: String, val skill: String, val targets: List<String>, val delta: BattleDelta) :
+        CompactCombatEvent()
 
     @Serializable
     @SerialName("DamageDealt")
@@ -460,20 +367,12 @@ sealed class CompactCombatEvent {
 
     @Serializable
     @SerialName("BuffApplied")
-    data class CBuffApplied(
-        val source: String,
-        val target: String,
-        val buffId: String,
-        val delta: BattleDelta
-    ) : CompactCombatEvent()
+    data class CBuffApplied(val source: String, val target: String, val buffId: String, val delta: BattleDelta) :
+        CompactCombatEvent()
 
     @Serializable
     @SerialName("BuffRemoved")
-    data class CBuffRemoved(
-        val target: String,
-        val buffId: String,
-        val delta: BattleDelta
-    ) : CompactCombatEvent()
+    data class CBuffRemoved(val target: String, val buffId: String, val delta: BattleDelta) : CompactCombatEvent()
 
     @Serializable
     @SerialName("BuffExpired")
