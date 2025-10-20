@@ -1,0 +1,26 @@
+<!-- ...existing code removed (file was empty)... -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Season Arena Kotlin Frontend</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; background:#111; color:#eee; }
+    h1 { font-size: 1.4rem; margin-top:0; }
+    ul { list-style: none; padding:0; }
+    li { background:#222; margin:.25rem 0; padding:.5rem .75rem; border-radius:4px; font-size:.9rem; }
+    .footer { margin-top:2rem; font-size:.7rem; opacity:.6; }
+    .error { color:#f55; }
+  </style>
+</head>
+<body>
+  <h1>Season Arena Demo (Kotlin/JS)</h1>
+  <p>This page fetches <code>CompactCombatEvent</code> data from <code>/combat/example</code> and lists them. Open the console for raw JSON.</p>
+  <noscript><div class="error">JavaScript required.</div></noscript>
+  <div id="kotlin-root">Initializing Kotlin/JS...</div>
+  <div class="footer">If nothing loads, ensure the backend is running on <code>localhost:8080</code>.</div>
+  <script type="module" src="kjs.js"></script>
+</body>
+</html>
+

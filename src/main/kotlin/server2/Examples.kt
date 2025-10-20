@@ -1,19 +1,6 @@
-package game
+package server2
 
-import java.io.File
-
-fun main() {
-    val json = simulateBattle(exampleTeam1(), exampleTeam2())
-        .events
-        .compact()
-        .toJson()
-
-    File("output/battle_log.json").apply {
-        parentFile.mkdirs()
-        writeText(json)
-        println("Battle log written to $path, size: ${length()} bytes")
-    }
-}
+import game.*
 
 fun exampleTeam1(): Team {
     val actorA1 = Actor(
@@ -97,7 +84,7 @@ fun exampleTeam1(): Team {
                 ordering = listOf(::leastHp),
             ),
             Tactic(
-                conditions = listOf(minimumAlliesHaveBuff(BuffId.Burn , 1)),
+                conditions = listOf(minimumAlliesHaveBuff(BuffId.Burn, 1)),
                 skill = extinguish,
                 targetGroup = TargetGroup.allies,
                 ordering = listOf(::leastHp)
@@ -154,7 +141,5 @@ fun exampleTeam2(): Team {
         amplifiers = Amplifiers(magicalDamageAdded = 20.0)
     )
 
-    return Team(mutableListOf(
-        actorB1,
-    ))
+    return Team(mutableListOf(actorB1))
 }
