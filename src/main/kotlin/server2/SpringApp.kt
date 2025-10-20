@@ -1,6 +1,5 @@
 package server2
 
-import game.compact
 import game.simulateBattle
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -30,7 +29,8 @@ class HelloController {
 class CombatController {
     @GetMapping("/combat/example", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun exampleCombat(): ResponseEntity<String> =
-        simulateBattle(exampleTeam1(), exampleTeam2()).events.compact()
-            .let { Json.encodeToString(it) }
-            .let { ResponseEntity.ok(it) }
+        simulateBattle(exampleTeam1(), exampleTeam2())
+            .compact()
+            .let(Json::encodeToString)
+            .let(ResponseEntity<String>::ok)
 }
