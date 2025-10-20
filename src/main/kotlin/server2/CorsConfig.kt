@@ -18,6 +18,8 @@ class CorsConfig : WebMvcConfigurer {
                 "http://127.0.0.1:3000",
                 "http://localhost:63343",
                 "http://127.0.0.1:63343",
+                "http://localhost:63342",
+                "http://127.0.0.1:63342",
             )
             .allowedMethods("GET", "OPTIONS")
             .allowCredentials(false)
