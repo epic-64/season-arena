@@ -1,23 +1,33 @@
 package game
 
+import game.CombatEvent.*
+import game.CompactCombatEvent.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-
-// Shared game type definitions (multiplatform). Moved here to avoid duplication.
-// Reflection removed; manual change detection used instead of memberProperties.
 
 // --- Basic Aliases / Typealiases ---
 typealias Turns = Int
 
 @Serializable
 enum class BuffId(val label: String) {
-    Amplify("Amplify"), Cheer("Cheer"), MoraleBoost("Morale Boost"), Burn("Burn"), Shock("Shock"), Regen("Regen"), Protection("Protection"), Chill("Chill"), Poison("Poison"), Empower("Empower"),
+    Amplify("Amplify"),
+    Cheer("Cheer"),
+    MoraleBoost("Morale Boost"),
+    Burn("Burn"),
+    Shock("Shock"),
+    Regen("Regen"),
+    Protection("Protection"),
+    Chill("Chill"),
+    Poison("Poison"),
+    Empower("Empower"),
 }
 
 // TemporalEffect used by actors for active buffs
-data class TemporalEffect(val id: BuffId, val duration: Turns, val stacks: Int = 1) { fun decrement(): TemporalEffect = copy(duration = duration - 1) }
+data class TemporalEffect(val id: BuffId, val duration: Turns, val stacks: Int = 1) {
+    fun decrement(): TemporalEffect = copy(duration = duration - 1)
+}
 
 object BuffRegistry {
     data class BuffDefinition(
@@ -26,6 +36,7 @@ object BuffRegistry {
         val resourceTick: Map<String, Int> = emptyMap(),
         val damageOverTime: Pair<DamageType, Int>? = null
     )
+
     val definitions: Map<BuffId, BuffDefinition> = mapOf(
         BuffId.Amplify to BuffDefinition(statBuff = mapOf("amplify" to 200)),
         BuffId.Cheer to BuffDefinition(statOverride = mapOf("critChance" to 100)),
@@ -105,7 +116,11 @@ data class Tactic(
     }
 }
 
-data class ResistanceBag(val physical: Int, val ice: Int, val fire: Int, val lightning: Int, val chaos: Int) { companion object { fun default() = ResistanceBag(0,0,0,0,0) } }
+data class ResistanceBag(val physical: Int, val ice: Int, val fire: Int, val lightning: Int, val chaos: Int) {
+    companion object {
+        fun default() = ResistanceBag(0, 0, 0, 0, 0)
+    }
+}
 
 interface ResourceStats {
     fun getHp(): Int
@@ -130,9 +145,17 @@ data class StatsBag(
     override val isAlive: Boolean get() = hp > 0
     override fun getHp(): Int = hp
     override fun getMana(): Int = mana
-    override fun setHp(value: Int) { hp = value.coerceIn(0, maxHp) }
-    override fun setMana(value: Int) { mana = value.coerceIn(0, maxMana) }
-    companion object { fun default() = StatsBag(100, 100, 100, 100, 0, 0) }
+    override fun setHp(value: Int) {
+        hp = value.coerceIn(0, maxHp)
+    }
+
+    override fun setMana(value: Int) {
+        mana = value.coerceIn(0, maxMana)
+    }
+
+    companion object {
+        fun default() = StatsBag(100, 100, 100, 100, 0, 0)
+    }
 }
 
 data class Actor(
@@ -155,6 +178,7 @@ data class Actor(
             cooldowns.clear()
         }
     }
+
     fun deepCopy(): Actor = Actor(
         actorClass = actorClass,
         name = name,
@@ -167,10 +191,14 @@ data class Actor(
         amplifiers = amplifiers,
         resistances = resistances.toMap(),
     )
+
     fun getResistance(damageType: DamageType): Int = resistances[damageType] ?: 0
 }
 
-data class Team(val actors: MutableList<Actor>) { fun aliveActors() = actors.filter { it.isAlive }; fun deepCopy(): Team = Team(actors.map { it.deepCopy() }.toMutableList()) }
+data class Team(val actors: MutableList<Actor>) {
+    fun aliveActors() = actors.filter { it.isAlive };
+    fun deepCopy(): Team = Team(actors.map { it.deepCopy() }.toMutableList())
+}
 
 // --- Snapshots ---
 @Serializable
@@ -188,29 +216,109 @@ data class ActorSnapshot(
     val statOverrides: List<StatOverrideSnapshot>,
     val cooldowns: Map<String, Int>
 )
-@Serializable data class StatBuffSnapshot(val id: String, val duration: Int, val statChanges: Map<String, Int>)
-@Serializable data class ResourceTickSnapshot(val id: String, val duration: Int, val resourceChanges: Map<String, Int>)
-@Serializable data class StatOverrideSnapshot(val id: String, val duration: Int, val statOverrides: Map<String, Int>)
-@Serializable data class BattleSnapshot(val actors: List<ActorSnapshot>)
+
+@Serializable
+data class StatBuffSnapshot(val id: String, val duration: Int, val statChanges: Map<String, Int>)
+
+@Serializable
+data class ResourceTickSnapshot(val id: String, val duration: Int, val resourceChanges: Map<String, Int>)
+
+@Serializable
+data class StatOverrideSnapshot(val id: String, val duration: Int, val statOverrides: Map<String, Int>)
+
+@Serializable
+data class BattleSnapshot(val actors: List<ActorSnapshot>)
 
 enum class DamageModifier { Critical, Blocked, Resisted }
 
 @Serializable
-sealed class CombatEvent { abstract val snapshot: BattleSnapshot
-    @Serializable @SerialName("BattleStart") data class BattleStart(override val snapshot: BattleSnapshot) : CombatEvent()
-    @Serializable @SerialName("TurnStart") data class TurnStart(val turn: Int, override val snapshot: BattleSnapshot) : CombatEvent()
-    @Serializable @SerialName("CharacterActivated") data class CharacterActivated(val actor: String, override val snapshot: BattleSnapshot) : CombatEvent()
-    @Serializable @SerialName("SkillUsed") data class SkillUsed(val actor: String, val skill: String, val targets: List<String>, override val snapshot: BattleSnapshot) : CombatEvent()
-    @Serializable @SerialName("DamageDealt") data class DamageDealt(val source: String, val target: String, val amount: Int, val targetHp: Int, override val snapshot: BattleSnapshot, val modifiers: List<DamageModifier>) : CombatEvent()
-    @Serializable @SerialName("Healed") data class Healed(val source: String, val target: String, val amount: Int, val targetHp: Int, override val snapshot: BattleSnapshot) : CombatEvent()
-    @Serializable @SerialName("BuffApplied") data class BuffApplied(val source: String, val target: String, val buffId: String, override val snapshot: BattleSnapshot) : CombatEvent()
-    @Serializable @SerialName("BuffRemoved") data class BuffRemoved(val target: String, val buffId: String, override val snapshot: BattleSnapshot) : CombatEvent()
-    @Serializable @SerialName("ResourceDrained") data class ResourceDrained(val target: String, val buffId: String, val resource: String, val amount: Int, val newValue: Int, override val snapshot: BattleSnapshot) : CombatEvent()
-    @Serializable @SerialName("ResourceRegenerated") data class ResourceRegenerated(val target: String, val resource: String, val amount: Int, val newValue: Int, override val snapshot: BattleSnapshot) : CombatEvent()
-    @Serializable @SerialName("BattleEnd") data class BattleEnd(val winner: String, override val snapshot: BattleSnapshot) : CombatEvent()
+sealed class CombatEvent {
+    abstract val snapshot: BattleSnapshot
+
+    @Serializable
+    @SerialName("BattleStart")
+    data class BattleStart(override val snapshot: BattleSnapshot) : CombatEvent()
+
+    @Serializable
+    @SerialName("TurnStart")
+    data class TurnStart(val turn: Int, override val snapshot: BattleSnapshot) : CombatEvent()
+
+    @Serializable
+    @SerialName("CharacterActivated")
+    data class CharacterActivated(val actor: String, override val snapshot: BattleSnapshot) : CombatEvent()
+
+    @Serializable
+    @SerialName("SkillUsed")
+    data class SkillUsed(
+        val actor: String,
+        val skill: String,
+        val targets: List<String>,
+        override val snapshot: BattleSnapshot
+    ) : CombatEvent()
+
+    @Serializable
+    @SerialName("DamageDealt")
+    data class DamageDealt(
+        val source: String,
+        val target: String,
+        val amount: Int,
+        val targetHp: Int,
+        override val snapshot: BattleSnapshot,
+        val modifiers: List<DamageModifier>
+    ) : CombatEvent()
+
+    @Serializable
+    @SerialName("Healed")
+    data class Healed(
+        val source: String,
+        val target: String,
+        val amount: Int,
+        val targetHp: Int,
+        override val snapshot: BattleSnapshot
+    ) : CombatEvent()
+
+    @Serializable
+    @SerialName("BuffApplied")
+    data class BuffApplied(
+        val source: String,
+        val target: String,
+        val buffId: String,
+        override val snapshot: BattleSnapshot
+    ) : CombatEvent()
+
+    @Serializable
+    @SerialName("BuffRemoved")
+    data class BuffRemoved(val target: String, val buffId: String, override val snapshot: BattleSnapshot) :
+        CombatEvent()
+
+    @Serializable
+    @SerialName("ResourceDrained")
+    data class ResourceDrained(
+        val target: String,
+        val buffId: String,
+        val resource: String,
+        val amount: Int,
+        val newValue: Int,
+        override val snapshot: BattleSnapshot
+    ) : CombatEvent()
+
+    @Serializable
+    @SerialName("ResourceRegenerated")
+    data class ResourceRegenerated(
+        val target: String,
+        val resource: String,
+        val amount: Int,
+        val newValue: Int,
+        override val snapshot: BattleSnapshot
+    ) : CombatEvent()
+
+    @Serializable
+    @SerialName("BattleEnd")
+    data class BattleEnd(val winner: String, override val snapshot: BattleSnapshot) : CombatEvent()
 }
 
-@Serializable data class ActorDelta(
+@Serializable
+data class ActorDelta(
     val name: String,
     val hp: Int? = null,
     val maxHp: Int? = null,
@@ -222,23 +330,91 @@ sealed class CombatEvent { abstract val snapshot: BattleSnapshot
     val statOverrides: List<StatOverrideSnapshot>? = null,
     val cooldowns: Map<String, Int>? = null,
 )
-@Serializable data class BattleDelta(val actors: List<ActorDelta>) { companion object }
-fun ActorDelta.hasAnyChange(): Boolean = listOf(hp, maxHp, mana, maxMana, stats, statBuffs, resourceTicks, statOverrides, cooldowns).any { it != null }
+
+@Serializable
+data class BattleDelta(val actors: List<ActorDelta>) {
+    companion object
+}
+
+fun ActorDelta.hasAnyChange(): Boolean =
+    listOf(hp, maxHp, mana, maxMana, stats, statBuffs, resourceTicks, statOverrides, cooldowns).any { it != null }
 
 @Serializable
 sealed class CompactCombatEvent {
-    @Serializable @SerialName("BattleStart") data class CBattleStart(val snapshot: BattleSnapshot) : CompactCombatEvent()
-    @Serializable @SerialName("TurnStart") data class CTurnStart(val turn: Int, val delta: BattleDelta) : CompactCombatEvent()
-    @Serializable @SerialName("CharacterActivated") data class CCharacterActivated(val actor: String, val delta: BattleDelta) : CompactCombatEvent()
-    @Serializable @SerialName("SkillUsed") data class CSkillUsed(val actor: String, val skill: String, val targets: List<String>, val delta: BattleDelta) : CompactCombatEvent()
-    @Serializable @SerialName("DamageDealt") data class CDamageDealt(val source: String, val target: String, val amount: Int, val targetHp: Int, val delta: BattleDelta) : CompactCombatEvent()
-    @Serializable @SerialName("Healed") data class CHealed(val source: String, val target: String, val amount: Int, val targetHp: Int, val delta: BattleDelta) : CompactCombatEvent()
-    @Serializable @SerialName("BuffApplied") data class CBuffApplied(val source: String, val target: String, val buffId: String, val delta: BattleDelta) : CompactCombatEvent()
-    @Serializable @SerialName("BuffRemoved") data class CBuffRemoved(val target: String, val buffId: String, val delta: BattleDelta) : CompactCombatEvent()
-    @Serializable @SerialName("BuffExpired") data class CBuffExpired(val target: String, val buffId: String, val delta: BattleDelta) : CompactCombatEvent()
-    @Serializable @SerialName("ResourceDrained") data class CResourceDrained(val target: String, val buffId: String, val resource: String, val amount: Int, val targetResourceValue: Int, val delta: BattleDelta) : CompactCombatEvent()
-    @Serializable @SerialName("ResourceRegenerated") data class CResourceRegenerated(val target: String, val resource: String, val amount: Int, val targetResourceValue: Int, val delta: BattleDelta) : CompactCombatEvent()
-    @Serializable @SerialName("BattleEnd") data class CBattleEnd(val winner: String, val delta: BattleDelta) : CompactCombatEvent()
+    @Serializable
+    @SerialName("BattleStart")
+    data class CBattleStart(val snapshot: BattleSnapshot) : CompactCombatEvent()
+
+    @Serializable
+    @SerialName("TurnStart")
+    data class CTurnStart(val turn: Int, val delta: BattleDelta) : CompactCombatEvent()
+
+    @Serializable
+    @SerialName("CharacterActivated")
+    data class CCharacterActivated(val actor: String, val delta: BattleDelta) : CompactCombatEvent()
+
+    @Serializable
+    @SerialName("SkillUsed")
+    data class CSkillUsed(val actor: String, val skill: String, val targets: List<String>, val delta: BattleDelta) :
+        CompactCombatEvent()
+
+    @Serializable
+    @SerialName("DamageDealt")
+    data class CDamageDealt(
+        val source: String,
+        val target: String,
+        val amount: Int,
+        val targetHp: Int,
+        val delta: BattleDelta
+    ) : CompactCombatEvent()
+
+    @Serializable
+    @SerialName("Healed")
+    data class CHealed(
+        val source: String,
+        val target: String,
+        val amount: Int,
+        val targetHp: Int,
+        val delta: BattleDelta
+    ) : CompactCombatEvent()
+
+    @Serializable
+    @SerialName("BuffApplied")
+    data class CBuffApplied(val source: String, val target: String, val buffId: String, val delta: BattleDelta) :
+        CompactCombatEvent()
+
+    @Serializable
+    @SerialName("BuffRemoved")
+    data class CBuffRemoved(val target: String, val buffId: String, val delta: BattleDelta) : CompactCombatEvent()
+
+    @Serializable
+    @SerialName("BuffExpired")
+    data class CBuffExpired(val target: String, val buffId: String, val delta: BattleDelta) : CompactCombatEvent()
+
+    @Serializable
+    @SerialName("ResourceDrained")
+    data class CResourceDrained(
+        val target: String,
+        val buffId: String,
+        val resource: String,
+        val amount: Int,
+        val targetResourceValue: Int,
+        val delta: BattleDelta
+    ) : CompactCombatEvent()
+
+    @Serializable
+    @SerialName("ResourceRegenerated")
+    data class CResourceRegenerated(
+        val target: String,
+        val resource: String,
+        val amount: Int,
+        val targetResourceValue: Int,
+        val delta: BattleDelta
+    ) : CompactCombatEvent()
+
+    @Serializable
+    @SerialName("BattleEnd")
+    data class CBattleEnd(val winner: String, val delta: BattleDelta) : CompactCombatEvent()
 }
 
 // Conversion utilities (subset) for compacting CombatEvents
@@ -249,7 +425,20 @@ fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta 
     for ((name, currActor) in currActors) {
         val prevActor = prevActors[name]
         if (prevActor == null) {
-            deltas.add(ActorDelta(name = currActor.name, hp = currActor.hp, maxHp = currActor.maxHp, mana = currActor.mana, maxMana = currActor.maxMana, stats = currActor.stats, statBuffs = currActor.statBuffs, resourceTicks = currActor.resourceTicks, statOverrides = currActor.statOverrides, cooldowns = currActor.cooldowns))
+            deltas.add(
+                ActorDelta(
+                    name = currActor.name,
+                    hp = currActor.hp,
+                    maxHp = currActor.maxHp,
+                    mana = currActor.mana,
+                    maxMana = currActor.maxMana,
+                    stats = currActor.stats,
+                    statBuffs = currActor.statBuffs,
+                    resourceTicks = currActor.resourceTicks,
+                    statOverrides = currActor.statOverrides,
+                    cooldowns = currActor.cooldowns
+                )
+            )
         } else {
             val delta = ActorDelta(
                 name = currActor.name,
@@ -270,21 +459,32 @@ fun computeBattleDelta(prev: BattleSnapshot, curr: BattleSnapshot): BattleDelta 
 }
 
 fun BattleDelta.Companion.fullSnapshot(snapshot: BattleSnapshot): BattleDelta = BattleDelta(snapshot.actors.map { a ->
-    ActorDelta(name = a.name, hp = a.hp, maxHp = a.maxHp, mana = a.mana, maxMana = a.maxMana, stats = a.stats, statBuffs = a.statBuffs, resourceTicks = a.resourceTicks, statOverrides = a.statOverrides, cooldowns = a.cooldowns)
+    ActorDelta(
+        name = a.name,
+        hp = a.hp,
+        maxHp = a.maxHp,
+        mana = a.mana,
+        maxMana = a.maxMana,
+        stats = a.stats,
+        statBuffs = a.statBuffs,
+        resourceTicks = a.resourceTicks,
+        statOverrides = a.statOverrides,
+        cooldowns = a.cooldowns
+    )
 })
 
 fun CombatEvent.compact(delta: BattleDelta): CompactCombatEvent = when (this) {
-    is CombatEvent.BattleStart -> CompactCombatEvent.CBattleStart(snapshot)
-    is CombatEvent.TurnStart -> CompactCombatEvent.CTurnStart(turn, delta)
-    is CombatEvent.CharacterActivated -> CompactCombatEvent.CCharacterActivated(actor, delta)
-    is CombatEvent.SkillUsed -> CompactCombatEvent.CSkillUsed(actor, skill, targets, delta)
-    is CombatEvent.DamageDealt -> CompactCombatEvent.CDamageDealt(source, target, amount, targetHp, delta)
-    is CombatEvent.Healed -> CompactCombatEvent.CHealed(source, target, amount, targetHp, delta)
-    is CombatEvent.BuffApplied -> CompactCombatEvent.CBuffApplied(source, target, buffId, delta)
-    is CombatEvent.BuffRemoved -> CompactCombatEvent.CBuffRemoved(target, buffId, delta)
-    is CombatEvent.ResourceDrained -> CompactCombatEvent.CResourceDrained(target, buffId, resource, amount, newValue, delta)
-    is CombatEvent.ResourceRegenerated -> CompactCombatEvent.CResourceRegenerated(target, resource, amount, newValue, delta)
-    is CombatEvent.BattleEnd -> CompactCombatEvent.CBattleEnd(winner, delta)
+    is BattleStart -> CBattleStart(snapshot)
+    is TurnStart -> CTurnStart(turn, delta)
+    is CharacterActivated -> CCharacterActivated(actor, delta)
+    is SkillUsed -> CSkillUsed(actor, skill, targets, delta)
+    is DamageDealt -> CDamageDealt(source, target, amount, targetHp, delta)
+    is Healed -> CHealed(source, target, amount, targetHp, delta)
+    is BuffApplied -> CBuffApplied(source, target, buffId, delta)
+    is BuffRemoved -> CBuffRemoved(target, buffId, delta)
+    is ResourceDrained -> CResourceDrained(target, buffId, resource, amount, newValue, delta)
+    is ResourceRegenerated -> CResourceRegenerated(target, resource, amount, newValue, delta)
+    is BattleEnd -> CBattleEnd(winner, delta)
 }
 
 fun List<CombatEvent>.compact(): List<CompactCombatEvent> {

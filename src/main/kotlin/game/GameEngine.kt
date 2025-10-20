@@ -159,7 +159,7 @@ fun pickTactic(actor: Actor, allies: List<Actor>, enemies: List<Actor>): Tactic?
     fun hasEnoughMana(skill: Skill): Boolean = actor.getMana() >= skill.manaCost
     fun matchesConditions(tactic: Tactic): Boolean =
         tactic.skill.condition(actor, allies, enemies) &&
-        tactic.conditions.all { it(actor, allies, enemies) }
+                tactic.conditions.all { it(actor, allies, enemies) }
 
     return actor.tactics.firstOrNull {
         isOffCooldown(it.skill) && hasEnoughMana(it.skill) && matchesConditions(it)
@@ -173,8 +173,7 @@ fun applySkill(
     allies: List<Actor>,
     enemies: List<Actor>,
     initialTargets: List<Actor>,
-): BattleState
-{
+): BattleState {
     val teamA = state.teamA
     val teamB = state.teamB
     val log = state.events
@@ -224,26 +223,50 @@ fun applySkill(
                     )
                 }
             }
+
             is SkillEffectType.Heal -> {
                 for (target in targets) {
                     val heal = max(1, actor.amplifiers.getAmplifiedDamage(DamageType.Magical, t.power))
                     target.setHp(min(target.statsBag.maxHp, target.getHp() + heal))
-                    log.add(CombatEvent.Healed(actor.name, target.name, heal, target.getHp(), snapshotActors(listOf(teamA, teamB))))
+                    log.add(
+                        CombatEvent.Healed(
+                            actor.name,
+                            target.name,
+                            heal,
+                            target.getHp(),
+                            snapshotActors(listOf(teamA, teamB))
+                        )
+                    )
                 }
             }
+
             is SkillEffectType.ApplyBuff -> {
                 for (target in targets) {
                     target.temporalEffects.add(TemporalEffect(t.id, t.duration, t.stacks))
-                    log.add(CombatEvent.BuffApplied(actor.name, target.name, t.id.label, snapshotActors(listOf(teamA, teamB))))
+                    log.add(
+                        CombatEvent.BuffApplied(
+                            actor.name,
+                            target.name,
+                            t.id.label,
+                            snapshotActors(listOf(teamA, teamB))
+                        )
+                    )
                 }
             }
+
             is SkillEffectType.RemoveTemporalEffect -> {
                 for (target in targets) {
                     val before = target.temporalEffects.size
                     target.temporalEffects.removeIf { it.id == t.effectId }
                     val after = target.temporalEffects.size
                     if (before != after) {
-                        log.add(CombatEvent.BuffRemoved(target.name, t.effectId.label, snapshotActors(listOf(teamA, teamB))))
+                        log.add(
+                            CombatEvent.BuffRemoved(
+                                target.name,
+                                t.effectId.label,
+                                snapshotActors(listOf(teamA, teamB))
+                            )
+                        )
                     }
                 }
             }
@@ -336,12 +359,21 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState {
                     false -> max(0, actor.getHp() + amount)
                 }
                 actor.setHp(newHp)
-                log.add(CombatEvent.ResourceDrained(actor.name, "Buff", resource, amount, actor.getHp(), snapshotActors(listOf(state.teamA, state.teamB))))
+                log.add(
+                    CombatEvent.ResourceDrained(
+                        actor.name,
+                        "Buff",
+                        resource,
+                        amount,
+                        actor.getHp(),
+                        snapshotActors(listOf(state.teamA, state.teamB))
+                    )
+                )
             }
         }
     }
 
-    fun logRemoved(e: TemporalEffect): Unit {
+    fun logBuffRemoval(e: TemporalEffect): Unit {
         log.add(
             CombatEvent.BuffRemoved(
                 actor.name,
@@ -355,9 +387,10 @@ fun processBuffs(state: BattleState, actor: Actor): BattleState {
 
     // decrement and remove expired
     actor.temporalEffects.replaceAll { it.decrement() }
-    actor.temporalEffects.filter { it.duration <= 0 }.forEach { logRemoved(it) }
+    actor.temporalEffects.filter { it.duration <= 0 }.forEach { logBuffRemoval(it) }
     actor.temporalEffects.removeAll { it.duration <= 0 }
 
+    // decrement cooldowns
     actor.cooldowns.replaceAll { _, v -> max(0, v - 1) }
 
     return state

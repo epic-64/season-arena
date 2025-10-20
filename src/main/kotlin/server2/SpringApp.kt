@@ -1,9 +1,11 @@
 package server2
 
-import game.compactJson
+import game.compact
 import game.exampleTeam1
 import game.exampleTeam2
 import game.simulateBattle
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.http.MediaType
@@ -30,7 +32,7 @@ class HelloController {
 class CombatController {
     @GetMapping("/combat/example", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun exampleCombat(): ResponseEntity<String> =
-        simulateBattle(exampleTeam1(), exampleTeam2())
-            .compactJson()
+        simulateBattle(exampleTeam1(), exampleTeam2()).events.compact()
+            .let { Json.encodeToString(this) }
             .let { ResponseEntity.ok(it) }
 }
