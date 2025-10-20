@@ -51,13 +51,6 @@ tasks.test {
     }
 }
 
-tasks.register<JavaExec>("simulateBattle") {
-    group = "application"
-    description = "Runs the GameMain main function"
-    classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("game.GameMainKt")
-}
-
 tasks.register<JavaExec>("generateJsDoc") {
     group = "documentation"
     description = "Generates JSDoc typedef file from Kotlin types"
