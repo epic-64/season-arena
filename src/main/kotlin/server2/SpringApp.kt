@@ -22,7 +22,7 @@ val counter = java.util.concurrent.atomic.AtomicLong()
 @RestController
 class HelloController {
     @GetMapping("/hello")
-    fun hello(): String = "Hello, World! The app has served ${counter.incrementAndGet()} requests."
+    fun hello(): String = "hello world"
 }
 
 @RestController
