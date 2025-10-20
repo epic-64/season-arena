@@ -64,7 +64,8 @@ tasks.register<JavaExec>("generateJsDoc") {
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("tools.GenerateJsDocKt")
 
-    args("--file", "game-model/src/commonMain/kotlin/game/CompactTypes.kt")
+    // Updated path after moving game-model into modules/
+    args("--file", "modules/game-model/src/commonMain/kotlin/game/CompactTypes.kt")
     args("--out", "frontend/generated/types.js")
 }
 

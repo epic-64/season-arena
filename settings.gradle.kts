@@ -18,3 +18,6 @@ pluginManagement {
 
 include(":kjs")
 include(":game-model")
+// Point logical project names to their new physical locations under modules/
+project(":kjs").projectDir = file("modules/kjs")
+project(":game-model").projectDir = file("modules/game-model")
