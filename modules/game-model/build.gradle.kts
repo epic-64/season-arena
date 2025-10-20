@@ -11,8 +11,7 @@ repositories {
 }
 
 kotlin {
-    jvm {
-    }
+    jvm {}
     js(IR) {
         browser()
     }
@@ -28,9 +27,5 @@ kotlin {
                 implementation(kotlin("test"))
             }
         }
-        val jvmMain by getting {}
-        val jvmTest by getting {}
-        val jsMain by getting {}
-        val jsTest by getting {}
     }
 }
