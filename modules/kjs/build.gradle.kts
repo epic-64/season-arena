@@ -24,16 +24,13 @@ kotlin {
     }
 }
 
-// Copies the compiled JS bundle into frontend/generated/kotlin for integration
-tasks.register<Copy>("copyJsToFrontend") {
-    dependsOn("jsBrowserProductionWebpack")
-    from(layout.buildDirectory.dir("kotlin-webpack/js/productionExecutable")) { include("kjs.js") }
-    into(rootProject.layout.projectDirectory.dir("frontend/generated/kotlin"))
-}
-
 // Copies the compiled JS bundle (and related files) into frontend-kotlin directory
 tasks.register<Copy>("copyKotlinFrontend") {
     dependsOn("jsBrowserProductionWebpack")
     from(layout.buildDirectory.dir("kotlin-webpack/js/productionExecutable")) { include("**/*") }
     into(rootProject.layout.projectDirectory.dir("frontend-kotlin"))
+}
+
+tasks.named("build") {
+    dependsOn(":kjs:copyKotlinFrontend")
 }
