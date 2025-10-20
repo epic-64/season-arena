@@ -4,6 +4,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 typealias Turns = Int
+typealias targetSelectionFn = (Actor, List<Actor>, List<Actor>) -> List<Actor>
+typealias ConditionFn = (Actor, List<Actor>, List<Actor>) -> Boolean
+typealias PriorityFn = (List<Actor>) -> List<Actor>
 
 @Serializable
 enum class BuffId(val label: String) {
@@ -60,8 +63,6 @@ data class SkillEffect(
     val targetRule: (Actor, List<Actor>, List<Actor>, List<Actor>) -> List<Actor> = { _, _, _, previous -> previous }
 )
 
-typealias targetSelectionFn = (Actor, List<Actor>, List<Actor>) -> List<Actor>
-
 data class Skill(
     val description: String,
     val name: String,
@@ -90,12 +91,6 @@ data class Amplifiers(
         else -> baseDamage
     }
 }
-
-typealias ConditionFn = (Actor, List<Actor>, List<Actor>) -> Boolean
-// TargetFn already declared as targetSelectionFn
-// Priority function ordering actors
-
-typealias PriorityFn = (List<Actor>) -> List<Actor>
 
 data class Tactic(
     val conditions: List<ConditionFn>,
@@ -166,7 +161,7 @@ data class Actor(
 ) : ResourceStats by statsBag {
     override fun setHp(value: Int) {
         statsBag.setHp(value)
-        
+
         if (!isAlive) {
             statsBag.setMana(0)
             temporalEffects.clear()
@@ -330,9 +325,6 @@ data class ActorDelta(
 data class BattleDelta(val actors: List<ActorDelta>) {
     companion object
 }
-
-fun ActorDelta.hasAnyChange(): Boolean =
-    listOf(hp, maxHp, mana, maxMana, stats, statBuffs, resourceTicks, statOverrides, cooldowns).any { it != null }
 
 @Serializable
 sealed class CompactCombatEvent {
